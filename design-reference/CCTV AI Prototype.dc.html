@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #eef1f7; }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #cbd3e0; border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #4338ca; }
+  a:hover { color: #312e81; }
+</style>
+</helmet>
+<div style="position:relative; height:100vh; width:100%; overflow:hidden; fontFamily:Archivo, sans-serif; color:#16213e; background:#eef1f7;">
+  <div style="position:absolute; top:-160px; left:-120px; width:520px; height:520px; borderRadius:50%; background:radial-gradient(circle, rgba(99,102,241,0.28), transparent 70%); filter:blur(10px); pointerEvents:none;"></div>
+  <div style="position:absolute; top:200px; right:-160px; width:560px; height:560px; borderRadius:50%; background:radial-gradient(circle, rgba(236,72,153,0.2), transparent 70%); filter:blur(10px); pointerEvents:none;"></div>
+  <div style="position:absolute; bottom:-200px; left:30%; width:600px; height:600px; borderRadius:50%; background:radial-gradient(circle, rgba(245,158,11,0.16), transparent 70%); filter:blur(10px); pointerEvents:none;"></div>
+
+  <div style="position:relative; display:flex; height:100%; width:100%; zIndex:1;">
+
+    <div style="width:232px; flexShrink:0; display:flex; flexDirection:column; background:rgba(11,28,77,0.85); backdropFilter:blur(20px); WebkitBackdropFilter:blur(20px); padding:20px 16px; boxShadow:4px 0 30px rgba(11,28,77,0.15);">
+      <div onClick="{{ backToDashboard }}" style="display:flex; alignItems:center; gap:10px; cursor:pointer; padding:4px 8px; marginBottom:28px;">
+        <div style="width:28px; height:28px; borderRadius:8px; background:linear-gradient(135deg, #6366f1, #ec4899); display:flex; alignItems:center; justifyContent:center; color:#ffffff; fontWeight:700; fontSize:14px;">✦</div>
+        <div style="display:flex; flexDirection:column; lineHeight:1.1;">
+          <div style="fontWeight:700; fontSize:15px; letterSpacing:0.2px; color:#ffffff;">CCTV AI</div>
+          <div style="fontSize:9px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1.2px; color:#9db1e0;">ASSISTANT</div>
+        </div>
+      </div>
+
+      <div onClick="{{ backToDashboard }}" style="display:flex; alignItems:center; gap:10px; padding:9px 12px; borderRadius:8px; cursor:pointer; background:{{ homeNavBg }}; color:{{ homeNavColor }}; fontSize:14px; fontWeight:500; marginBottom:2px;">
+        <span>Home / Search</span>
+      </div>
+      <div onClick="{{ goToSaved }}" style="display:flex; alignItems:center; gap:10px; padding:9px 12px; borderRadius:8px; cursor:pointer; background:{{ savedNavBg }}; color:{{ savedNavColor }}; fontSize:14px; fontWeight:500;">Saved Queries</div>
+      <div onClick="{{ goToReports }}" style="display:flex; alignItems:center; gap:10px; padding:9px 12px; borderRadius:8px; cursor:pointer; background:{{ reportsNavBg }}; color:{{ reportsNavColor }}; fontSize:14px; fontWeight:500;">Reports</div>
+      <div onClick="{{ goToPipeline }}" style="display:flex; alignItems:center; gap:10px; padding:9px 12px; borderRadius:8px; cursor:pointer; background:{{ pipelineNavBg }}; color:{{ pipelineNavColor }}; fontSize:14px; fontWeight:500;">Annotation Pipeline</div>
+      <div onClick="{{ openSettingsModal }}" style="display:flex; alignItems:center; gap:10px; padding:9px 12px; borderRadius:6px; cursor:pointer; color:#a9b7d6; fontSize:14px; fontWeight:500;">Settings</div>
+
+      <div style="flex:1;"></div>
+      <div style="borderTop:1px solid rgba(255,255,255,0.14); paddingTop:14px; display:flex; flexDirection:column; gap:2px;">
+        <div style="fontSize:12px; fontWeight:600; color:#c3cee6;">{{ selectedPrecinct }}</div>
+        <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; color:#7e8fbc;">Investigator · L. Ortiz</div>
+      </div>
+    </div>
+
+    <div style="flex:1; display:flex; flexDirection:column; minWidth:0; overflow-y:auto;">
+
+      <div style="height:64px; flexShrink:0; borderBottom:1px solid rgba(226,230,238,0.8); padding:0 32px; display:flex; alignItems:center; justifyContent:space-between; position:sticky; top:0; background:rgba(255,255,255,0.72); backdropFilter:blur(18px); WebkitBackdropFilter:blur(18px); zIndex:5;">
+        <div style="display:flex; alignItems:center; gap:14px;">
+          <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ backHandler }}" style="background:rgba(255,255,255,0.7); border:1px solid #e2e6ee; color:#5b6478; borderRadius:8px; padding:6px 12px; fontSize:13px; cursor:pointer; fontFamily:Archivo;">← Back</button>
+          </sc-if>
+          <div style="fontWeight:600; fontSize:15px;">{{ breadcrumbLabel }}</div>
+          <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+            <div style="fontFamily:'IBM Plex Mono', monospace; fontSize:12px; color:#5b6478;">{{ selectedClip.camera }} · {{ selectedClip.ts }}</div>
+          </sc-if>
+        </div>
+        <div onClick="{{ openCamerasModal }}" style="display:flex; alignItems:center; gap:8px; fontSize:12px; fontFamily:'IBM Plex Mono', monospace; color:#5b6478; cursor:pointer;">
+          <div style="width:7px; height:7px; borderRadius:50%; background:#4338ca;"></div>
+          Archived footage · 8 cameras indexed
+        </div>
+      </div>
+
+      <sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+        <div style="maxWidth:760px; width:100%; margin:0 auto; padding:48px 32px 60px;">
+          <div style="fontSize:24px; fontWeight:700; marginBottom:6px;">Saved Queries</div>
+          <div style="fontSize:14px; color:#5b6478; marginBottom:28px;">Bookmarked searches for quick re-run.</div>
+          <div style="display:flex; flexDirection:column; gap:12px;">
+            <sc-for list="{{ savedQueries }}" as="svq" hint-placeholder-count="4">
+              <div style="display:flex; justifyContent:space-between; alignItems:center; padding:16px 18px; background:rgba(255,255,255,0.65); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; boxShadow:0 8px 24px rgba(11,28,77,0.06);">
+                <div>
+                  <div style="fontSize:14px; color:#16213e; marginBottom:4px;">{{ svq.text }}</div>
+                  <div style="fontSize:12px; color:#8891a3; fontFamily:'IBM Plex Mono', monospace;">Saved {{ svq.savedOn }} · {{ svq.hits }} matches last run</div>
+                </div>
+                <button onClick="{{ svq.run }}" style="height:36px; padding:0 16px; background:linear-gradient(135deg, #6366f1, #4338ca); border:none; color:#ffffff; borderRadius:8px; fontSize:13px; cursor:pointer; fontFamily:Archivo; flexShrink:0; boxShadow:0 6px 16px rgba(67,56,202,0.3);">Run again</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+        <div style="maxWidth:900px; width:100%; margin:0 auto; padding:48px 32px 60px;">
+          <div style="fontSize:24px; fontWeight:700; marginBottom:6px;">Reports</div>
+          <div style="fontSize:14px; color:#5b6478; marginBottom:28px;">Generated activity summaries across the camera network.</div>
+          <div style="display:grid; gridTemplateColumns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; marginBottom:32px;">
+            <sc-for list="{{ reportStats }}" as="rs" hint-placeholder-count="4">
+              <div style="background:rgba(255,255,255,0.65); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; padding:18px; boxShadow:0 8px 24px rgba(11,28,77,0.06);">
+                <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:8px;">{{ rs.label }}</div>
+                <div style="fontSize:26px; fontWeight:700; color:#312e81;">{{ rs.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:12px;">RECENT REPORTS</div>
+          <div style="display:flex; flexDirection:column; gap:10px;">
+            <sc-for list="{{ reportList }}" as="rp" hint-placeholder-count="4">
+              <div style="display:flex; justifyContent:space-between; alignItems:center; padding:16px 18px; background:rgba(255,255,255,0.65); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; boxShadow:0 8px 24px rgba(11,28,77,0.06);">
+                <div>
+                  <div style="fontSize:14px; color:#16213e; marginBottom:4px;">{{ rp.title }}</div>
+                  <div style="fontSize:12px; color:#8891a3; fontFamily:'IBM Plex Mono', monospace;">{{ rp.range }} · {{ rp.cameras }} cameras</div>
+                </div>
+                <div style="fontSize:12px; color:#5b6478; fontFamily:'IBM Plex Mono', monospace; flexShrink:0;">{{ rp.generatedOn }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPipeline }}" hint-placeholder-val="{{ false }}">
+        <div style="maxWidth:1040px; width:100%; margin:0 auto; padding:48px 32px 60px;">
+          <div style="fontSize:24px; fontWeight:700; marginBottom:6px;">Video Annotation Pipeline</div>
+          <div style="fontSize:14px; color:#5b6478; marginBottom:28px;">Feed camera footage without annotations through a captioning/detection model to prepare it for semantic search.</div>
+
+          <div style="display:grid; gridTemplateColumns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; marginBottom:28px;">
+            <sc-for list="{{ pipelineStats }}" as="ps" hint-placeholder-count="4">
+              <div style="background:rgba(255,255,255,0.65); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; padding:16px; boxShadow:0 8px 24px rgba(11,28,77,0.06);">
+                <div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:6px;">{{ ps.label }}</div>
+                <div style="fontSize:22px; fontWeight:700; color:#312e81;">{{ ps.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="position:relative; background:rgba(255,255,255,0.7); backdropFilter:blur(20px); border:1px solid rgba(255,255,255,0.7); borderRadius:16px; padding:24px; marginBottom:32px; boxShadow:0 16px 40px rgba(99,102,241,0.1); overflow:hidden;">
+            <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);"></div>
+            <div style="fontSize:15px; fontWeight:600; marginBottom:16px;">Submit footage for annotation</div>
+
+            <div style="border:2px dashed #c7cee6; borderRadius:12px; padding:26px; textAlign:center; marginBottom:20px; background:rgba(238,240,254,0.4);">
+              <div style="fontSize:14px; color:#33405c; marginBottom:4px;">Drop a video file here, or browse</div>
+              <div style="fontSize:12px; color:#8891a3;">MP4, MOV, AVI · full recording or a trimmed clip · {{ uploadFileLabel }}</div>
+            </div>
+
+            <div style="display:grid; gridTemplateColumns:1fr 1fr; gap:20px; marginBottom:18px;">
+              <div>
+                <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Source camera</div>
+                <select onChange="{{ setUploadCamera }}" value="{{ uploadCamera }}" style="width:100%; height:40px; background:#ffffff; border:1px solid #d7dce6; borderRadius:8px; padding:0 10px; fontSize:13px; fontFamily:Archivo; color:#16213e;">
+                  <sc-for list="{{ cameraNamesList }}" as="cn" hint-placeholder-count="8">
+                    <option value="{{ cn }}">{{ cn }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <div>
+                <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Scope</div>
+                <div style="display:flex; gap:8px;">
+                  <button onClick="{{ setScopeFull }}" style="flex:1; height:40px; borderRadius:8px; fontSize:13px; cursor:pointer; fontFamily:Archivo; background:{{ scopeFullBg }}; color:{{ scopeFullColor }}; border:1px solid {{ scopeFullBorder }};">Full recording</button>
+                  <button onClick="{{ setScopeClip }}" style="flex:1; height:40px; borderRadius:8px; fontSize:13px; cursor:pointer; fontFamily:Archivo; background:{{ scopeClipBg }}; color:{{ scopeClipColor }}; border:1px solid {{ scopeClipBorder }};">Trimmed clip</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="marginBottom:18px;">
+              <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Annotation model</div>
+              <div style="display:flex; flexWrap:wrap; gap:8px;">
+                <sc-for list="{{ modelOptions }}" as="md" hint-placeholder-count="6">
+                  <button onClick="{{ md.select }}" style="padding:8px 14px; borderRadius:16px; fontSize:12px; cursor:pointer; fontFamily:'IBM Plex Mono', monospace; background:{{ md.bg }}; color:{{ md.color }}; border:1px solid {{ md.border }};">{{ md.name }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:grid; gridTemplateColumns:1fr 1fr; gap:20px; marginBottom:22px; alignItems:end;">
+              <div>
+                <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Execution target</div>
+                <div style="display:flex; gap:8px;">
+                  <button onClick="{{ setTargetLocal }}" style="flex:1; height:40px; borderRadius:8px; fontSize:13px; cursor:pointer; fontFamily:Archivo; background:{{ targetLocalBg }}; color:{{ targetLocalColor }}; border:1px solid {{ targetLocalBorder }};">Local model</button>
+                  <button onClick="{{ setTargetRemote }}" style="flex:1; height:40px; borderRadius:8px; fontSize:13px; cursor:pointer; fontFamily:Archivo; background:{{ targetRemoteBg }}; color:{{ targetRemoteColor }}; border:1px solid {{ targetRemoteBorder }};">Remote endpoint</button>
+                </div>
+              </div>
+              <sc-if value="{{ isRemoteTarget }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Endpoint URL</div>
+                  <input value="{{ remoteEndpoint }}" onChange="{{ setRemoteEndpoint }}" placeholder="https://inference.internal/annotate" style="width:100%; height:40px; background:#ffffff; border:1px solid #d7dce6; borderRadius:8px; padding:0 12px; fontSize:13px; fontFamily:'IBM Plex Mono', monospace; color:#16213e;" />
+                </div>
+              </sc-if>
+            </div>
+
+            <button onClick="{{ submitAnnotationJob }}" style="width:100%; height:48px; background:linear-gradient(135deg, #4338ca, #6366f1); color:#ffffff; border:none; borderRadius:10px; fontWeight:600; cursor:pointer; fontFamily:Archivo; fontSize:14px; boxShadow:0 12px 28px rgba(67,56,202,0.3);">Start Annotation</button>
+          </div>
+
+          <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:12px;">PIPELINE QUEUE</div>
+          <div style="display:flex; flexDirection:column; gap:10px;">
+            <sc-for list="{{ pipelineJobs }}" as="job" hint-placeholder-count="4">
+              <div style="display:flex; alignItems:center; gap:16px; padding:14px 18px; background:rgba(255,255,255,0.65); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; boxShadow:0 6px 18px rgba(11,28,77,0.05);">
+                <div style="width:8px; height:8px; borderRadius:50%; background:{{ job.statusColor }}; flexShrink:0;"></div>
+                <div style="flex:1; minWidth:0;">
+                  <div style="fontSize:13px; fontWeight:600; color:#16213e; marginBottom:2px;">{{ job.filename }}</div>
+                  <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; color:#8891a3;">{{ job.camera }} · {{ job.duration }} · {{ job.model }} · {{ job.target }}</div>
+                </div>
+                <div style="width:140px; flexShrink:0;">
+                  <div style="height:6px; borderRadius:3px; background:#e2e6ee; overflow:hidden;">
+                    <div style="height:6px; width:{{ job.progress }}%; background:linear-gradient(90deg, #6366f1, #ec4899); borderRadius:3px;"></div>
+                  </div>
+                </div>
+                <div style="fontSize:12px; fontFamily:'IBM Plex Mono', monospace; color:{{ job.statusColor }}; width:88px; textAlign:right; flexShrink:0;">{{ job.statusLabel }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1; display:flex; flexDirection:column; alignItems:center; justifyContent:center; padding:40px 32px 60px; minHeight:calc(100vh - 64px);">
+          <div style="width:100%; maxWidth:680px; display:flex; flexDirection:column; alignItems:center;">
+            <div style="fontSize:34px; fontWeight:700; marginBottom:10px; textAlign:center; color:#0b1c4d;">Query your camera network</div>
+            <div style="fontSize:15px; color:#5b6478; marginBottom:8px; textAlign:center;">{{ modeHint }}</div>
+            <div onClick="{{ openSettingsModal }}" style="fontSize:12px; color:#4338ca; cursor:pointer; marginBottom:36px;">{{ modeLabel }} · change in settings</div>
+
+            <div style="width:100%; position:relative;">
+              <div style="display:flex; gap:10px; alignItems:center;">
+                <input value="{{ queryText }}" onChange="{{ setQuery }}" onKeyDown="{{ onQueryKeyDown }}" placeholder="Ask anything… e.g. anyone who entered after the red car arrived" style="flex:1; height:64px; background:rgba(255,255,255,0.75); backdropFilter:blur(18px); border:1px solid rgba(255,255,255,0.7); borderRadius:18px; padding:0 22px; color:#16213e; fontSize:16px; fontFamily:Archivo; boxShadow:0 16px 40px rgba(99,102,241,0.15);" />
+                <button onClick="{{ runSearch }}" style="height:64px; padding:0 30px; flexShrink:0; background:linear-gradient(135deg, #4338ca, #6366f1); color:#ffffff; border:none; borderRadius:18px; fontWeight:600; fontSize:15px; cursor:pointer; fontFamily:Archivo; boxShadow:0 14px 30px rgba(67,56,202,0.35);">Search</button>
+                <sc-if value="{{ isClassicMode }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ toggleFiltersModal }}" style="height:64px; width:64px; flexShrink:0; background:rgba(255,255,255,0.75); backdropFilter:blur(18px); border:1px solid rgba(255,255,255,0.7); borderRadius:18px; color:#5b6478; cursor:pointer; fontSize:13px; fontFamily:'IBM Plex Mono', monospace;">Filters</button>
+                </sc-if>
+              </div>
+
+              <sc-if value="{{ hasDetectedKeywords }}" hint-placeholder-val="{{ false }}">
+                <div style="marginTop:14px; display:flex; flexWrap:wrap; gap:8px;">
+                  <sc-for list="{{ detectedKeywords }}" as="kw" hint-placeholder-count="0">
+                    <div style="position:relative;">
+                      <div onClick="{{ kw.toggleDropdown }}" style="display:flex; alignItems:center; gap:6px; padding:7px 12px; borderRadius:20px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.35); fontSize:12px; color:#4338ca; cursor:pointer; fontFamily:'IBM Plex Mono', monospace;">
+                        <span style="width:5px; height:5px; borderRadius:50%; background:#4338ca;"></span>{{ kw.label }}
+                      </div>
+                      <sc-if value="{{ kw.dropdownOpen }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute; top:calc(100% + 6px); left:0; minWidth:210px; background:rgba(255,255,255,0.9); backdropFilter:blur(20px); border:1px solid rgba(255,255,255,0.7); borderRadius:10px; padding:8px; zIndex:20; boxShadow:0 16px 40px rgba(67,56,202,0.2);">
+                          <div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; padding:4px 8px 8px;">{{ kw.dropdownTitle }}</div>
+                          <sc-for list="{{ kw.options }}" as="opt" hint-placeholder-count="3">
+                            <div onClick="{{ opt.select }}" style="padding:8px 10px; borderRadius:6px; fontSize:13px; color:{{ opt.color }}; cursor:pointer; background:{{ opt.bg }};">{{ opt.label }}</div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ hasActiveFilters }}" hint-placeholder-val="{{ false }}">
+              <div style="marginTop:18px; display:flex; flexWrap:wrap; gap:8px; justifyContent:center;">
+                <sc-for list="{{ activeFilterChips }}" as="chip" hint-placeholder-count="0">
+                  <div onClick="{{ chip.remove }}" style="display:flex; alignItems:center; gap:6px; padding:5px 10px; borderRadius:14px; background:rgba(255,255,255,0.7); border:1px solid #e2e6ee; fontSize:12px; color:#5b6478; cursor:pointer; fontFamily:'IBM Plex Mono', monospace;">{{ chip.label }} <span style="color:#8891a3;">×</span></div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <div style="width:100%; marginTop:56px;">
+              <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:12px;">RECENT QUERIES</div>
+              <div style="display:flex; flexDirection:column; gap:10px;">
+                <sc-for list="{{ recentQueries }}" as="rq" hint-placeholder-count="3">
+                  <div onClick="{{ rq.use }}" style="display:flex; justifyContent:space-between; alignItems:center; padding:14px 16px; background:rgba(255,255,255,0.65); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; cursor:pointer; boxShadow:0 6px 18px rgba(11,28,77,0.05);">
+                    <div style="fontSize:14px; color:#16213e;">{{ rq.text }}</div>
+                    <div style="fontSize:12px; fontFamily:'IBM Plex Mono', monospace; color:#8891a3;">{{ rq.ts }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showFiltersModal }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeFiltersModal }}" style="position:fixed; inset:0; background:rgba(11,28,77,0.35); backdropFilter:blur(4px); zIndex:50; display:flex; alignItems:center; justifyContent:center;">
+          <div onClick="{{ stopPropagation }}" style="width:520px; maxWidth:90vw; maxHeight:80vh; overflowY:auto; background:rgba(255,255,255,0.9); backdropFilter:blur(24px); border:1px solid rgba(255,255,255,0.7); borderRadius:16px; padding:26px; boxShadow:0 30px 80px rgba(67,56,202,0.25);">
+            <div style="display:flex; justifyContent:space-between; alignItems:center; marginBottom:22px;">
+              <div style="fontSize:17px; fontWeight:600;">Filters</div>
+              <div onClick="{{ closeFiltersModal }}" style="cursor:pointer; color:#8891a3; fontSize:18px;">×</div>
+            </div>
+
+            <div style="marginBottom:20px;">
+              <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Cameras</div>
+              <div style="display:flex; flexWrap:wrap; gap:8px;">
+                <sc-for list="{{ cameraList }}" as="cam" hint-placeholder-count="8">
+                  <button onClick="{{ cam.toggle }}" style="padding:6px 12px; borderRadius:16px; fontSize:12px; cursor:pointer; fontFamily:'IBM Plex Mono', monospace; background:{{ cam.bg }}; color:{{ cam.color }}; border:1px solid {{ cam.border }};">{{ cam.name }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:20px; marginBottom:20px; flexWrap:wrap;">
+              <div>
+                <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">From</div>
+                <input type="datetime-local" value="{{ filters.dateFrom }}" onChange="{{ setDateFrom }}" style="background:#ffffff; border:1px solid #d7dce6; borderRadius:6px; padding:8px 10px; color:#16213e; fontSize:13px; fontFamily:'IBM Plex Mono', monospace;" />
+              </div>
+              <div>
+                <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">To</div>
+                <input type="datetime-local" value="{{ filters.dateTo }}" onChange="{{ setDateTo }}" style="background:#ffffff; border:1px solid #d7dce6; borderRadius:6px; padding:8px 10px; color:#16213e; fontSize:13px; fontFamily:'IBM Plex Mono', monospace;" />
+              </div>
+              <div style="flex:1; minWidth:180px;">
+                <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Min. Confidence — {{ filters.confidence }}%</div>
+                <input type="range" min="0" max="100" value="{{ filters.confidence }}" onChange="{{ setConfidence }}" style="width:100%; accentColor:#4338ca;" />
+              </div>
+            </div>
+
+            <div style="marginBottom:8px;">
+              <div style="fontSize:12px; color:#5b6478; marginBottom:8px;">Event type</div>
+              <div style="display:flex; flexWrap:wrap; gap:8px;">
+                <sc-for list="{{ tagList }}" as="tg" hint-placeholder-count="6">
+                  <button onClick="{{ tg.toggle }}" style="padding:6px 12px; borderRadius:16px; fontSize:12px; cursor:pointer; fontFamily:Archivo; background:{{ tg.bg }}; color:{{ tg.color }}; border:1px solid {{ tg.border }};">{{ tg.name }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <button onClick="{{ closeFiltersModal }}" style="marginTop:18px; width:100%; height:46px; background:linear-gradient(135deg, #4338ca, #6366f1); color:#ffffff; border:none; borderRadius:10px; fontWeight:600; cursor:pointer; fontFamily:Archivo; fontSize:14px; boxShadow:0 10px 26px rgba(67,56,202,0.3);">Apply filters</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showSettingsModal }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSettingsModal }}" style="position:fixed; inset:0; background:rgba(11,28,77,0.35); backdropFilter:blur(4px); zIndex:50; display:flex; alignItems:center; justifyContent:center;">
+          <div onClick="{{ stopPropagation }}" style="width:440px; maxWidth:90vw; background:rgba(255,255,255,0.9); backdropFilter:blur(24px); border:1px solid rgba(255,255,255,0.7); borderRadius:16px; padding:26px; boxShadow:0 30px 80px rgba(67,56,202,0.25);">
+            <div style="display:flex; justifyContent:space-between; alignItems:center; marginBottom:20px;">
+              <div style="fontSize:17px; fontWeight:600;">Search settings</div>
+              <div onClick="{{ closeSettingsModal }}" style="cursor:pointer; color:#8891a3; fontSize:18px;">×</div>
+            </div>
+            <div style="fontSize:12px; color:#5b6478; marginBottom:14px;">Choose how you search the camera network.</div>
+            <div onClick="{{ setNlqMode }}" style="display:flex; gap:12px; alignItems:flex-start; padding:14px; borderRadius:10px; border:1px solid {{ nlqOptionBorder }}; background:{{ nlqOptionBg }}; cursor:pointer; marginBottom:10px;">
+              <div style="width:16px; height:16px; borderRadius:50%; border:2px solid #4338ca; marginTop:2px; flexShrink:0; display:flex; alignItems:center; justifyContent:center;">
+                <sc-if value="{{ isNlqMode }}" hint-placeholder-val="{{ true }}"><div style="width:8px; height:8px; borderRadius:50%; background:#4338ca;"></div></sc-if>
+              </div>
+              <div>
+                <div style="fontSize:14px; fontWeight:600; marginBottom:3px;">Natural language query</div>
+                <div style="fontSize:12px; color:#5b6478;">Type freely — the assistant detects keywords and surfaces filters inline as you type.</div>
+              </div>
+            </div>
+            <div onClick="{{ setClassicMode }}" style="display:flex; gap:12px; alignItems:flex-start; padding:14px; borderRadius:10px; border:1px solid {{ classicOptionBorder }}; background:{{ classicOptionBg }}; cursor:pointer;">
+              <div style="width:16px; height:16px; borderRadius:50%; border:2px solid #4338ca; marginTop:2px; flexShrink:0; display:flex; alignItems:center; justifyContent:center;">
+                <sc-if value="{{ isClassicMode }}" hint-placeholder-val="{{ false }}"><div style="width:8px; height:8px; borderRadius:50%; background:#4338ca;"></div></sc-if>
+              </div>
+              <div>
+                <div style="fontSize:14px; fontWeight:600; marginBottom:3px;">Classic filters</div>
+                <div style="fontSize:12px; color:#5b6478;">Use the Filters button to set camera, date range, confidence and event type manually.</div>
+              </div>
+            </div>
+
+            <div style="marginTop:22px; paddingTop:18px; borderTop:1px solid #e2e6ee;">
+              <div style="fontSize:12px; color:#5b6478; marginBottom:10px;">Precinct — which camera network you're querying.</div>
+              <div style="display:flex; flexWrap:wrap; gap:8px;">
+                <sc-for list="{{ precinctOptions }}" as="pr" hint-placeholder-count="3">
+                  <button onClick="{{ pr.select }}" style="padding:8px 14px; borderRadius:10px; fontSize:13px; cursor:pointer; fontFamily:Archivo; background:{{ pr.bg }}; color:{{ pr.color }}; border:1px solid {{ pr.border }};">{{ pr.name }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showCamerasModal }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeCamerasModal }}" style="position:fixed; inset:0; background:rgba(11,28,77,0.35); backdropFilter:blur(4px); zIndex:50; display:flex; alignItems:center; justifyContent:center;">
+          <div onClick="{{ stopPropagation }}" style="width:480px; maxWidth:90vw; maxHeight:80vh; overflowY:auto; background:rgba(255,255,255,0.92); backdropFilter:blur(24px); border:1px solid rgba(255,255,255,0.7); borderRadius:16px; padding:26px; boxShadow:0 30px 80px rgba(67,56,202,0.25);">
+            <div style="display:flex; justifyContent:space-between; alignItems:center; marginBottom:6px;">
+              <div style="fontSize:17px; fontWeight:600;">Indexed Cameras</div>
+              <div onClick="{{ closeCamerasModal }}" style="cursor:pointer; color:#8891a3; fontSize:18px;">×</div>
+            </div>
+            <div style="fontSize:12px; color:#5b6478; marginBottom:18px;">{{ selectedPrecinct }} · archived footage sources, not a live feed.</div>
+            <div style="display:flex; flexDirection:column; gap:1px; border:1px solid #e2e6ee; borderRadius:10px; overflow:hidden; background:#e2e6ee;">
+              <sc-for list="{{ cameraDirectory }}" as="cd" hint-placeholder-count="8">
+                <div style="display:flex; justifyContent:space-between; alignItems:center; padding:12px 16px; background:#ffffff;">
+                  <div>
+                    <div style="fontSize:13px; fontWeight:600; fontFamily:'IBM Plex Mono', monospace; color:#16213e;">{{ cd.code }}</div>
+                    <div style="fontSize:12px; color:#8891a3;">{{ cd.perspective }}</div>
+                  </div>
+                  <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; color:#4338ca; background:#eef0fe; borderRadius:6px; padding:3px 8px;">{{ cd.eventCount }} events</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isResults }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; gridTemplateColumns:1fr 360px; gap:22px; padding:28px 32px 60px; alignItems:start;">
+          <div style="minWidth:0;">
+            <div style="marginBottom:6px; fontSize:18px; color:#16213e;">"<span style="fontStyle:italic;">{{ queryText }}</span>"</div>
+            <div style="display:flex; alignItems:center; justifyContent:space-between; marginBottom:22px; flexWrap:wrap; gap:14px;">
+              <div style="display:flex; alignItems:center; gap:10px; flexWrap:wrap;">
+                <div style="fontSize:13px; color:#5b6478;">{{ resultCount }} matches</div>
+                <sc-for list="{{ activeFilterChips }}" as="chip" hint-placeholder-count="0">
+                  <div onClick="{{ chip.remove }}" style="display:flex; alignItems:center; gap:6px; padding:5px 10px; borderRadius:14px; background:#ffffff; border:1px solid #d7dce6; fontSize:12px; color:#5b6478; cursor:pointer; fontFamily:'IBM Plex Mono', monospace;">{{ chip.label }} <span style="color:#8891a3;">×</span></div>
+                </sc-for>
+              </div>
+              <div style="display:flex; background:#ffffff; border:1px solid #d7dce6; borderRadius:10px; padding:3px;">
+                <button onClick="{{ setGridView }}" style="padding:6px 16px; borderRadius:6px; border:none; cursor:pointer; fontSize:13px; fontFamily:Archivo; background:{{ gridBtnBg }}; color:{{ gridBtnColor }};">Grid</button>
+                <button onClick="{{ setTimelineView }}" style="padding:6px 16px; borderRadius:6px; border:none; cursor:pointer; fontSize:13px; fontFamily:Archivo; background:{{ timelineBtnBg }}; color:{{ timelineBtnColor }};">Timeline</button>
+              </div>
+            </div>
+
+            <sc-if value="{{ isGridMode }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid; gridTemplateColumns:repeat(auto-fill, minmax(260px, 1fr)); gap:18px;">
+                <sc-for list="{{ filteredClips }}" as="clip" hint-placeholder-count="8">
+                  <div onClick="{{ clip.openDetail }}" style="background:rgba(255,255,255,0.7); backdropFilter:blur(14px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; overflow:hidden; cursor:pointer; boxShadow:0 8px 22px rgba(11,28,77,0.07);">
+                    <div style="position:relative; height:150px; backgroundImage:url({{ clip.thumbUrl }}); backgroundSize:cover; backgroundPosition:center; filter:grayscale(0.55) contrast(1.05) brightness(0.85);">
+                      <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,28,77,0.05), rgba(11,28,77,0.35));"></div>
+                      <div style="position:absolute; top:8px; left:8px; background:rgba(11,28,77,0.75); borderRadius:4px; padding:3px 7px; fontSize:10px; fontFamily:'IBM Plex Mono', monospace; color:#ffffff; filter:none;">{{ clip.code }}</div>
+                      <div style="position:absolute; top:8px; right:8px; background:#ffffff; border:1px solid {{ clip.confColor }}; borderRadius:4px; padding:3px 7px; fontSize:10px; fontFamily:'IBM Plex Mono', monospace; color:{{ clip.confColor }}; filter:none;">{{ clip.confidence }}%</div>
+                    </div>
+                    <div style="padding:13px 14px;">
+                      <div style="fontWeight:600; fontSize:14px; marginBottom:4px;">{{ clip.action }}</div>
+                      <div style="fontFamily:'IBM Plex Mono', monospace; fontSize:12px; color:#8891a3; marginBottom:8px;">{{ clip.camera }} · {{ clip.ts }}</div>
+                      <div style="fontSize:12px; color:#5b6478; marginBottom:10px;">{{ clip.objects }}</div>
+                      <div onClick="{{ clip.openDetail }}" style="fontSize:12px; color:#4338ca; cursor:pointer;">View detail →</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isTimelineMode }}" hint-placeholder-val="{{ false }}">
+              <div style="position:relative; paddingLeft:18px;">
+                <div style="position:absolute; left:4px; top:6px; bottom:6px; width:2px; background:#d7dce6;"></div>
+                <div style="display:flex; flexDirection:column; gap:14px;">
+                  <sc-for list="{{ filteredClips }}" as="clip" hint-placeholder-count="8">
+                    <div onClick="{{ clip.openDetail }}" style="position:relative; display:flex; alignItems:center; gap:16px; cursor:pointer; background:rgba(255,255,255,0.7); backdropFilter:blur(14px); border:1px solid rgba(255,255,255,0.6); borderRadius:10px; padding:12px 16px; boxShadow:0 8px 22px rgba(11,28,77,0.07);">
+                      <div style="position:absolute; left:-18px; width:9px; height:9px; borderRadius:50%; background:{{ clip.confColor }};"></div>
+                      <div style="width:88px; height:56px; flexShrink:0; backgroundImage:url({{ clip.thumbUrl }}); backgroundSize:cover; backgroundPosition:center; filter:grayscale(0.55) contrast(1.05) brightness(0.85); borderRadius:6px;"></div>
+                      <div style="fontFamily:'IBM Plex Mono', monospace; fontSize:13px; color:#5b6478; width:82px; flexShrink:0;">{{ clip.ts }}</div>
+                      <div style="flex:1; minWidth:0;">
+                        <div style="fontWeight:600; fontSize:14px;">{{ clip.action }}</div>
+                        <div style="fontSize:12px; color:#8891a3;">{{ clip.camera }} · {{ clip.objects }}</div>
+                      </div>
+                      <div style="fontFamily:'IBM Plex Mono', monospace; fontSize:12px; color:{{ clip.confColor }}; flexShrink:0;">{{ clip.confidence }}%</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="position:relative; background:rgba(255,255,255,0.68); backdropFilter:blur(28px); WebkitBackdropFilter:blur(28px); border:1px solid rgba(255,255,255,0.7); borderRadius:18px; display:flex; flexDirection:column; height:calc(100vh - 132px); position:sticky; top:0; boxShadow:0 24px 60px rgba(99,102,241,0.18), 0 8px 20px rgba(236,72,153,0.08); overflow:hidden;">
+            <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);"></div>
+            <div style="padding:16px 18px; borderBottom:1px solid rgba(226,230,238,0.7); display:flex; alignItems:center; gap:8px;">
+              <div style="width:22px; height:22px; borderRadius:7px; background:linear-gradient(135deg, #6366f1, #ec4899); display:flex; alignItems:center; justifyContent:center; color:#ffffff; fontSize:12px;">✦</div>
+              <div style="fontWeight:600; fontSize:14px;">Query Assistant</div>
+              <button onClick="{{ resetResultsChat }}" style="marginLeft:auto; background:rgba(255,255,255,0.7); border:1px solid #e2e6ee; borderRadius:20px; padding:5px 12px; fontSize:11px; color:#5b6478; cursor:pointer; fontFamily:Archivo;">+ New</button>
+            </div>
+
+            <div style="flex:1; overflowY:auto; padding:16px 18px; display:flex; flexDirection:column; gap:12px;">
+              <sc-if value="{{ resultsChatIsEmpty }}" hint-placeholder-val="{{ true }}">
+                <div style="fontSize:12px; color:#8891a3; marginBottom:4px;">Suggested questions</div>
+                <sc-for list="{{ resultsSuggestedQuestions }}" as="sq" hint-placeholder-count="4">
+                  <button onClick="{{ sq.ask }}" style="text-align:left; background:rgba(255,255,255,0.6); border:1px solid rgba(99,102,241,0.2); borderRadius:8px; padding:10px 12px; fontSize:13px; color:#33405c; cursor:pointer; fontFamily:Archivo;">{{ sq.text }}</button>
+                </sc-for>
+              </sc-if>
+              <sc-for list="{{ resultsChat }}" as="msg" hint-placeholder-count="0">
+                <div style="display:flex; flexDirection:column; alignItems:{{ msg.align }};">
+                  <div style="max-width:88%; background:{{ msg.bg }}; color:{{ msg.color }}; border:1px solid {{ msg.border }}; borderRadius:10px; padding:10px 12px; fontSize:13px; lineHeight:1.4;">{{ msg.text }}</div>
+                  <sc-if value="{{ msg.hasLink }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ msg.linkAction }}" style="marginTop:5px; background:transparent; border:none; color:#4338ca; fontSize:12px; cursor:pointer; padding:0; fontFamily:Archivo;">{{ msg.linkLabel }} →</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="padding:12px 14px; borderTop:1px solid rgba(226,230,238,0.7); display:flex; gap:8px;">
+              <input value="{{ draftQuestion }}" onChange="{{ setDraftQuestion }}" onKeyDown="{{ onResultsDraftKeyDown }}" placeholder="Ask a follow-up question…" style="flex:1; background:rgba(255,255,255,0.7); border:1px solid #e2e6ee; borderRadius:8px; padding:9px 12px; color:#16213e; fontSize:13px; fontFamily:Archivo;" />
+              <button onClick="{{ sendResultsQuestion }}" style="width:36px; height:36px; flexShrink:0; background:linear-gradient(135deg, #6366f1, #ec4899); color:#ffffff; border:none; borderRadius:8px; cursor:pointer; fontSize:15px; boxShadow:0 6px 16px rgba(99,102,241,0.35);">→</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; gridTemplateColumns:1fr 360px; gap:22px; padding:26px 32px 60px; alignItems:start;">
+          <div style="display:flex; flexDirection:column; gap:18px; minWidth:0;">
+
+            <div style="background:rgba(255,255,255,0.7); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; overflow:hidden; boxShadow:0 8px 22px rgba(11,28,77,0.07);">
+              <div style="position:relative; aspectRatio:16/9; backgroundImage:url({{ selectedClip.thumbUrl }}); backgroundSize:cover; backgroundPosition:center; display:flex; alignItems:center; justifyContent:center;">
+                <div style="position:absolute; inset:0; filter:grayscale(0.5) contrast(1.05) brightness(0.8); backgroundImage:url({{ selectedClip.thumbUrl }}); backgroundSize:cover; backgroundPosition:center;"></div>
+                <div style="position:absolute; top:14px; left:14px; background:rgba(11,28,77,0.7); borderRadius:6px; padding:4px 9px; fontSize:11px; fontFamily:'IBM Plex Mono', monospace; color:#ffffff; zIndex:1; maxWidth:45%; overflow:hidden; whiteSpace:nowrap; textOverflow:ellipsis;">{{ selectedClip.camera }}</div>
+                <div style="position:absolute; top:14px; right:14px; background:rgba(11,28,77,0.7); borderRadius:6px; padding:4px 9px; fontSize:11px; fontFamily:'IBM Plex Mono', monospace; color:#ffffff; zIndex:1; maxWidth:45%; overflow:hidden; whiteSpace:nowrap; textOverflow:ellipsis;">{{ selectedClip.date }} · {{ selectedClip.ts }}</div>
+                <div style="width:60px; height:60px; borderRadius:50%; background:rgba(255,255,255,0.85); border:1px solid #4338ca; color:#4338ca; display:flex; alignItems:center; justifyContent:center; fontSize:22px; cursor:pointer; zIndex:1;">▶</div>
+                <div style="position:absolute; left:0; right:0; bottom:0; padding:12px 16px; background:linear-gradient(transparent, rgba(11,28,77,0.85)); display:flex; alignItems:center; gap:12px; zIndex:1;">
+                  <div style="fontSize:14px; color:#ffffff; cursor:pointer;">▶</div>
+                  <div style="flex:1; height:4px; background:rgba(255,255,255,0.3); borderRadius:2px; position:relative;">
+                    <div style="width:32%; height:4px; background:linear-gradient(90deg, #6366f1, #ec4899); borderRadius:2px;"></div>
+                  </div>
+                  <div style="fontFamily:'IBM Plex Mono', monospace; fontSize:11px; color:#e2e6ee;">00:14 / 00:41</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.7); backdropFilter:blur(16px); border:1px solid rgba(255,255,255,0.6); borderRadius:12px; padding:20px 22px; boxShadow:0 8px 22px rgba(11,28,77,0.07);">
+              <div style="display:grid; gridTemplateColumns:1fr 1fr; gap:18px 24px;">
+                <div><div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:5px;">TIMESTAMP</div><div style="fontSize:14px; fontFamily:'IBM Plex Mono', monospace;">{{ selectedClip.date }} · {{ selectedClip.ts }}</div></div>
+                <div><div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:5px;">CAMERA</div><div style="fontSize:14px;">{{ selectedClip.camera }} ({{ selectedClip.code }})</div></div>
+                <div><div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:5px;">PERSPECTIVE</div><div style="fontSize:14px;">{{ selectedClip.perspective }}</div></div>
+                <div><div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:5px;">ACTION TYPE</div><div style="fontSize:14px;">{{ selectedClip.action }}</div></div>
+                <div><div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:5px;">OBJECTS DETECTED</div><div style="fontSize:14px;">{{ selectedClip.objects }}</div></div>
+                <div><div style="fontSize:10px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:5px;">CONFIDENCE</div><div style="fontSize:14px; fontFamily:'IBM Plex Mono', monospace; color:{{ selectedClip.confColor }};">{{ selectedClip.confidence }}%</div></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; letterSpacing:1px; color:#8891a3; marginBottom:10px;">RELATED CLIPS</div>
+              <div style="display:flex; gap:12px; overflowX:auto; paddingBottom:4px;">
+                <sc-for list="{{ relatedClips }}" as="rc" hint-placeholder-count="4">
+                  <div onClick="{{ rc.jumpTo }}" style="flexShrink:0; width:160px; cursor:pointer; background:rgba(255,255,255,0.7); backdropFilter:blur(14px); border:1px solid rgba(255,255,255,0.6); borderRadius:8px; overflow:hidden; boxShadow:0 6px 18px rgba(11,28,77,0.06);">
+                    <div style="height:88px; backgroundImage:url({{ rc.thumbUrl }}); backgroundSize:cover; backgroundPosition:center; filter:grayscale(0.55) contrast(1.05) brightness(0.85);"></div>
+                    <div style="padding:8px 10px;">
+                      <div style="fontSize:12px; fontWeight:600;">{{ rc.action }}</div>
+                      <div style="fontSize:11px; fontFamily:'IBM Plex Mono', monospace; color:#8891a3;">{{ rc.ts }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="position:relative; background:rgba(255,255,255,0.68); backdropFilter:blur(28px); WebkitBackdropFilter:blur(28px); border:1px solid rgba(255,255,255,0.7); borderRadius:18px; display:flex; flexDirection:column; height:calc(100vh - 116px); position:sticky; top:0; boxShadow:0 24px 60px rgba(99,102,241,0.18), 0 8px 20px rgba(236,72,153,0.08); overflow:hidden;">
+            <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);"></div>
+            <div style="padding:16px 18px; borderBottom:1px solid rgba(226,230,238,0.7); display:flex; alignItems:center; gap:8px;">
+              <div style="width:22px; height:22px; borderRadius:7px; background:linear-gradient(135deg, #6366f1, #ec4899); display:flex; alignItems:center; justifyContent:center; color:#ffffff; fontSize:12px;">✦</div>
+              <div style="fontWeight:600; fontSize:14px;">Query Assistant</div>
+              <button onClick="{{ resetClipChat }}" style="marginLeft:auto; background:rgba(255,255,255,0.7); border:1px solid #e2e6ee; borderRadius:20px; padding:5px 12px; fontSize:11px; color:#5b6478; cursor:pointer; fontFamily:Archivo;">+ New</button>
+            </div>
+
+            <div style="flex:1; overflowY:auto; padding:16px 18px; display:flex; flexDirection:column; gap:12px;">
+              <sc-if value="{{ chatIsEmpty }}" hint-placeholder-val="{{ true }}">
+                <div style="fontSize:12px; color:#8891a3; marginBottom:4px;">Suggested questions</div>
+                <sc-for list="{{ suggestedQuestions }}" as="sq" hint-placeholder-count="4">
+                  <button onClick="{{ sq.ask }}" style="text-align:left; background:rgba(255,255,255,0.6); border:1px solid rgba(99,102,241,0.2); borderRadius:8px; padding:10px 12px; fontSize:13px; color:#33405c; cursor:pointer; fontFamily:Archivo;">{{ sq.text }}</button>
+                </sc-for>
+              </sc-if>
+              <sc-for list="{{ currentChat }}" as="msg" hint-placeholder-count="0">
+                <div style="display:flex; flexDirection:column; alignItems:{{ msg.align }};">
+                  <div style="max-width:88%; background:{{ msg.bg }}; color:{{ msg.color }}; border:1px solid {{ msg.border }}; borderRadius:10px; padding:10px 12px; fontSize:13px; lineHeight:1.4;">{{ msg.text }}</div>
+                  <sc-if value="{{ msg.hasLink }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ msg.linkAction }}" style="marginTop:5px; background:transparent; border:none; color:#4338ca; fontSize:12px; cursor:pointer; padding:0; fontFamily:Archivo;">{{ msg.linkLabel }} →</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="padding:12px 14px; borderTop:1px solid rgba(226,230,238,0.7); display:flex; gap:8px;">
+              <input value="{{ draftQuestion }}" onChange="{{ setDraftQuestion }}" onKeyDown="{{ onDraftKeyDown }}" placeholder="Ask a follow-up question…" style="flex:1; background:rgba(255,255,255,0.7); border:1px solid #e2e6ee; borderRadius:8px; padding:9px 12px; color:#16213e; fontSize:13px; fontFamily:Archivo;" />
+              <button onClick="{{ sendQuestion }}" style="width:36px; height:36px; flexShrink:0; background:linear-gradient(135deg, #6366f1, #ec4899); color:#ffffff; border:none; borderRadius:8px; cursor:pointer; fontSize:15px; boxShadow:0 6px 16px rgba(99,102,241,0.35);">→</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  clips = [
+    { id: 1, camera: "G328", code: "G328", perspective: "Parking Lot, wide north-facing", ts: "13:58:02", date: "Aug 4", order: 1, confidence: 96, tags: ["Vehicle"], objects: "1 vehicle (sedan, red)", action: "Vehicle Arrival" },
+    { id: 2, camera: "G328", code: "G328", perspective: "Parking Lot, wide north-facing", ts: "14:00:15", date: "Aug 4", order: 2, confidence: 91, tags: ["Vehicle"], objects: "1 vehicle (sedan, red)", action: "Vehicle Parked" },
+    { id: 3, camera: "G301", code: "G301", perspective: "Entrance, wide doorway", ts: "14:02:11", date: "Aug 4", order: 3, confidence: 89, tags: ["Person", "Entry"], objects: "1 person", action: "Person Entry" },
+    { id: 4, camera: "G420", code: "G420", perspective: "Breezeway, fixed overhead", ts: "14:03:40", date: "Aug 4", order: 4, confidence: 84, tags: ["Person"], objects: "1 person", action: "Person Transit" },
+    { id: 5, camera: "G301", code: "G301", perspective: "Entrance, wide doorway", ts: "14:06:22", date: "Aug 4", order: 5, confidence: 77, tags: ["Person", "Entry"], objects: "2 people", action: "Person Entry" },
+    { id: 6, camera: "G424", code: "G424", perspective: "Stairwell landing, fixed", ts: "14:09:05", date: "Aug 4", order: 6, confidence: 68, tags: ["Person"], objects: "1 person", action: "Person Transit" },
+    { id: 7, camera: "G421", code: "G421", perspective: "Loading Dock, wide", ts: "14:11:47", date: "Aug 4", order: 7, confidence: 72, tags: ["Object Left"], objects: "1 package", action: "Object Left Behind" },
+    { id: 8, camera: "G423", code: "G423", perspective: "Bus Stop / south lot, wide", ts: "14:14:19", date: "Aug 4", order: 8, confidence: 94, tags: ["Vehicle"], objects: "1 vehicle (van, white)", action: "Vehicle Arrival" },
+    { id: 9, camera: "G506", code: "G506", perspective: "Rear exit, fixed door", ts: "14:16:53", date: "Aug 4", order: 9, confidence: 88, tags: ["Person", "Exit"], objects: "1 person", action: "Person Exit" },
+    { id: 10, camera: "G420", code: "G420", perspective: "Breezeway, fixed overhead", ts: "14:19:30", date: "Aug 4", order: 10, confidence: 61, tags: ["Person", "Loitering"], objects: "1 person", action: "Loitering" },
+    { id: 11, camera: "G299", code: "G299", perspective: "Courtyard, fixed elevated", ts: "14:21:08", date: "Aug 4", order: 11, confidence: 55, tags: ["Person", "Entry"], objects: "1 person", action: "Person Entry" },
+    { id: 12, camera: "G301", code: "G301", perspective: "Entrance, wide doorway", ts: "14:24:44", date: "Aug 4", order: 12, confidence: 90, tags: ["Person", "Exit"], objects: "1 person", action: "Person Exit" },
+    { id: 13, camera: "G328", code: "G328", perspective: "Parking Lot, wide north-facing", ts: "14:27:12", date: "Aug 4", order: 13, confidence: 93, tags: ["Vehicle"], objects: "1 vehicle (sedan, red)", action: "Vehicle Departure" },
+    { id: 14, camera: "G421", code: "G421", perspective: "Loading Dock, wide", ts: "14:31:00", date: "Aug 4", order: 14, confidence: 80, tags: ["Person", "Entry"], objects: "1 person", action: "Person Entry" },
+    { id: 15, camera: "G424", code: "G424", perspective: "Stairwell landing, fixed", ts: "14:35:26", date: "Aug 4", order: 15, confidence: 58, tags: ["Person", "Loitering"], objects: "1 person", action: "Loitering" },
+    { id: 16, camera: "G506", code: "G506", perspective: "Rear exit, fixed door", ts: "14:40:09", date: "Aug 4", order: 16, confidence: 82, tags: ["Person", "Exit"], objects: "2 people", action: "Person Exit" }
+  ];
+
+  cameraNames = ["G299", "G301", "G328", "G420", "G421", "G423", "G424", "G506"];
+  precinctList = ["Precinct 04", "Precinct 07", "Precinct 12"];
+  annotationModels = ["Marlin-2B", "BLIP", "Flamingo", "VideoBERT", "SAM3", "VideoLights"];
+  jobIdCounter = 100;
+  initialPipelineJobs = [
+    { id: 1, filename: "G423_2026-08-17_raw.mp4", camera: "G423", duration: "18:20", model: "BLIP", target: "Remote", status: "processing", progress: 62 },
+    { id: 2, filename: "G299_2026-08-17_raw.mp4", camera: "G299", duration: "42:05", model: "Marlin-2B", target: "Local", status: "processing", progress: 24 },
+    { id: 3, filename: "G424_2026-08-16_clip03.mp4", camera: "G424", duration: "03:12", model: "VideoBERT", target: "Remote", status: "pending", progress: 0 },
+    { id: 4, filename: "G421_2026-08-16_clip01.mp4", camera: "G421", duration: "05:48", model: "SAM3", target: "Local", status: "pending", progress: 0 },
+    { id: 5, filename: "G506_2026-08-15_raw.mp4", camera: "G506", duration: "27:30", model: "Flamingo", target: "Remote", status: "done", progress: 100 },
+    { id: 6, filename: "G328_2026-08-15_raw.mp4", camera: "G328", duration: "33:10", model: "BLIP", target: "Remote", status: "done", progress: 100 }
+  ];
+  tagNames = ["Person", "Vehicle", "Entry", "Exit", "Loitering", "Object Left"];
+  suggestedQuestions = [
+    "Did anyone leave the building before this?",
+    "Show this vehicle's full path across cameras",
+    "Who else was near this location around this time?",
+    "Jump to the next flagged event on this camera"
+  ];
+  resultsSuggestedQuestionsData = [
+    "Which camera has the most matches?",
+    "Show only the highest-confidence event",
+    "Narrow this to vehicle events only",
+    "What's the most recent match?"
+  ];
+  recentQueriesData = [
+    { text: "Show anyone who entered after the red car arrived", ts: "Aug 4, 14:02", cameras: 3 },
+    { text: "Any loitering near the loading dock this week", ts: "Aug 3, 09:14", cameras: 1 },
+    { text: "Vehicles that parked in Lot B after hours", ts: "Aug 2, 22:47", cameras: 1 }
+  ];
+  savedQueriesData = [
+    { text: "Show anyone who entered after the red car arrived", savedOn: "Aug 4", hits: 4 },
+    { text: "Loitering events longer than 5 minutes", savedOn: "Aug 2", hits: 2 },
+    { text: "Any vehicle arrivals after 10 PM", savedOn: "Jul 29", hits: 6 },
+    { text: "Unattended packages at the loading dock", savedOn: "Jul 22", hits: 1 }
+  ];
+  reportListData = [
+    { title: "Weekly Activity Summary", range: "Aug 4 – Aug 10", cameras: 8, generatedOn: "Aug 11" },
+    { title: "Perimeter Entry/Exit Log", range: "Aug 1 – Aug 7", cameras: 3, generatedOn: "Aug 8" },
+    { title: "Loitering Incidents Report", range: "Jul 25 – Jul 31", cameras: 5, generatedOn: "Aug 1" },
+    { title: "Vehicle Activity Digest", range: "Jul 18 – Jul 24", cameras: 4, generatedOn: "Jul 25" }
+  ];
+
+  keywordDict = [
+    { id: "person", label: "Person", kind: "tag", re: /\b(person|people|anyone|someone)\b/i, options: ["Person", "Loitering"] },
+    { id: "vehicle", label: "Vehicle", kind: "tag", re: /\b(car|vehicle|van|sedan)\b/i, options: ["Vehicle"] },
+    { id: "entry", label: "Entry", kind: "tag", re: /\b(enter|entered|entry|arrived)\b/i, options: ["Entry"] },
+    { id: "exit", label: "Exit", kind: "tag", re: /\b(leave|left|exit|departed|departure)\b/i, options: ["Exit"] },
+    { id: "time", label: "Time filter", kind: "time", re: /\b(after|before|am|pm)\b/i, options: ["After 12:00", "After 14:00", "Today", "This week"] },
+    { id: "camera", label: "Camera location", kind: "camera", re: /\b(parking|entrance|lobby|dock|stairwell|rear|courtyard|breezeway|bus stop)\b/i, options: null }
+  ];
+
+  state = {
+    view: "dashboard",
+    queryText: "",
+    filters: { cameras: [], tags: [], confidence: 0, dateFrom: "", dateTo: "" },
+    resultsViewMode: this.props.resultsDefaultMode || "grid",
+    selectedClipId: null,
+    chats: {},
+    draftQuestion: "",
+    searchMode: "nlq",
+    showFiltersModal: false,
+    showSettingsModal: false,
+    showCamerasModal: false,
+    openDropdownId: null,
+    selectedPrecinct: "Precinct 04",
+    pipelineJobs: this.initialPipelineJobs,
+    uploadCamera: "G299",
+    uploadScope: "full",
+    uploadModel: "BLIP",
+    uploadTarget: "local",
+    remoteEndpoint: ""
+  };
+
+  componentDidMount() {
+    const initial = this.props.initialView;
+    if (initial === "results") this.setState({ view: "results" });
+    else if (initial === "detail") this.setState({ view: "detail", selectedClipId: this.clips[2].id });
+
+    this.pipelineTimer = setInterval(() => {
+      this.setState(s => {
+        let jobs = s.pipelineJobs.map(j => {
+          if (j.status !== "processing") return j;
+          const next = Math.min(100, j.progress + 6 + Math.round(Math.random() * 10));
+          return next >= 100 ? { ...j, progress: 100, status: "done" } : { ...j, progress: next };
+        });
+        const processingCount = jobs.filter(j => j.status === "processing").length;
+        if (processingCount < 2) {
+          const nextPending = jobs.find(j => j.status === "pending");
+          if (nextPending) {
+            jobs = jobs.map(j => j.id === nextPending.id ? { ...j, status: "processing" } : j);
+          }
+        }
+        return { pipelineJobs: jobs };
+      });
+    }, 1400);
+  }
+
+  componentWillUnmount() {
+    if (this.pipelineTimer) clearInterval(this.pipelineTimer);
+  }
+
+  confColorFor(conf) {
+    if (conf >= 85) return "#15803d";
+    if (conf >= 65) return "#b45309";
+    return "#b91c1c";
+  }
+
+  decorate(clip) {
+    const decorated = Object.assign({}, clip, {
+      confColor: this.confColorFor(clip.confidence),
+      thumbUrl: `https://picsum.photos/seed/cctv-${clip.code}-${clip.id}/640/400`
+    });
+    decorated.openDetail = () => this.setState({ view: "detail", selectedClipId: clip.id });
+    decorated.jumpTo = () => this.setState({ selectedClipId: clip.id });
+    return decorated;
+  }
+
+  toggleCamera = (cam) => () => {
+    this.setState(s => {
+      const list = s.filters.cameras.includes(cam) ? s.filters.cameras.filter(c => c !== cam) : [...s.filters.cameras, cam];
+      return { filters: { ...s.filters, cameras: list } };
+    });
+  };
+  toggleTag = (tag) => () => {
+    this.setState(s => {
+      const list = s.filters.tags.includes(tag) ? s.filters.tags.filter(t => t !== tag) : [...s.filters.tags, tag];
+      return { filters: { ...s.filters, tags: list } };
+    });
+  };
+  removeCameraFilter = (cam) => () => this.toggleCamera(cam)();
+  removeTagFilter = (tag) => () => this.toggleTag(tag)();
+
+  setQuery = (e) => this.setState({ queryText: e.target.value });
+  setConfidence = (e) => this.setState(s => ({ filters: { ...s.filters, confidence: Number(e.target.value) } }));
+  setDateFrom = (e) => this.setState(s => ({ filters: { ...s.filters, dateFrom: e.target.value } }));
+  setDateTo = (e) => this.setState(s => ({ filters: { ...s.filters, dateTo: e.target.value } }));
+  onQueryKeyDown = (e) => { if (e.key === "Enter") this.runSearch(); };
+
+  summarizeResults = (text) => {
+    const top = this.clips.slice().sort((a, b) => b.confidence - a.confidence)[0];
+    return `Found ${this.clips.length} indexed events matching "${text}" across 8 cameras. Top match: ${top.action.toLowerCase()} on ${top.camera} at ${top.ts} (${top.confidence}% confidence).`;
+  };
+
+  runSearch = () => {
+    const text = this.state.queryText.trim();
+    this.setState(s => ({
+      view: "results",
+      chats: text ? { ...s.chats, results: [{ role: "user", text }, { role: "agent", text: this.summarizeResults(text) }] } : s.chats
+    }));
+  };
+
+  useRecentQuery = (rq) => () => {
+    this.setState(s => ({
+      queryText: rq.text,
+      view: "results",
+      chats: { ...s.chats, results: [{ role: "user", text: rq.text }, { role: "agent", text: this.summarizeResults(rq.text) }] }
+    }));
+  };
+
+  backToDashboard = () => this.setState({ view: "dashboard" });
+  backToResults = () => this.setState({ view: "results" });
+  goToSaved = () => this.setState({ view: "saved" });
+  goToReports = () => this.setState({ view: "reports" });
+  goToPipeline = () => this.setState({ view: "pipeline" });
+  setUploadCamera = (e) => this.setState({ uploadCamera: e.target.value });
+  setScopeFull = () => this.setState({ uploadScope: "full" });
+  setScopeClip = () => this.setState({ uploadScope: "clip" });
+  selectModel = (name) => () => this.setState({ uploadModel: name });
+  setTargetLocal = () => this.setState({ uploadTarget: "local" });
+  setTargetRemote = () => this.setState({ uploadTarget: "remote" });
+  setRemoteEndpoint = (e) => this.setState({ remoteEndpoint: e.target.value });
+  submitAnnotationJob = () => {
+    this.jobIdCounter += 1;
+    const s = this.state;
+    const job = {
+      id: this.jobIdCounter,
+      filename: `${s.uploadCamera}_2026-08-19_${s.uploadScope === "full" ? "raw" : "clip"}.mp4`,
+      camera: s.uploadCamera,
+      duration: s.uploadScope === "full" ? "—" : "00:00",
+      model: s.uploadModel,
+      target: s.uploadTarget === "local" ? "Local" : "Remote",
+      status: "pending",
+      progress: 0
+    };
+    this.setState(st => ({ pipelineJobs: [...st.pipelineJobs, job] }));
+  };
+  setGridView = () => this.setState({ resultsViewMode: "grid" });
+  setTimelineView = () => this.setState({ resultsViewMode: "timeline" });
+  openClip = (id) => () => this.setState({ view: "detail", selectedClipId: id });
+  jumpToClip = (id) => () => this.setState({ selectedClipId: id });
+  setDraftQuestion = (e) => this.setState({ draftQuestion: e.target.value });
+  onDraftKeyDown = (e) => { if (e.key === "Enter") this.sendQuestion(); };
+  onResultsDraftKeyDown = (e) => { if (e.key === "Enter") this.sendResultsQuestion(); };
+  resetClipChat = () => {
+    const clipId = this.state.selectedClipId;
+    this.setState(s => ({ chats: { ...s.chats, [clipId]: [] } }));
+  };
+  resetResultsChat = () => this.setState(s => ({ chats: { ...s.chats, results: [] } }));
+
+  toggleFiltersModal = () => this.setState(s => ({ showFiltersModal: !s.showFiltersModal }));
+  closeFiltersModal = () => this.setState({ showFiltersModal: false });
+  openSettingsModal = () => this.setState({ showSettingsModal: true });
+  closeSettingsModal = () => this.setState({ showSettingsModal: false });
+  openCamerasModal = () => this.setState({ showCamerasModal: true });
+  closeCamerasModal = () => this.setState({ showCamerasModal: false });
+  selectPrecinct = (name) => () => this.setState({ selectedPrecinct: name });
+  setNlqMode = () => this.setState({ searchMode: "nlq" });
+  setClassicMode = () => this.setState({ searchMode: "classic" });
+  stopPropagation = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+  toggleDropdown = (id) => () => this.setState(s => ({ openDropdownId: s.openDropdownId === id ? null : id }));
+  selectKeywordOption = (applyFn) => () => { applyFn(); this.setState({ openDropdownId: null }); };
+
+  pushChat = (key, userText, agentText, relatedId) => {
+    this.setState(s => {
+      const existing = s.chats[key] || [];
+      const updated = [...existing, { role: "user", text: userText }, { role: "agent", text: agentText, relatedId }];
+      return { chats: { ...s.chats, [key]: updated }, draftQuestion: "" };
+    });
+  };
+
+  answerFor = (clip, questionText) => {
+    const idx = clip.order;
+    const before = this.clips.filter(c => c.order < idx).sort((a, b) => b.order - a.order)[0];
+    const after = this.clips.filter(c => c.order > idx).sort((a, b) => a.order - b.order)[0];
+    const q = questionText.toLowerCase();
+    if (q.includes("leave") || q.includes("before")) {
+      return before
+        ? { text: `Yes — ${before.action.toLowerCase()} on ${before.camera} at ${before.ts}, ${idx - before.order} event(s) before this clip.`, relatedId: before.id }
+        : { text: "No earlier events found in the indexed window before this clip." };
+    }
+    if (q.includes("path") || q.includes("vehicle")) {
+      const vehicleClips = this.clips.filter(c => c.tags.includes("Vehicle") && c.id !== clip.id);
+      const first = vehicleClips[0];
+      return first
+        ? { text: `Tracked ${vehicleClips.length} vehicle event(s) across cameras, including "${first.action}" on ${first.camera} at ${first.ts}.`, relatedId: first.id }
+        : { text: "No other vehicle events found in this footage set." };
+    }
+    if (q.includes("else") || q.includes("nearby") || q.includes("near")) {
+      return after
+        ? { text: `${after.objects} detected on ${after.camera} at ${after.ts}, shortly after this event.`, relatedId: after.id }
+        : { text: "No other subjects detected in this time window." };
+    }
+    if (q.includes("flag") || q.includes("next")) {
+      const flagged = this.clips.filter(c => c.order > idx && c.confidence < 70)[0];
+      return flagged
+        ? { text: `Next lower-confidence event: "${flagged.action}" on ${flagged.camera} at ${flagged.ts} (${flagged.confidence}% confidence).`, relatedId: flagged.id }
+        : { text: "No further flagged events found on this camera." };
+    }
+    const fallback = after || before;
+    return fallback
+      ? { text: `Searched indexed footage across 8 cameras. Closest related match: "${fallback.action}" on ${fallback.camera} at ${fallback.ts}.`, relatedId: fallback.id }
+      : { text: "Searched indexed footage across 8 cameras. No strongly related events found." };
+  };
+
+  answerForResults = (questionText) => {
+    const q = questionText.toLowerCase();
+    const clips = this.clips;
+    if (q.includes("camera")) {
+      const counts = {};
+      clips.forEach(c => { counts[c.camera] = (counts[c.camera] || 0) + 1; });
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      return { text: `${top[0]} has the most matches with ${top[1]} events.` };
+    }
+    if (q.includes("confidence") || q.includes("high")) {
+      const top = clips.slice().sort((a, b) => b.confidence - a.confidence)[0];
+      return { text: `Highest-confidence match: "${top.action}" on ${top.camera} at ${top.ts} (${top.confidence}%).`, relatedId: top.id };
+    }
+    if (q.includes("vehicle")) {
+      const vehicleClips = clips.filter(c => c.tags.includes("Vehicle"));
+      return { text: `Narrowed to ${vehicleClips.length} vehicle event(s). Try enabling the Vehicle event-type filter for a persistent view.`, relatedId: vehicleClips[0] && vehicleClips[0].id };
+    }
+    if (q.includes("recent")) {
+      const latest = clips.slice().sort((a, b) => b.order - a.order)[0];
+      return { text: `Most recent match: "${latest.action}" on ${latest.camera} at ${latest.ts}.`, relatedId: latest.id };
+    }
+    return { text: `Searched ${clips.length} indexed events across 8 cameras for related context.` };
+  };
+
+  askSuggested = (text) => () => {
+    const clip = this.clips.find(c => c.id === this.state.selectedClipId) || this.clips[0];
+    const ans = this.answerFor(clip, text);
+    this.pushChat(clip.id, text, ans.text, ans.relatedId);
+  };
+  sendQuestion = () => {
+    const text = this.state.draftQuestion.trim();
+    if (!text) return;
+    const clip = this.clips.find(c => c.id === this.state.selectedClipId) || this.clips[0];
+    const ans = this.answerFor(clip, text);
+    this.pushChat(clip.id, text, ans.text, ans.relatedId);
+  };
+  askResultsSuggested = (text) => () => {
+    const ans = this.answerForResults(text);
+    this.pushChat("results", text, ans.text, ans.relatedId);
+  };
+  sendResultsQuestion = () => {
+    const text = this.state.draftQuestion.trim();
+    if (!text) return;
+    const ans = this.answerForResults(text);
+    this.pushChat("results", text, ans.text, ans.relatedId);
+  };
+
+  buildChat = (rawList) => (rawList || []).map(m => ({
+    text: m.text,
+    align: m.role === "user" ? "flex-end" : "flex-start",
+    bg: m.role === "user" ? "linear-gradient(135deg, rgba(99,102,241,0.14), rgba(236,72,153,0.1))" : "rgba(255,255,255,0.7)",
+    color: m.role === "user" ? "#312e81" : "#33405c",
+    border: m.role === "user" ? "rgba(99,102,241,0.3)" : "#e2e6ee",
+    hasLink: !!m.relatedId,
+    linkLabel: "View related clip",
+    linkAction: m.relatedId ? this.jumpToClip(m.relatedId) : null
+  }));
+
+  renderVals() {
+    const s = this.state;
+    const showConf = this.props.showConfidenceBadges !== false;
+    const filters = s.filters;
+    const filteredClips = this.clips
+      .filter(c => (filters.cameras.length === 0 || filters.cameras.includes(c.camera)))
+      .filter(c => (filters.tags.length === 0 || filters.tags.some(t => c.tags.includes(t))))
+      .filter(c => c.confidence >= filters.confidence)
+      .sort((a, b) => a.order - b.order)
+      .map(c => this.decorate(c));
+
+    const selectedRaw = this.clips.find(c => c.id === s.selectedClipId) || this.clips[2];
+    const selectedClip = this.decorate(selectedRaw);
+    const relatedClips = this.clips
+      .filter(c => c.id !== selectedClip.id)
+      .sort((a, b) => Math.abs(a.order - selectedClip.order) - Math.abs(b.order - selectedClip.order))
+      .slice(0, 4)
+      .map(c => this.decorate(c));
+
+    const cameraList = this.cameraNames.map(name => {
+      const active = filters.cameras.includes(name);
+      return { name, bg: active ? "#0b1c4d" : "#ffffff", color: active ? "#ffffff" : "#5b6478", border: active ? "#0b1c4d" : "#d7dce6", toggle: this.toggleCamera(name) };
+    });
+    const tagList = this.tagNames.map(name => {
+      const active = filters.tags.includes(name);
+      return { name, bg: active ? "#eef0fe" : "#ffffff", color: active ? "#4338ca" : "#5b6478", border: active ? "#4338ca" : "#d7dce6", toggle: this.toggleTag(name) };
+    });
+
+    const activeFilterChips = [
+      ...filters.cameras.map(c => ({ label: c, remove: this.removeCameraFilter(c) })),
+      ...filters.tags.map(t => ({ label: t, remove: this.removeTagFilter(t) }))
+    ];
+
+    const detectedKeywords = s.searchMode === "nlq"
+      ? this.keywordDict.filter(kw => kw.re.test(s.queryText)).map(kw => {
+          const dropdownOpen = s.openDropdownId === kw.id;
+          let options = [];
+          if (kw.kind === "tag") {
+            options = kw.options.map(name => ({
+              label: name,
+              color: filters.tags.includes(name) ? "#4338ca" : "#33405c",
+              bg: filters.tags.includes(name) ? "#eef0fe" : "transparent",
+              select: this.selectKeywordOption(this.toggleTag(name))
+            }));
+          } else if (kw.kind === "camera") {
+            options = this.cameraNames.map(name => ({
+              label: name,
+              color: filters.cameras.includes(name) ? "#4338ca" : "#33405c",
+              bg: filters.cameras.includes(name) ? "#eef0fe" : "transparent",
+              select: this.selectKeywordOption(this.toggleCamera(name))
+            }));
+          } else if (kw.kind === "time") {
+            options = kw.options.map(label => ({
+              label, color: "#33405c", bg: "transparent",
+              select: this.selectKeywordOption(() => {})
+            }));
+          }
+          return {
+            id: kw.id, label: kw.label, dropdownOpen,
+            dropdownTitle: kw.kind === "tag" ? "Event type" : kw.kind === "camera" ? "Camera" : "Time range",
+            toggleDropdown: this.toggleDropdown(kw.id),
+            options
+          };
+        })
+      : [];
+
+    const currentChat = this.buildChat(s.chats[selectedClip.id]);
+    const resultsChat = this.buildChat(s.chats.results);
+
+    return {
+      isDashboard: s.view === "dashboard",
+      isResults: s.view === "results",
+      isDetail: s.view === "detail",
+      isSaved: s.view === "saved",
+      isReports: s.view === "reports",
+      showBack: s.view !== "dashboard",
+      backHandler: s.view === "detail" ? this.backToResults : this.backToDashboard,
+      breadcrumbLabel: s.view === "dashboard" ? "Query" : s.view === "results" ? "Results" : s.view === "detail" ? "Clip Detail" : s.view === "saved" ? "Saved Queries" : s.view === "reports" ? "Reports" : "Annotation Pipeline",
+      homeNavBg: s.view === "dashboard" ? "rgba(255,255,255,0.12)" : "transparent",
+      homeNavColor: s.view === "dashboard" ? "#ffffff" : "#c3cee6",
+      savedNavBg: s.view === "saved" ? "rgba(255,255,255,0.12)" : "transparent",
+      savedNavColor: s.view === "saved" ? "#ffffff" : "#c3cee6",
+      reportsNavBg: s.view === "reports" ? "rgba(255,255,255,0.12)" : "transparent",
+      reportsNavColor: s.view === "reports" ? "#ffffff" : "#c3cee6",
+      goToSaved: this.goToSaved,
+      goToReports: this.goToReports,
+      savedQueries: this.savedQueriesData.map(sq => ({ ...sq, run: () => this.setState(st => ({ queryText: sq.text, view: "results", chats: { ...st.chats, results: [{ role: "user", text: sq.text }, { role: "agent", text: this.summarizeResults(sq.text) }] } })) })),
+      reportStats: [
+        { label: "EVENTS THIS WEEK", value: filteredClips.length + 42 },
+        { label: "ACTIVE CAMERAS", value: "8 / 8" },
+        { label: "AVG. CONFIDENCE", value: "84%" },
+        { label: "REPORTS GENERATED", value: this.reportListData.length }
+      ],
+      reportList: this.reportListData,
+      backToDashboard: this.backToDashboard,
+      queryText: s.queryText,
+      setQuery: this.setQuery,
+      onQueryKeyDown: this.onQueryKeyDown,
+      runSearch: this.runSearch,
+      cameraList, tagList,
+      toggleCamera: this.toggleCamera,
+      toggleTag: this.toggleTag,
+      filters,
+      setConfidence: this.setConfidence,
+      setDateFrom: this.setDateFrom,
+      setDateTo: this.setDateTo,
+      recentQueries: this.recentQueriesData.map(rq => ({ ...rq, use: this.useRecentQuery(rq) })),
+      resultCount: filteredClips.length,
+      activeFilterChips,
+      isGridMode: s.resultsViewMode === "grid",
+      isTimelineMode: s.resultsViewMode === "timeline",
+      gridBtnBg: s.resultsViewMode === "grid" ? "#0b1c4d" : "transparent",
+      gridBtnColor: s.resultsViewMode === "grid" ? "#ffffff" : "#5b6478",
+      timelineBtnBg: s.resultsViewMode === "timeline" ? "#0b1c4d" : "transparent",
+      timelineBtnColor: s.resultsViewMode === "timeline" ? "#ffffff" : "#5b6478",
+      setGridView: this.setGridView,
+      setTimelineView: this.setTimelineView,
+      filteredClips,
+      openClip: this.openClip,
+      selectedClip,
+      relatedClips,
+      jumpToClip: this.jumpToClip,
+      suggestedQuestions: this.suggestedQuestions.map(text => ({ text, ask: this.askSuggested(text) })),
+      resultsSuggestedQuestions: this.resultsSuggestedQuestionsData.map(text => ({ text, ask: this.askResultsSuggested(text) })),
+      chatIsEmpty: currentChat.length === 0,
+      currentChat,
+      resultsChatIsEmpty: resultsChat.length === 0,
+      resultsChat,
+      resetClipChat: this.resetClipChat,
+      resetResultsChat: this.resetResultsChat,
+      draftQuestion: s.draftQuestion,
+      setDraftQuestion: this.setDraftQuestion,
+      onDraftKeyDown: this.onDraftKeyDown,
+      onResultsDraftKeyDown: this.onResultsDraftKeyDown,
+      sendQuestion: this.sendQuestion,
+      sendResultsQuestion: this.sendResultsQuestion,
+      showConfidenceBadges: showConf,
+      isNlqMode: s.searchMode === "nlq",
+      isClassicMode: s.searchMode === "classic",
+      modeLabel: s.searchMode === "nlq" ? "Natural language mode" : "Classic filters mode",
+      modeHint: s.searchMode === "nlq"
+        ? "Type freely — detected keywords will surface as filters below."
+        : "Use the Filters button to set search criteria.",
+      showFiltersModal: s.showFiltersModal,
+      showSettingsModal: s.showSettingsModal,
+      toggleFiltersModal: this.toggleFiltersModal,
+      closeFiltersModal: this.closeFiltersModal,
+      openSettingsModal: this.openSettingsModal,
+      closeSettingsModal: this.closeSettingsModal,
+      setNlqMode: this.setNlqMode,
+      setClassicMode: this.setClassicMode,
+      stopPropagation: this.stopPropagation,
+      nlqOptionBorder: s.searchMode === "nlq" ? "#4338ca" : "#e2e6ee",
+      nlqOptionBg: s.searchMode === "nlq" ? "#eef0fe" : "transparent",
+      classicOptionBorder: s.searchMode === "classic" ? "#4338ca" : "#e2e6ee",
+      classicOptionBg: s.searchMode === "classic" ? "#eef0fe" : "transparent",
+      hasDetectedKeywords: detectedKeywords.length > 0,
+      detectedKeywords,
+      hasActiveFilters: activeFilterChips.length > 0,
+      showCamerasModal: s.showCamerasModal,
+      openCamerasModal: this.openCamerasModal,
+      closeCamerasModal: this.closeCamerasModal,
+      selectedPrecinct: s.selectedPrecinct,
+      precinctOptions: this.precinctList.map(name => ({
+        name,
+        select: this.selectPrecinct(name),
+        bg: s.selectedPrecinct === name ? "#eef0fe" : "#ffffff",
+        color: s.selectedPrecinct === name ? "#4338ca" : "#5b6478",
+        border: s.selectedPrecinct === name ? "#4338ca" : "#d7dce6"
+      })),
+      cameraDirectory: this.cameraNames.map(name => {
+        const cam = this.clips.find(c => c.code === name);
+        return {
+          code: name,
+          perspective: cam ? cam.perspective : "—",
+          eventCount: this.clips.filter(c => c.code === name).length
+        };
+      }),
+      isPipeline: s.view === "pipeline",
+      pipelineNavBg: s.view === "pipeline" ? "rgba(255,255,255,0.12)" : "transparent",
+      pipelineNavColor: s.view === "pipeline" ? "#ffffff" : "#c3cee6",
+      goToPipeline: this.goToPipeline,
+      uploadFileLabel: s.uploadScope === "full" ? "uploading full recording" : "uploading trimmed clip",
+      uploadCamera: s.uploadCamera,
+      setUploadCamera: this.setUploadCamera,
+      cameraNamesList: this.cameraNames,
+      scopeFullBg: s.uploadScope === "full" ? "#0b1c4d" : "#ffffff",
+      scopeFullColor: s.uploadScope === "full" ? "#ffffff" : "#5b6478",
+      scopeFullBorder: s.uploadScope === "full" ? "#0b1c4d" : "#d7dce6",
+      setScopeFull: this.setScopeFull,
+      scopeClipBg: s.uploadScope === "clip" ? "#0b1c4d" : "#ffffff",
+      scopeClipColor: s.uploadScope === "clip" ? "#ffffff" : "#5b6478",
+      scopeClipBorder: s.uploadScope === "clip" ? "#0b1c4d" : "#d7dce6",
+      setScopeClip: this.setScopeClip,
+      modelOptions: this.annotationModels.map(name => ({
+        name,
+        select: this.selectModel(name),
+        bg: s.uploadModel === name ? "#eef0fe" : "#ffffff",
+        color: s.uploadModel === name ? "#4338ca" : "#5b6478",
+        border: s.uploadModel === name ? "#4338ca" : "#d7dce6"
+      })),
+      targetLocalBg: s.uploadTarget === "local" ? "#0b1c4d" : "#ffffff",
+      targetLocalColor: s.uploadTarget === "local" ? "#ffffff" : "#5b6478",
+      targetLocalBorder: s.uploadTarget === "local" ? "#0b1c4d" : "#d7dce6",
+      setTargetLocal: this.setTargetLocal,
+      targetRemoteBg: s.uploadTarget === "remote" ? "#0b1c4d" : "#ffffff",
+      targetRemoteColor: s.uploadTarget === "remote" ? "#ffffff" : "#5b6478",
+      targetRemoteBorder: s.uploadTarget === "remote" ? "#0b1c4d" : "#d7dce6",
+      setTargetRemote: this.setTargetRemote,
+      isRemoteTarget: s.uploadTarget === "remote",
+      remoteEndpoint: s.remoteEndpoint,
+      setRemoteEndpoint: this.setRemoteEndpoint,
+      submitAnnotationJob: this.submitAnnotationJob,
+      pipelineStats: [
+        { label: "IN QUEUE", value: s.pipelineJobs.filter(j => j.status !== "done").length },
+        { label: "PROCESSING", value: s.pipelineJobs.filter(j => j.status === "processing").length },
+        { label: "COMPLETED", value: s.pipelineJobs.filter(j => j.status === "done").length },
+        { label: "MODELS AVAILABLE", value: this.annotationModels.length }
+      ],
+      pipelineJobs: s.pipelineJobs.slice().reverse().map(j => ({
+        ...j,
+        statusLabel: j.status === "processing" ? `${j.progress}%` : j.status === "done" ? "Annotated" : "Pending",
+        statusColor: j.status === "processing" ? "#b45309" : j.status === "done" ? "#15803d" : "#8891a3"
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

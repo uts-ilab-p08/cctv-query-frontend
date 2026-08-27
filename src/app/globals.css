@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces and text */
+  --color-canvas: #eef1f7;
+  --color-ink: #16213e;
+  --color-ink-muted: #5b6478;
+  --color-ink-subtle: #8891a3;
+  --color-ink-soft: #33405c;
+
+  /* Brand */
+  --color-navy: #0b1c4d;
+  --color-navy-deep: #312e81;
+  --color-indigo: #6366f1;
+  --color-indigo-strong: #4338ca;
+  --color-indigo-wash: #eef0fe;
+  --color-pink: #ec4899;
+  --color-amber: #f59e0b;
+
+  /* Borders */
+  --color-border: #e2e6ee;
+  --color-border-input: #d7dce6;
+  --color-border-dashed: #c7cee6;
+  --color-scroll-thumb: #cbd3e0;
+
+  /* Sidebar foreground */
+  --color-nav-fg: #a9b7d6;
+  --color-nav-fg-strong: #c3cee6;
+  --color-nav-fg-faint: #7e8fbc;
+  --color-nav-accent: #9db1e0;
+
+  /* Confidence scale */
+  --color-conf-high: #15803d;
+  --color-conf-mid: #b45309;
+  --color-conf-low: #b91c1c;
+
+  /* Typography */
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 18px;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-scroll-thumb);
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  a {
+    color: var(--color-indigo-strong);
+  }
+
+  a:hover {
+    color: var(--color-navy-deep);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-indigo-strong);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Brand gradients — reused across primary buttons, marks and accent bars. */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, #6366f1, #4338ca);
+  }
+
+  .bg-brand-gradient-strong {
+    background-image: linear-gradient(135deg, #4338ca, #6366f1);
+  }
+
+  .bg-mark-gradient {
+    background-image: linear-gradient(135deg, #6366f1, #ec4899);
+  }
+
+  .bg-accent-bar {
+    background-image: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+  }
+
+  .bg-progress-gradient {
+    background-image: linear-gradient(90deg, #6366f1, #ec4899);
+  }
+
+  .bg-user-bubble {
+    background-image: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(236, 72, 153, 0.1));
+  }
+
+  .thumb-filter {
+    filter: grayscale(0.55) contrast(1.05) brightness(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
