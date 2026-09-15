@@ -19,17 +19,17 @@ export function CamerasModal() {
       description={`${precinct} · archived footage sources, not a live feed.`}
       width={480}
     >
-      <ul className="border-hairline bg-border flex flex-col gap-px overflow-hidden rounded-md border">
+      <ul className="border-hairline rounded-chip flex flex-col overflow-hidden border">
         {directory.map((camera) => (
           <li
             key={camera.code}
-            className="bg-panel-solid flex items-center justify-between px-4 py-3"
+            className="bg-panel-solid border-hairline flex items-center justify-between border-b px-4 py-3 last:border-b-0"
           >
             <div>
               <p className="text-ink font-mono text-[13px] font-semibold">{camera.code}</p>
               <p className="text-ink-3 text-xs">{camera.perspective}</p>
             </div>
-            <span className="bg-accent-soft text-accent rounded-xs px-2 py-[3px] font-mono text-[11px]">
+            <span className="bg-accent-soft text-accent rounded-chip px-2 py-[3px] font-mono text-[11px]">
               {camera.eventCount} events
             </span>
           </li>

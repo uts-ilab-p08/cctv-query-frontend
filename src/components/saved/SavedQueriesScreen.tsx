@@ -14,7 +14,7 @@ export function SavedQueriesScreen() {
       <h1 className="mb-1.5 text-2xl font-bold">Saved Queries</h1>
       <p className="text-ink-2 mb-7 text-sm">Bookmarked searches for quick re-run.</p>
 
-      <ul className="glass-card-soft rounded-card flex list-none flex-col gap-3 p-3">
+      <ul className="flex list-none flex-col gap-3 p-0">
         {savedQueries.map((query) => (
           <li
             key={query.id}

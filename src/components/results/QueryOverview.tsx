@@ -16,7 +16,7 @@ export function QueryOverview({ summary }: QueryOverviewProps) {
   const setChatOpen = useAppStore((state) => state.setChatOpen);
 
   return (
-    <section className="rounded-card glass-card-flat shadow-mb-[22px] p-5">
+    <section className="mb-[22px]">
       <div className="mb-2.5 flex items-center gap-2.5">
         <span aria-hidden className="surface-brand size-6 shrink-0 rounded-lg" />
         <h2 className="text-ink text-[15px] font-semibold">Query AI Overview</h2>

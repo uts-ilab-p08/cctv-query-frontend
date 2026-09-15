@@ -29,7 +29,7 @@ export function ReportsScreen() {
       </div>
 
       <SectionLabel>RECENT REPORTS</SectionLabel>
-      <ul className="glass-card-soft rounded-card flex list-none flex-col gap-2.5 p-3">
+      <ul className="flex list-none flex-col gap-2.5 p-0">
         {reports.map((report) => (
           <li
             key={report.id}
