@@ -35,6 +35,14 @@ const NAV_ITEMS: readonly NavItem[] = [
 const ROW = "rounded-full flex items-center gap-[11px] py-1.5 pr-3.5 pl-1.5 text-sm no-underline";
 const CIRCLE = "flex size-8 shrink-0 items-center justify-center rounded-full";
 
+/**
+ * Nav labels drop the violet cast the shared ink tokens carry (#f2f0fa / #a9a3c9):
+ * the active row reads pure white, the resting ones a neutral white-grey. Both
+ * flip with the theme, so the light sidebar stays legible.
+ */
+const LABEL_ACTIVE = "text-[var(--nav-ink-active)] font-medium";
+const LABEL_RESTING = "text-[var(--nav-ink)] hover:text-[var(--nav-ink-active)]";
+
 export function Sidebar() {
   const pathname = usePathname();
   const precinct = useAppStore((state) => state.precinct);
@@ -58,7 +66,7 @@ export function Sidebar() {
               className={cn(
                 ROW,
                 "transition-colors duration-150",
-                active ? "bg-accent-soft text-ink font-medium" : "text-ink-2 hover:text-ink",
+                active ? `bg-accent-soft ${LABEL_ACTIVE}` : LABEL_RESTING,
               )}
             >
               <span
@@ -74,7 +82,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={openSettings}
-          className={cn(ROW, "text-ink-2 hover:text-ink cursor-pointer text-left")}
+          className={cn(ROW, LABEL_RESTING, "cursor-pointer text-left")}
         >
           <span className={cn(CIRCLE, "glass-card-flat")}>
             <Settings size={17} strokeWidth={2} aria-hidden />

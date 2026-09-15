@@ -91,6 +91,9 @@
   --bad: #fb7185;
   --scrim: rgb(5 3 14 / 0.62);
   --chat-user-bg: linear-gradient(135deg, rgb(124 92 255 / 0.22), rgb(192 132 252 / 0.14));
+  /* sidebar labels: neutral, without the violet cast --text/--text-2 carry */
+  --nav-ink-active: #ffffff;
+  --nav-ink: #b8b8c2;
 
   /* one soft drop shadow + ONE top inset highlight — the whole glass edge treatment */
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
@@ -147,6 +150,8 @@
   --bad: #be123c;
   --scrim: rgb(17 17 20 / 0.28);
   --chat-user-bg: linear-gradient(135deg, rgb(91 70 245 / 0.12), rgb(249 106 58 / 0.08));
+  --nav-ink-active: #111114;
+  --nav-ink: #5c5c66;
 
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.6);
   --shadow-sm: 0 8px 24px rgb(17 17 20 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.55);
@@ -252,14 +257,17 @@ body {
   }
 }
 
-a {
-  color: var(--accent);
-}
-a:hover {
-  color: var(--accent-strong);
-}
-
+/* Inside @layer base so a utility class always wins: a bare `a` selector has the
+   same specificity as `.text-*`, and unlayered rules beat every layer — which
+   silently overrode the colour on every styled link. */
 @layer base {
+  a {
+    color: var(--accent);
+  }
+  a:hover {
+    color: var(--accent-strong);
+  }
+
   * {
     box-sizing: border-box;
   }
