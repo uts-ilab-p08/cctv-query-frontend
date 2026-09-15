@@ -3,9 +3,8 @@
 
 /* ---------- theme-agnostic scale ---------- */
 @theme {
-  /* next/font self-hosts the faces and exposes them through these variables. */
-  --font-sans: var(--font-archivo), "Archivo", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   --radius-chip: 12px;
   --radius-card: 18px;
@@ -83,7 +82,6 @@
   --btn-ink: #ffffff;
   --btn-solid: #7c5cff;
   --brand-grad: linear-gradient(135deg, #7c5cff, #c084fc);
-  --chat-user-bg: linear-gradient(135deg, rgb(124 92 255 / 0.22), rgb(192 132 252 / 0.14));
   --ok: #34d399;
   --warn: #fbbf24;
   --bad: #fb7185;
@@ -129,7 +127,6 @@
   --btn-ink: #ffffff;
   --btn-solid: #111114;
   --brand-grad: linear-gradient(135deg, #5b46f5, #f96a3a);
-  --chat-user-bg: linear-gradient(135deg, rgb(91 70 245 / 0.12), rgb(249 106 58 / 0.08));
   --ok: #15803d;
   --warn: #b45309;
   --bad: #be123c;
@@ -141,98 +138,40 @@
   color-scheme: light;
 }
 
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-
-  html,
-  body {
-    height: 100%;
-  }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-sans);
-  }
-
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  a {
-    color: var(--accent);
-  }
-
-  a:hover {
-    color: var(--accent-strong);
-  }
-
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
 }
 
-@layer utilities {
-  /* glass layers get their own compositing layer (perf rule: 3–5 per screen) */
-  .glass {
-    backdrop-filter: blur(18px);
-    transform: translateZ(0);
-  }
-
-  .glass-overlay {
-    backdrop-filter: blur(28px);
-    transform: translateZ(0);
-  }
-
-  /* the gradient-backed utilities Tailwind can't express as a colour */
-  .bg-action {
-    background: var(--btn-bg);
-    color: var(--btn-ink);
-  }
-
-  .bg-brand-grad {
-    background: var(--brand-grad);
-  }
-
-  .bg-sidebar {
-    background: var(--sidebar-bg);
-  }
-
-  .bg-topbar {
-    background: var(--topbar);
-  }
-
-  .bg-chat-user {
-    background: var(--chat-user-bg);
-  }
-
-  /* SPEC §4 — clip thumbnails read as archived footage, never as product imagery */
-  .thumb-filter {
-    filter: grayscale(0.55) contrast(1.05) brightness(0.85);
-  }
+/* glass layers get their own compositing layer (perf rule: 3–5 per screen) */
+.glass {
+  backdrop-filter: blur(18px);
+  transform: translateZ(0);
+}
+.glass-overlay {
+  backdrop-filter: blur(28px);
+  transform: translateZ(0);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* the two gradient-backed utilities Tailwind can't express as a colour */
+.bg-action {
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+}
+.bg-brand-grad {
+  background: var(--brand-grad);
+}
+.bg-sidebar {
+  background: var(--sidebar-bg);
+}
+.bg-topbar {
+  background: var(--topbar);
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-strong);
 }
