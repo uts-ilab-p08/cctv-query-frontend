@@ -66,7 +66,7 @@ export function Sidebar() {
               className={cn(
                 ROW,
                 "transition-colors duration-150",
-                active ? `bg-accent-soft ${LABEL_ACTIVE}` : LABEL_RESTING,
+                active ? `bg-[var(--nav-active-bg)] ${LABEL_ACTIVE}` : LABEL_RESTING,
               )}
             >
               <span

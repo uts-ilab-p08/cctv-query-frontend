@@ -94,6 +94,10 @@
   /* sidebar labels: neutral, without the violet cast --text/--text-2 carry */
   --nav-ink-active: #ffffff;
   --nav-ink: #b8b8c2;
+  /* Active nav pill: a solid plate so the selected row reads at a glance. On the
+     near-black sidebar it has to go lighter than the ground, not darker — the
+     brand violet, matching the active icon circle. */
+  --nav-active-bg: #5b3ff0;
 
   /* one soft drop shadow + ONE top inset highlight — the whole glass edge treatment */
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
@@ -150,8 +154,9 @@
   --bad: #be123c;
   --scrim: rgb(17 17 20 / 0.28);
   --chat-user-bg: linear-gradient(135deg, rgb(91 70 245 / 0.12), rgb(249 106 58 / 0.08));
-  --nav-ink-active: #111114;
+  --nav-ink-active: #ffffff;
   --nav-ink: #5c5c66;
+  --nav-active-bg: #111114;
 
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.6);
   --shadow-sm: 0 8px 24px rgb(17 17 20 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.55);
