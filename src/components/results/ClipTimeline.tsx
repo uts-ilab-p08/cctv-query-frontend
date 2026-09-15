@@ -25,7 +25,7 @@ export function ClipTimeline({ clips }: ClipTimelineProps) {
             />
             <Link
               href={`/clips/${clip.id}`}
-              className="glass rounded-card border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong flex items-center gap-4 border px-4 py-3 no-underline transition-colors duration-150"
+              className="rounded-card border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong flex items-center gap-4 border px-4 py-3 no-underline transition-colors duration-150"
             >
               <span
                 aria-hidden

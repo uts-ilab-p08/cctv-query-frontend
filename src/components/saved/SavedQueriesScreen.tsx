@@ -18,7 +18,7 @@ export function SavedQueriesScreen() {
         {savedQueries.map((query) => (
           <li
             key={query.id}
-            className="glass rounded-card border-hairline bg-panel shadow-glass-sm flex items-center justify-between border px-[18px] py-4"
+            className="rounded-card border-hairline bg-panel shadow-glass-sm flex items-center justify-between border px-[18px] py-4"
           >
             <div>
               <p className="text-ink mb-1 text-sm">{query.text}</p>

@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string>({
       aria-label={label}
       className={cn(
         "flex",
-        variant === "panel" && "rounded-pill border-hairline bg-panel glass gap-0.5 border p-0.5",
+        variant === "panel" && "rounded-pill border-hairline bg-panel gap-0.5 border p-0.5",
         variant === "buttons" && "gap-2",
         className,
       )}

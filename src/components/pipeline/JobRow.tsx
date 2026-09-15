@@ -26,7 +26,7 @@ function statusLabel(job: PipelineJob): string {
 
 export function JobRow({ job }: JobRowProps) {
   return (
-    <li className="glass rounded-card border-hairline bg-panel shadow-glass-sm flex items-center gap-4 border px-[18px] py-3.5">
+    <li className="rounded-card border-hairline bg-panel shadow-glass-sm flex items-center gap-4 border px-[18px] py-3.5">
       <span
         aria-hidden
         className={cn("h-2 w-2 shrink-0 rounded-full", statusDotClasses[job.status])}
