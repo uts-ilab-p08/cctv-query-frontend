@@ -1,13 +1,14 @@
 "use client";
 
-import { FileBarChart, Home, Settings, Star, Workflow } from "lucide-react";
+import { AlignLeft, Bookmark, Layers, Search, Settings } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
 
+import { BrandLockup } from "@/components/brand/BrandMark";
 import { investigatorName } from "@/data/precincts";
 import { cn } from "@/lib/cn";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 interface NavItem {
   href: string;
@@ -17,43 +18,36 @@ interface NavItem {
   match: string[];
 }
 
-const navItems: NavItem[] = [
+/** SPEC §9 icon mapping. */
+const NAV_ITEMS: readonly NavItem[] = [
   {
     href: "/dashboard",
-    label: "New Query",
-    icon: Home,
+    label: "Search",
+    icon: Search,
     match: ["/dashboard", "/results", "/clips"],
   },
-  { href: "/saved", label: "Saved Queries", icon: Star, match: ["/saved"] },
-  { href: "/reports", label: "Reports", icon: FileBarChart, match: ["/reports"] },
-  { href: "/pipeline", label: "Pipeline", icon: Workflow, match: ["/pipeline"] },
+  { href: "/saved", label: "Saved Queries", icon: Bookmark, match: ["/saved"] },
+  { href: "/reports", label: "Reports", icon: AlignLeft, match: ["/reports"] },
+  { href: "/pipeline", label: "Annotation Pipeline", icon: Layers, match: ["/pipeline"] },
 ];
+
+/** SPEC §1 — a pill row holding a 32px circle, with the label outside the circle. */
+const ROW = "rounded-pill flex items-center gap-[11px] py-1.5 pr-3.5 pl-1.5 text-sm no-underline";
+const CIRCLE = "flex size-8 shrink-0 items-center justify-center rounded-full";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const selectedPrecinct = useAppStore((state) => state.selectedPrecinct);
-  const setOpenModal = useAppStore((state) => state.setOpenModal);
+  const precinct = useAppStore((state) => state.precinct);
+  const openSettings = useAppStore((state) => state.openSettings);
 
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col bg-[rgba(11,28,77,0.85)] px-4 py-5 shadow-[4px_0_30px_rgba(11,28,77,0.15)] backdrop-blur-[20px]">
-      <Link
-        href="/dashboard"
-        className="mb-7 flex items-center gap-2.5 rounded-lg px-2 py-1 no-underline"
-      >
-        <span
-          aria-hidden
-          className="bg-mark-gradient flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold text-white"
-        >
-          ✦
-        </span>
-        <span className="flex flex-col leading-[1.1]">
-          <span className="text-[15px] font-bold tracking-[0.2px] text-white">CCTV AI</span>
-          <span className="text-nav-accent font-mono text-[9px] tracking-[1.2px]">ASSISTANT</span>
-        </span>
+    <aside className="bg-sidebar glass border-hairline relative z-10 flex w-[232px] shrink-0 flex-col border-r px-4 py-5">
+      <Link href="/dashboard" className="mb-7 px-1.5 no-underline">
+        <BrandLockup />
       </Link>
 
-      <nav aria-label="Main" className="flex flex-col gap-0.5">
-        {navItems.map((item) => {
+      <nav aria-label="Main" className="flex flex-col gap-1">
+        {NAV_ITEMS.map((item) => {
           const active = item.match.some((prefix) => pathname.startsWith(prefix));
           const Icon = item.icon;
           return (
@@ -62,13 +56,19 @@ export function Sidebar() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-[9px] text-sm font-medium no-underline transition-colors duration-150",
-                active
-                  ? "bg-white/12 text-white"
-                  : "text-nav-fg-strong hover:bg-white/8 hover:text-white",
+                ROW,
+                "transition-colors duration-150",
+                active ? "bg-accent-soft text-ink font-medium" : "text-ink-2 hover:text-ink",
               )}
             >
-              <Icon size={16} aria-hidden />
+              <span
+                className={cn(
+                  CIRCLE,
+                  active ? "bg-action shadow-action" : "bg-panel border-hairline-strong border",
+                )}
+              >
+                <Icon size={17} strokeWidth={2} aria-hidden />
+              </span>
               {item.label}
             </Link>
           );
@@ -76,19 +76,21 @@ export function Sidebar() {
 
         <button
           type="button"
-          onClick={() => setOpenModal("settings")}
-          className="text-nav-fg flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-[9px] text-left text-sm font-medium transition-colors duration-150 hover:bg-white/8 hover:text-white"
+          onClick={openSettings}
+          className={cn(ROW, "text-ink-2 hover:text-ink cursor-pointer text-left")}
         >
-          <Settings size={16} aria-hidden />
+          <span className={cn(CIRCLE, "bg-panel border-hairline-strong border")}>
+            <Settings size={17} strokeWidth={2} aria-hidden />
+          </span>
           Settings
         </button>
       </nav>
 
       <div className="flex-1" />
 
-      <div className="flex flex-col gap-0.5 border-t border-white/14 pt-3.5">
-        <p className="text-nav-fg-strong text-xs font-semibold">{selectedPrecinct}</p>
-        <p className="text-nav-fg-faint font-mono text-[11px]">{investigatorName}</p>
+      <div className="border-hairline flex flex-col gap-0.5 border-t pt-3.5">
+        <p className="text-ink-2 font-mono text-[11px]">{precinct}</p>
+        <p className="text-ink-3 font-mono text-[11px]">{investigatorName}</p>
       </div>
     </aside>
   );
