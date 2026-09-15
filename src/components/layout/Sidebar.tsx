@@ -40,7 +40,7 @@ const CIRCLE = "flex size-8 shrink-0 items-center justify-center rounded-full";
  * the active row reads pure white, the resting ones a neutral white-grey. Both
  * flip with the theme, so the light sidebar stays legible.
  */
-const LABEL_ACTIVE = "text-[var(--nav-ink-active)] font-medium";
+const LABEL_ACTIVE = "text-[var(--nav-ink-active)] font-bold";
 const LABEL_RESTING = "text-[var(--nav-ink)] hover:text-[var(--nav-ink-active)]";
 
 export function Sidebar() {
