@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 /** Interval between queue ticks, in milliseconds. */
 const TICK_MS = 1400;

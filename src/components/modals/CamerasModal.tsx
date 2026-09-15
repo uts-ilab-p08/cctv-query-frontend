@@ -2,21 +2,21 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { getCameraDirectory } from "@/lib/clips";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 export function CamerasModal() {
-  const openModal = useAppStore((state) => state.openModal);
-  const setOpenModal = useAppStore((state) => state.setOpenModal);
-  const selectedPrecinct = useAppStore((state) => state.selectedPrecinct);
+  const camerasOpen = useAppStore((state) => state.camerasOpen);
+  const closeCameras = useAppStore((state) => state.closeCameras);
+  const precinct = useAppStore((state) => state.precinct);
 
   const directory = getCameraDirectory();
 
   return (
     <Modal
-      open={openModal === "cameras"}
-      onClose={() => setOpenModal(null)}
+      open={camerasOpen}
+      onClose={closeCameras}
       title="Indexed Cameras"
-      description={`${selectedPrecinct} · archived footage sources, not a live feed.`}
+      description={`${precinct} · archived footage sources, not a live feed.`}
       width={480}
     >
       <ul className="border-border bg-border flex flex-col gap-px overflow-hidden rounded-md border">

@@ -37,7 +37,7 @@ export interface CameraDirectoryEntry extends Camera {
 
 export type SearchMode = "nlq" | "classic";
 
-export type ResultsViewMode = "grid" | "timeline";
+export type ResultsMode = "grid" | "timeline";
 
 export interface Filters {
   cameras: string[];

@@ -5,7 +5,7 @@ import { UploadForm } from "@/components/pipeline/UploadForm";
 import { StatCard } from "@/components/ui/StatCard";
 import { annotationModels } from "@/data/models";
 import { usePipelineSimulation } from "@/hooks/usePipelineSimulation";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 import type { StatCardData } from "@/types";
 
 export function PipelineScreen() {

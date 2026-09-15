@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { ActiveFilterChips } from "@/components/dashboard/ActiveFilterChips";
 import { KeywordChips } from "@/components/dashboard/KeywordChips";
 import { detectKeywords } from "@/lib/keywords";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 const modeCopy = {
   nlq: {
@@ -22,9 +22,10 @@ const modeCopy = {
 export function QueryComposer() {
   const router = useRouter();
   const searchMode = useAppStore((state) => state.searchMode);
-  const storedQuery = useAppStore((state) => state.queryText);
+  const storedQuery = useAppStore((state) => state.query);
   const runSearch = useAppStore((state) => state.runSearch);
-  const setOpenModal = useAppStore((state) => state.setOpenModal);
+  const openSettings = useAppStore((state) => state.openSettings);
+  const openFilters = useAppStore((state) => state.openFilters);
 
   const [draft, setDraft] = useState(storedQuery);
 
@@ -49,7 +50,7 @@ export function QueryComposer() {
       <p className="text-ink-muted mb-2 text-center text-[15px]">{copy.hint}</p>
       <button
         type="button"
-        onClick={() => setOpenModal("settings")}
+        onClick={openSettings}
         className="text-indigo-strong hover:text-navy-deep mb-9 cursor-pointer text-xs transition-colors duration-150"
       >
         {copy.label} · change in settings
@@ -82,7 +83,7 @@ export function QueryComposer() {
           {searchMode === "classic" ? (
             <button
               type="button"
-              onClick={() => setOpenModal("filters")}
+              onClick={openFilters}
               className="text-ink-muted hover:text-ink h-16 w-16 shrink-0 cursor-pointer rounded-2xl border border-white/70 bg-white/75 font-mono text-[13px] backdrop-blur-[18px] transition-colors duration-150"
             >
               Filters

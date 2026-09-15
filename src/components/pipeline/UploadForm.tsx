@@ -7,7 +7,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Select } from "@/components/ui/Select";
 import { cameraNames } from "@/data/cameras";
 import { remoteEndpointPlaceholder } from "@/data/models";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 import type { ExecutionTarget, UploadScope } from "@/types";
 
 const scopeOptions = [

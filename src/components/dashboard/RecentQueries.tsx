@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { recentQueries } from "@/data/recentQueries";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 export function RecentQueries() {
   const router = useRouter();

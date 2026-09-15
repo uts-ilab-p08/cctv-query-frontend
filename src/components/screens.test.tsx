@@ -17,7 +17,7 @@ import { CamerasModal } from "@/components/modals/CamerasModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { getAllClips } from "@/lib/clips";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 beforeEach(() => {
   resetStore();
@@ -56,7 +56,7 @@ describe("Dashboard", () => {
     await user.click(screen.getByRole("button", { name: "Search" }));
 
     expect(pushMock).toHaveBeenCalledWith("/results");
-    expect(useAppStore.getState().queryText).toBe("red car");
+    expect(useAppStore.getState().query).toBe("red car");
   });
 
   it("does not search on an empty query", async () => {
@@ -83,7 +83,7 @@ describe("Results", () => {
 
     await user.click(screen.getByRole("button", { name: "Timeline" }));
 
-    expect(useAppStore.getState().resultsViewMode).toBe("timeline");
+    expect(useAppStore.getState().resultsMode).toBe("timeline");
     expect(screen.queryByText("View detail →")).not.toBeInTheDocument();
   });
 
@@ -108,7 +108,7 @@ describe("Clip detail", () => {
   });
 
   it("seeds the assistant thread with the query and an AI summary", () => {
-    useAppStore.setState({ queryText: "red car" });
+    useAppStore.setState({ query: "red car" });
     render(<ClipDetailScreen clip={clip} />);
 
     const assistant = screen.getByRole("complementary", { name: "Query Assistant" });
@@ -127,7 +127,7 @@ describe("Saved queries", () => {
     await user.click(screen.getAllByRole("button", { name: "Run again" })[0]);
 
     expect(pushMock).toHaveBeenCalledWith("/results");
-    expect(useAppStore.getState().queryText).toMatch(/red car/);
+    expect(useAppStore.getState().query).toMatch(/red car/);
   });
 });
 
@@ -231,19 +231,19 @@ describe("Query Assistant", () => {
 describe("Modals", () => {
   it("closes the cameras modal on Escape", async () => {
     const user = userEvent.setup();
-    useAppStore.setState({ openModal: "cameras" });
+    useAppStore.setState({ camerasOpen: true });
     render(<CamerasModal />);
 
     expect(screen.getByRole("dialog", { name: "Indexed Cameras" })).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 
-    expect(useAppStore.getState().openModal).toBeNull();
+    expect(useAppStore.getState().camerasOpen).toBe(false);
   });
 
   it("switches the search mode from settings", async () => {
     const user = userEvent.setup();
-    useAppStore.setState({ openModal: "settings" });
+    useAppStore.setState({ settingsOpen: true });
     render(<SettingsModal />);
 
     await user.click(screen.getByRole("radio", { name: /Classic filters/ }));

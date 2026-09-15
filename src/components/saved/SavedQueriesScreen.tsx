@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { savedQueries } from "@/data/savedQueries";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 export function SavedQueriesScreen() {
   const router = useRouter();

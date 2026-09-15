@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { getActiveFilterChips } from "@/lib/filters";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 import type { ClipTag } from "@/types";
 
 interface ActiveFilterChipsProps {
@@ -15,8 +15,8 @@ interface ActiveFilterChipsProps {
 
 export function ActiveFilterChips({ layout = "centered", className }: ActiveFilterChipsProps) {
   const filters = useAppStore((state) => state.filters);
-  const toggleCameraFilter = useAppStore((state) => state.toggleCameraFilter);
-  const toggleTagFilter = useAppStore((state) => state.toggleTagFilter);
+  const toggleCamera = useAppStore((state) => state.toggleCamera);
+  const toggleTag = useAppStore((state) => state.toggleTag);
 
   const chips = getActiveFilterChips(filters);
   if (chips.length === 0) return null;
@@ -35,9 +35,7 @@ export function ActiveFilterChips({ layout = "centered", className }: ActiveFilt
           type="button"
           aria-label={`Remove filter ${chip.label}`}
           onClick={() =>
-            chip.kind === "camera"
-              ? toggleCameraFilter(chip.label)
-              : toggleTagFilter(chip.label as ClipTag)
+            chip.kind === "camera" ? toggleCamera(chip.label) : toggleTag(chip.label as ClipTag)
           }
           className={cn(
             "text-ink-muted hover:text-ink flex cursor-pointer items-center gap-1.5 rounded-[14px] border px-2.5 py-[5px] font-mono text-xs transition-colors duration-150",

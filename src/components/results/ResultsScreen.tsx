@@ -9,12 +9,12 @@ import { ResultsToolbar } from "@/components/results/ResultsToolbar";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { getAllClips } from "@/lib/clips";
 import { filterClips } from "@/lib/filters";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 export function ResultsScreen() {
-  const queryText = useAppStore((state) => state.queryText);
+  const query = useAppStore((state) => state.query);
   const filters = useAppStore((state) => state.filters);
-  const viewMode = useAppStore((state) => state.resultsViewMode);
+  const viewMode = useAppStore((state) => state.resultsMode);
 
   const clips = useMemo(() => filterClips(getAllClips(), filters), [filters]);
 
@@ -22,7 +22,7 @@ export function ResultsScreen() {
     <div className="grid grid-cols-[1fr_360px] items-start gap-[22px] px-8 pt-7 pb-15">
       <section className="min-w-0">
         <p className="text-ink mb-1.5 text-lg">
-          &ldquo;<em>{queryText || "All indexed events"}</em>&rdquo;
+          &ldquo;<em>{query || "All indexed events"}</em>&rdquo;
         </p>
 
         <ResultsToolbar resultCount={clips.length} />

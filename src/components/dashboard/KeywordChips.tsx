@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 import type { ClipTag, DetectedKeyword } from "@/types";
 
 interface KeywordChipsProps {
@@ -16,8 +16,8 @@ export function KeywordChips({ keywords }: KeywordChipsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const filters = useAppStore((state) => state.filters);
-  const toggleCameraFilter = useAppStore((state) => state.toggleCameraFilter);
-  const toggleTagFilter = useAppStore((state) => state.toggleTagFilter);
+  const toggleCamera = useAppStore((state) => state.toggleCamera);
+  const toggleTag = useAppStore((state) => state.toggleTag);
 
   useEffect(() => {
     if (!openId) return;
@@ -45,8 +45,8 @@ export function KeywordChips({ keywords }: KeywordChipsProps) {
         : false;
 
   const selectOption = (keyword: DetectedKeyword, option: string) => {
-    if (keyword.kind === "camera") toggleCameraFilter(option);
-    else if (keyword.kind === "tag") toggleTagFilter(option as ClipTag);
+    if (keyword.kind === "camera") toggleCamera(option);
+    else if (keyword.kind === "tag") toggleTag(option as ClipTag);
     setOpenId(null);
   };
 

@@ -5,23 +5,23 @@ import { Chip } from "@/components/ui/Chip";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Modal } from "@/components/ui/Modal";
 import { cameraNames, tagNames } from "@/data/cameras";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 export function FiltersModal() {
-  const openModal = useAppStore((state) => state.openModal);
-  const setOpenModal = useAppStore((state) => state.setOpenModal);
+  const filtersOpen = useAppStore((state) => state.filtersOpen);
+  const closeFilters = useAppStore((state) => state.closeFilters);
   const filters = useAppStore((state) => state.filters);
-  const toggleCameraFilter = useAppStore((state) => state.toggleCameraFilter);
-  const toggleTagFilter = useAppStore((state) => state.toggleTagFilter);
-  const setConfidenceFilter = useAppStore((state) => state.setConfidenceFilter);
+  const toggleCamera = useAppStore((state) => state.toggleCamera);
+  const toggleTag = useAppStore((state) => state.toggleTag);
+  const setConfidence = useAppStore((state) => state.setConfidence);
   const setDateFrom = useAppStore((state) => state.setDateFrom);
   const setDateTo = useAppStore((state) => state.setDateTo);
 
-  const close = () => setOpenModal(null);
+  const close = closeFilters;
 
   return (
     <Modal
-      open={openModal === "filters"}
+      open={filtersOpen}
       onClose={close}
       title="Filters"
       width={520}
@@ -39,7 +39,7 @@ export function FiltersModal() {
               key={camera}
               tone="navy"
               active={filters.cameras.includes(camera)}
-              onClick={() => toggleCameraFilter(camera)}
+              onClick={() => toggleCamera(camera)}
               className="rounded-xl px-3 py-1.5"
             >
               {camera}
@@ -79,7 +79,7 @@ export function FiltersModal() {
             min={0}
             max={100}
             value={filters.confidence}
-            onChange={(event) => setConfidenceFilter(Number(event.target.value))}
+            onChange={(event) => setConfidence(Number(event.target.value))}
             className="accent-indigo-strong w-full"
           />
         </div>
@@ -93,7 +93,7 @@ export function FiltersModal() {
               key={tag}
               mono={false}
               active={filters.tags.includes(tag)}
-              onClick={() => toggleTagFilter(tag)}
+              onClick={() => toggleTag(tag)}
               className="rounded-xl px-3 py-1.5"
             >
               {tag}

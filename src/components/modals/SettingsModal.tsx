@@ -3,7 +3,7 @@
 import { Modal } from "@/components/ui/Modal";
 import { precincts } from "@/data/precincts";
 import { cn } from "@/lib/cn";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 import type { SearchMode } from "@/types";
 
 interface ModeOption {
@@ -28,18 +28,18 @@ const modeOptions: ModeOption[] = [
 ];
 
 export function SettingsModal() {
-  const openModal = useAppStore((state) => state.openModal);
-  const setOpenModal = useAppStore((state) => state.setOpenModal);
+  const settingsOpen = useAppStore((state) => state.settingsOpen);
+  const closeSettings = useAppStore((state) => state.closeSettings);
   const searchMode = useAppStore((state) => state.searchMode);
   const setSearchMode = useAppStore((state) => state.setSearchMode);
-  const selectedPrecinct = useAppStore((state) => state.selectedPrecinct);
-  const setSelectedPrecinct = useAppStore((state) => state.setSelectedPrecinct);
+  const selectedPrecinct = useAppStore((state) => state.precinct);
+  const setPrecinct = useAppStore((state) => state.setPrecinct);
 
-  const close = () => setOpenModal(null);
+  const close = closeSettings;
 
   return (
     <Modal
-      open={openModal === "settings"}
+      open={settingsOpen}
       onClose={close}
       title="Search settings"
       description="Choose how you search the camera network."
@@ -81,14 +81,14 @@ export function SettingsModal() {
         </p>
         <div role="radiogroup" aria-label="Precinct" className="flex flex-wrap gap-2">
           {precincts.map((precinct) => {
-            const active = selectedPrecinct === precinct;
+            const active = precinct === selectedPrecinct;
             return (
               <button
                 key={precinct}
                 type="button"
                 role="radio"
                 aria-checked={active}
-                onClick={() => setSelectedPrecinct(precinct)}
+                onClick={() => setPrecinct(precinct)}
                 className={cn(
                   "cursor-pointer rounded-md border px-3.5 py-2 font-sans text-[13px] transition-colors duration-150",
                   active

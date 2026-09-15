@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/assistant/ChatMessage";
 import { SuggestedQuestions } from "@/components/assistant/SuggestedQuestions";
 import { cn } from "@/lib/cn";
-import { useAppStore } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 import type { ChatKey, ChatMessage as ChatMessageData } from "@/types";
 
 /** Stable reference so an empty thread does not re-trigger the store selector. */
