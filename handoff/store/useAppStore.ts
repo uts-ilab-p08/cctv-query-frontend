@@ -82,18 +82,13 @@ export const useAppStore = create<AppState>()(
       setCameras: (cameras) => set((s) => ({ filters: { ...s.filters, cameras } })),
       addTag: (tag) =>
         set((s) => ({
-          filters: {
-            ...s.filters,
-            tags: s.filters.tags.includes(tag) ? s.filters.tags : [...s.filters.tags, tag],
-          },
+          filters: { ...s.filters, tags: s.filters.tags.includes(tag) ? s.filters.tags : [...s.filters.tags, tag] },
         })),
       toggleTag: (tag) =>
         set((s) => ({
           filters: {
             ...s.filters,
-            tags: s.filters.tags.includes(tag)
-              ? s.filters.tags.filter((t) => t !== tag)
-              : [...s.filters.tags, tag],
+            tags: s.filters.tags.includes(tag) ? s.filters.tags.filter((t) => t !== tag) : [...s.filters.tags, tag],
           },
         })),
       toggleCamera: (camera) =>

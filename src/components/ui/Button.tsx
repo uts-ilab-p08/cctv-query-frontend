@@ -14,8 +14,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-action shadow-action border-transparent",
-  secondary: "bg-panel text-ink-2 border-hairline-strong hover:text-ink",
+  primary: "surface-action shadow-action border-transparent",
+  secondary: "glass-card-flat text-ink-2 hover:text-ink",
   ghost: "border-transparent bg-transparent text-ink-2 hover:text-ink",
 };
 
@@ -37,7 +37,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "rounded-pill inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 border font-sans transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border font-sans transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],
         sizeClasses[size],
         className,

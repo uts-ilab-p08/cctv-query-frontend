@@ -33,7 +33,7 @@ export function ResultsToolbar({ resultCount }: ResultsToolbarProps) {
           type="button"
           onClick={openFilters}
           aria-label="Filters"
-          className="border-hairline-strong bg-panel text-ink-2 hover:text-ink flex size-11 cursor-pointer items-center justify-center rounded-full border transition-colors duration-150"
+          className="glass-card-flat text-ink-2 hover:text-ink flex size-11 cursor-pointer items-center justify-center rounded-full transition-colors duration-150"
         >
           <SlidersHorizontal size={19} strokeWidth={2} aria-hidden />
         </button>

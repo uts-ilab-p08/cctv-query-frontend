@@ -105,13 +105,13 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           setMenu(null);
         }}
         className={cn(
-          "glass rounded-field border-hairline bg-panel shadow-glass relative z-20 w-full cursor-text border",
+          "glass relative z-20 w-full cursor-text rounded-field border border-hairline bg-panel shadow-glass",
           !hero && "max-w-[820px]",
         )}
       >
         <div
           className={cn(
-            "text-ink-2 pointer-events-none relative z-[2] font-sans break-words whitespace-pre-wrap",
+            "pointer-events-none relative z-[2] whitespace-pre-wrap break-words font-sans text-ink-2",
             pad,
             text,
             hero ? "min-h-16" : "min-h-14",
@@ -119,9 +119,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
         >
           {query.length === 0 ? (
             <span className="text-ink-3">
-              {hero
-                ? "Ask anything… e.g. anyone who entered after the red car arrived"
-                : "Ask anything…"}
+              {hero ? "Ask anything… e.g. anyone who entered after the red car arrived" : "Ask anything…"}
             </span>
           ) : (
             toSegments(query).map((segment, index) =>
@@ -131,7 +129,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
                 <span
                   key={index}
                   onClick={openMenu(segment.hit)}
-                  className="border-token-line text-token-ink pointer-events-auto cursor-pointer border-b-2 border-dashed pb-[3px] font-bold"
+                  className="pointer-events-auto cursor-pointer border-b-2 border-dashed border-token-line pb-[3px] font-bold text-token-ink"
                 >
                   {segment.text}
                 </span>
@@ -158,14 +156,13 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           <div
             onClick={(event) => event.stopPropagation()}
             style={{ top: menu.top, left: menu.left }}
-            className="rounded-chip border-hairline-strong bg-panel-solid shadow-glass-lg absolute z-40 max-h-[252px] min-w-[212px] overflow-y-auto border p-2"
+            className="absolute z-40 max-h-[252px] min-w-[212px] overflow-y-auto rounded-chip border border-hairline-strong bg-panel-solid p-2 shadow-glass-lg"
           >
-            <div className="text-ink-3 px-2 pt-1 pb-2 font-mono text-[10px] tracking-[1px]">
+            <div className="px-2 pb-2 pt-1 font-mono text-[10px] tracking-[1px] text-ink-3">
               {menu.hit.def.title}
             </div>
             {menu.hit.def.options.map((option) => {
-              const current =
-                query.slice(menu.hit.start, menu.hit.end).toLowerCase() === option.toLowerCase();
+              const current = query.slice(menu.hit.start, menu.hit.end).toLowerCase() === option.toLowerCase();
               return (
                 <button
                   key={option}
@@ -183,19 +180,14 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           </div>
         ) : null}
 
-        <div
-          className={cn(
-            "absolute z-[3] flex items-center gap-2",
-            hero ? "top-[11px] right-3" : "top-[9px] right-2.5",
-          )}
-        >
+        <div className={cn("absolute z-[3] flex items-center gap-2", hero ? "right-3 top-[11px]" : "right-2.5 top-[9px]")}>
           {classicMode ? (
             <button
               type="button"
               onClick={openFilters}
               aria-label="Filters"
               className={cn(
-                "border-hairline-strong bg-panel text-ink-2 flex items-center justify-center rounded-full border",
+                "flex items-center justify-center rounded-full border border-hairline-strong bg-panel text-ink-2",
                 hero ? "size-11" : "size-[38px]",
               )}
             >
@@ -207,7 +199,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
             onClick={onSubmit}
             aria-label="Search"
             className={cn(
-              "bg-action shadow-action flex items-center justify-center rounded-full",
+              "bg-action flex items-center justify-center rounded-full shadow-action",
               hero ? "size-11" : "size-[38px]",
             )}
           >

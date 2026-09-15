@@ -28,10 +28,10 @@ export function Chip({
       type={type}
       aria-pressed={active}
       className={cn(
-        "rounded-pill cursor-pointer border px-3 py-1.5 text-xs transition-colors duration-150",
+        "cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors duration-150",
         mono ? "font-mono" : "font-sans",
-        !active && "border-hairline-strong bg-panel text-ink-2 hover:text-ink",
-        active && tone === "solid" && "bg-action border-transparent",
+        !active && "glass-card-flat text-ink-2 hover:text-ink",
+        active && tone === "solid" && "surface-action border-transparent",
         active && tone === "accent" && "border-accent-line bg-accent-soft text-accent",
         className,
       )}

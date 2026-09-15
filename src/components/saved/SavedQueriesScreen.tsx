@@ -14,11 +14,11 @@ export function SavedQueriesScreen() {
       <h1 className="mb-1.5 text-2xl font-bold">Saved Queries</h1>
       <p className="text-ink-2 mb-7 text-sm">Bookmarked searches for quick re-run.</p>
 
-      <ul className="flex list-none flex-col gap-3 p-0">
+      <ul className="glass-card-soft rounded-card flex list-none flex-col gap-3 p-3">
         {savedQueries.map((query) => (
           <li
             key={query.id}
-            className="rounded-card border-hairline bg-panel shadow-glass-sm flex items-center justify-between border px-[18px] py-4"
+            className="rounded-card glass-card-flat flex items-center justify-between px-[18px] py-4"
           >
             <div>
               <p className="text-ink mb-1 text-sm">{query.text}</p>
@@ -32,7 +32,7 @@ export function SavedQueriesScreen() {
                 runSearch(query.text);
                 router.push("/results");
               }}
-              className="bg-action shadow-action rounded-pill h-9 shrink-0 cursor-pointer px-4 font-sans text-[13px]"
+              className="surface-action shadow-action h-9 shrink-0 cursor-pointer rounded-full px-4 font-sans text-[13px]"
             >
               Run again
             </button>

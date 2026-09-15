@@ -29,11 +29,11 @@ export function ReportsScreen() {
       </div>
 
       <SectionLabel>RECENT REPORTS</SectionLabel>
-      <ul className="flex list-none flex-col gap-2.5 p-0">
+      <ul className="glass-card-soft rounded-card flex list-none flex-col gap-2.5 p-3">
         {reports.map((report) => (
           <li
             key={report.id}
-            className="rounded-card border-hairline bg-panel shadow-glass-sm flex items-center justify-between border px-[18px] py-4"
+            className="rounded-card glass-card-flat flex items-center justify-between px-[18px] py-4"
           >
             <div>
               <p className="text-ink mb-1 text-sm">{report.title}</p>

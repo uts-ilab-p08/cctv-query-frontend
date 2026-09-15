@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string>({
       aria-label={label}
       className={cn(
         "flex",
-        variant === "panel" && "rounded-pill border-hairline bg-panel gap-0.5 border p-0.5",
+        variant === "panel" && "glass-card-flat gap-0.5 rounded-full p-0.5",
         variant === "buttons" && "gap-2",
         className,
       )}
@@ -46,14 +46,14 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             className={cn(
               "cursor-pointer font-sans text-[13px] transition-colors duration-150",
-              variant === "panel" && "rounded-pill px-4 py-1.5",
+              variant === "panel" && "rounded-full px-4 py-1.5",
               variant === "buttons" && "rounded-chip h-10 flex-1 border",
               active
-                ? cn("bg-action shadow-action", variant === "buttons" && "border-transparent")
+                ? cn("surface-action shadow-action", variant === "buttons" && "border-transparent")
                 : cn(
                     "text-ink-2 hover:text-ink",
                     variant === "panel" && "bg-transparent",
-                    variant === "buttons" && "border-hairline-strong bg-panel",
+                    variant === "buttons" && "glass-card-flat",
                   ),
             )}
           >

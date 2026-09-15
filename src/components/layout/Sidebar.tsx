@@ -32,7 +32,7 @@ const NAV_ITEMS: readonly NavItem[] = [
 ];
 
 /** SPEC §1 — a pill row holding a 32px circle, with the label outside the circle. */
-const ROW = "rounded-pill flex items-center gap-[11px] py-1.5 pr-3.5 pl-1.5 text-sm no-underline";
+const ROW = "rounded-full flex items-center gap-[11px] py-1.5 pr-3.5 pl-1.5 text-sm no-underline";
 const CIRCLE = "flex size-8 shrink-0 items-center justify-center rounded-full";
 
 export function Sidebar() {
@@ -41,7 +41,7 @@ export function Sidebar() {
   const openSettings = useAppStore((state) => state.openSettings);
 
   return (
-    <aside className="bg-sidebar glass border-hairline relative z-10 flex w-[232px] shrink-0 flex-col border-r px-4 py-5">
+    <aside className="surface-sidebar border-hairline relative z-10 flex w-[232px] shrink-0 flex-col border-r px-4 py-5">
       <Link href="/dashboard" className="mb-7 px-1.5 no-underline">
         <BrandLockup />
       </Link>
@@ -62,10 +62,7 @@ export function Sidebar() {
               )}
             >
               <span
-                className={cn(
-                  CIRCLE,
-                  active ? "bg-action shadow-action" : "bg-panel border-hairline-strong border",
-                )}
+                className={cn(CIRCLE, active ? "surface-action shadow-action" : "glass-card-flat")}
               >
                 <Icon size={17} strokeWidth={2} aria-hidden />
               </span>
@@ -79,7 +76,7 @@ export function Sidebar() {
           onClick={openSettings}
           className={cn(ROW, "text-ink-2 hover:text-ink cursor-pointer text-left")}
         >
-          <span className={cn(CIRCLE, "bg-panel border-hairline-strong border")}>
+          <span className={cn(CIRCLE, "glass-card-flat")}>
             <Settings size={17} strokeWidth={2} aria-hidden />
           </span>
           Settings

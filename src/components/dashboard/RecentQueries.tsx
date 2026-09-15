@@ -22,7 +22,7 @@ export function RecentQueries() {
                 runSearch(query.text);
                 router.push("/results");
               }}
-              className="rounded-card border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong flex w-full cursor-pointer items-center justify-between border px-4 py-3.5 text-left transition-colors duration-150"
+              className="rounded-card glass-card-flat hover:border-hairline-strong flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-left transition-colors duration-150"
             >
               <span className="text-ink text-sm">{query.text}</span>
               <span className="text-ink-3 font-mono text-xs">{query.ts}</span>

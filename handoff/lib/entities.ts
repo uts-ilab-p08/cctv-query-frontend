@@ -17,53 +17,33 @@ export interface EntityHit {
 }
 
 export type Segment =
-  { kind: "text"; text: string } | { kind: "token"; text: string; hit: EntityHit };
+  | { kind: "text"; text: string }
+  | { kind: "token"; text: string; hit: EntityHit };
 
 export const ENTITY_DEFS: readonly EntityDef[] = [
   {
     id: "subject",
     title: "Subject / object",
-    pattern:
-      /\b(people|person|anyone|someone|man|woman|red car|red sedan|white van|vehicle|car|van|truck|package|bag)\b/,
+    pattern: /\b(people|person|anyone|someone|man|woman|red car|red sedan|white van|vehicle|car|van|truck|package|bag)\b/,
     options: ["person", "people", "vehicle", "red sedan", "white van", "package"],
   },
   {
     id: "event",
     title: "Event type",
-    pattern:
-      /\b(entered|enters|entering|entry|exited|exits|leaving|left|loitering|loiters|parked|arrived|departed|dropped off)\b/,
+    pattern: /\b(entered|enters|entering|entry|exited|exits|leaving|left|loitering|loiters|parked|arrived|departed|dropped off)\b/,
     options: ["entered", "exited", "loitering", "parked", "arrived", "departed"],
   },
   {
     id: "time",
     title: "Time range",
-    pattern:
-      /\b(after \d{1,2}(:\d{2})?\s?(am|pm)?|before \d{1,2}(:\d{2})?\s?(am|pm)?|last night|last 24 hours|yesterday|today|this week|after hours)\b/,
-    options: [
-      "today",
-      "yesterday",
-      "last night",
-      "this week",
-      "last 24 hours",
-      "after 14:00",
-      "before 09:00",
-    ],
+    pattern: /\b(after \d{1,2}(:\d{2})?\s?(am|pm)?|before \d{1,2}(:\d{2})?\s?(am|pm)?|last night|last 24 hours|yesterday|today|this week|after hours)\b/,
+    options: ["today", "yesterday", "last night", "this week", "last 24 hours", "after 14:00", "before 09:00"],
   },
   {
     id: "camera",
     title: "Camera",
-    pattern:
-      /\b(parking lot|loading dock|rear exit|bus stop|stairwell|breezeway|courtyard|entrance|lobby)\b/,
-    options: [
-      "parking lot",
-      "entrance",
-      "loading dock",
-      "stairwell",
-      "rear exit",
-      "courtyard",
-      "breezeway",
-      "bus stop",
-    ],
+    pattern: /\b(parking lot|loading dock|rear exit|bus stop|stairwell|breezeway|courtyard|entrance|lobby)\b/,
+    options: ["parking lot", "entrance", "loading dock", "stairwell", "rear exit", "courtyard", "breezeway", "bus stop"],
   },
   {
     id: "confidence",
@@ -74,52 +54,22 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
 ] as const;
 
 export const TAG_FOR_PHRASE: Record<string, string> = {
-  person: "Person",
-  people: "Person",
-  anyone: "Person",
-  someone: "Person",
-  man: "Person",
-  woman: "Person",
-  vehicle: "Vehicle",
-  car: "Vehicle",
-  van: "Vehicle",
-  truck: "Vehicle",
-  "red car": "Vehicle",
-  "red sedan": "Vehicle",
-  "white van": "Vehicle",
-  package: "Object Left",
-  bag: "Object Left",
-  entered: "Entry",
-  enters: "Entry",
-  entering: "Entry",
-  entry: "Entry",
-  arrived: "Entry",
-  exited: "Exit",
-  exits: "Exit",
-  leaving: "Exit",
-  left: "Exit",
-  departed: "Exit",
-  loitering: "Loitering",
-  loiters: "Loitering",
-  parked: "Vehicle",
+  person: "Person", people: "Person", anyone: "Person", someone: "Person", man: "Person", woman: "Person",
+  vehicle: "Vehicle", car: "Vehicle", van: "Vehicle", truck: "Vehicle",
+  "red car": "Vehicle", "red sedan": "Vehicle", "white van": "Vehicle",
+  package: "Object Left", bag: "Object Left",
+  entered: "Entry", enters: "Entry", entering: "Entry", entry: "Entry", arrived: "Entry",
+  exited: "Exit", exits: "Exit", leaving: "Exit", left: "Exit", departed: "Exit",
+  loitering: "Loitering", loiters: "Loitering", parked: "Vehicle",
 };
 
 export const CAMERA_FOR_PHRASE: Record<string, string> = {
-  "parking lot": "G328",
-  entrance: "G301",
-  lobby: "G301",
-  "loading dock": "G421",
-  stairwell: "G424",
-  "rear exit": "G506",
-  courtyard: "G299",
-  breezeway: "G420",
-  "bus stop": "G423",
+  "parking lot": "G328", entrance: "G301", lobby: "G301", "loading dock": "G421",
+  stairwell: "G424", "rear exit": "G506", courtyard: "G299", breezeway: "G420", "bus stop": "G423",
 };
 
 export const CONFIDENCE_FOR_PHRASE: Record<string, number> = {
-  "high confidence": 85,
-  "medium confidence": 65,
-  "low confidence": 0,
+  "high confidence": 85, "medium confidence": 65, "low confidence": 0,
 };
 
 /** All non-overlapping entity hits, left to right; longer match wins a tie. */

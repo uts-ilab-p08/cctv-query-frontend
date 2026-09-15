@@ -17,7 +17,7 @@ export function RelatedClips({ clips }: RelatedClipsProps) {
           <li key={clip.id} className="shrink-0">
             <Link
               href={`/clips/${clip.id}`}
-              className="rounded-chip border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong block w-40 overflow-hidden border no-underline transition-colors duration-150"
+              className="rounded-chip glass-card-flat hover:border-hairline-strong block w-40 overflow-hidden no-underline transition-colors duration-150"
             >
               <span
                 aria-hidden

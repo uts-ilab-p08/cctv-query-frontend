@@ -56,7 +56,7 @@ export function FiltersModal() {
             type="datetime-local"
             value={filters.dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
-            className="border-hairline-strong text-ink bg-panel rounded-chip border px-2.5 py-2 font-mono text-[13px]"
+            className="text-ink glass-card-flat rounded-chip px-2.5 py-2 font-mono text-[13px]"
           />
         </div>
         <div>
@@ -66,7 +66,7 @@ export function FiltersModal() {
             type="datetime-local"
             value={filters.dateTo}
             onChange={(event) => setDateTo(event.target.value)}
-            className="border-hairline-strong text-ink bg-panel rounded-chip border px-2.5 py-2 font-mono text-[13px]"
+            className="text-ink glass-card-flat rounded-chip px-2.5 py-2 font-mono text-[13px]"
           />
         </div>
         <div className="min-w-[180px] flex-1">

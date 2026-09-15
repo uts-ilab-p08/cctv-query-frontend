@@ -16,7 +16,7 @@ export function VideoPlayer({ clip }: VideoPlayerProps) {
   const thumb = getThumbUrl(clip);
 
   return (
-    <div className="glass rounded-card border-hairline bg-panel shadow-glass overflow-hidden border">
+    <div className="rounded-card glass-card overflow-hidden">
       <div className="relative flex aspect-video items-center justify-center">
         <div
           aria-hidden
@@ -35,7 +35,7 @@ export function VideoPlayer({ clip }: VideoPlayerProps) {
           type="button"
           onClick={() => setPlaying((value) => !value)}
           aria-label={playing ? "Pause clip" : "Play clip"}
-          className="bg-action shadow-action z-1 flex size-15 cursor-pointer items-center justify-center rounded-full"
+          className="surface-action shadow-action z-1 flex size-15 cursor-pointer items-center justify-center rounded-full"
         >
           <Play size={22} aria-hidden fill="currentColor" />
         </button>
@@ -52,7 +52,7 @@ export function VideoPlayer({ clip }: VideoPlayerProps) {
             aria-valuemax={100}
             className="bg-track relative h-1 flex-1 rounded-sm"
           >
-            <div className="bg-brand-grad h-1 w-[32%] rounded-sm" />
+            <div className="surface-brand h-1 w-[32%] rounded-sm" />
           </div>
           <span className="text-ink font-mono text-[11px]">00:14 / 00:41</span>
         </div>

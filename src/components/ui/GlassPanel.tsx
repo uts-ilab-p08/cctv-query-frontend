@@ -14,9 +14,9 @@ interface GlassPanelProps {
  * SPEC §8 — one hairline, one soft shadow and a single top inset highlight
  * (carried by the shadow token).
  *
- * Deliberately carries the glass FILL without `backdrop-filter`: this panel
+ * Deliberately carries the FILL without `backdrop-filter`: this panel
  * backs repeated items (stat cards, list rows), and the 3–5 blur-layer budget
- * counts every painted node. Surfaces that genuinely need the blur add `glass`
+ * counts every painted node. Surfaces that genuinely need the blur add ``
  * themselves — the top bar, the query field, the assistant overlay.
  */
 export function GlassPanel({
@@ -29,8 +29,8 @@ export function GlassPanel({
     <Component
       className={cn(
         "border-hairline border",
-        variant === "default" && "rounded-card bg-panel shadow-glass-sm",
-        variant === "elevated" && "rounded-card bg-panel-soft shadow-glass",
+        variant === "default" && "rounded-card glass-card-flat",
+        variant === "elevated" && "rounded-card glass-card-soft",
         className,
       )}
     >

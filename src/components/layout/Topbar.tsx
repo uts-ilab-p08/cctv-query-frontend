@@ -30,13 +30,13 @@ export function Topbar() {
   const showBack = !pathname.startsWith("/dashboard");
 
   return (
-    <header className="bg-topbar glass border-hairline sticky top-0 z-25 flex h-16 shrink-0 items-center justify-between border-b px-8">
+    <header className="surface-topbar border-hairline sticky top-0 z-25 flex h-16 shrink-0 items-center justify-between border-b px-8">
       <div className="flex items-center gap-3.5">
         {showBack ? (
           <button
             type="button"
             onClick={() => router.back()}
-            className="border-hairline-strong bg-panel text-ink-2 hover:text-ink rounded-pill flex cursor-pointer items-center gap-1.5 border px-3 py-1.5 text-[13px] transition-colors duration-150"
+            className="glass-card-flat text-ink-2 hover:text-ink flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors duration-150"
           >
             <ArrowLeft size={14} strokeWidth={2} aria-hidden />
             Back

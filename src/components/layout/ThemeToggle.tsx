@@ -40,7 +40,7 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Theme"
-      className="border-hairline bg-panel glass rounded-pill flex items-center gap-0.5 border p-0.5"
+      className="glass-card-flat flex items-center gap-0.5 rounded-full p-0.5"
     >
       {OPTIONS.map((option) => {
         const active = theme === option.value;
@@ -52,8 +52,8 @@ export function ThemeToggle() {
             aria-checked={active}
             onClick={choose(option.value)}
             className={cn(
-              "rounded-pill cursor-pointer px-3 py-1 text-xs font-medium transition-colors duration-150",
-              active ? "bg-action shadow-action" : "text-ink-2 hover:text-ink",
+              "cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150",
+              active ? "surface-action shadow-action" : "text-ink-2 hover:text-ink",
             )}
           >
             {option.label}

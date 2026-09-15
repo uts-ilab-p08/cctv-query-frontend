@@ -40,8 +40,8 @@ export function BrandLockup({ size = 30 }: { size?: number }) {
     <div className="flex items-center gap-2.5">
       <BrandMark size={size} className="text-brand shrink-0" />
       <div className="flex flex-col leading-none">
-        <span className="text-ink text-[15px] font-bold tracking-[0.2px]">CCTV AI</span>
-        <span className="text-ink-3 font-mono text-[9px] tracking-[1.2px]">ASSISTANT</span>
+        <span className="text-[15px] font-bold tracking-[0.2px] text-ink">CCTV AI</span>
+        <span className="font-mono text-[9px] tracking-[1.2px] text-ink-3">ASSISTANT</span>
       </div>
     </div>
   );

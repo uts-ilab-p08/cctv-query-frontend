@@ -20,7 +20,7 @@ export function ProgressBar({ value, label, className }: ProgressBarProps) {
       className={cn("bg-track h-1.5 overflow-hidden rounded-[3px]", className)}
     >
       <div
-        className="bg-brand-grad h-1.5 rounded-[3px] transition-[width] duration-500 ease-out"
+        className="surface-brand h-1.5 rounded-[3px] transition-[width] duration-500 ease-out"
         style={{ width: `${clamped}%` }}
       />
     </div>

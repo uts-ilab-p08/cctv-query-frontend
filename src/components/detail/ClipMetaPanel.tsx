@@ -22,7 +22,7 @@ export function ClipMetaPanel({ clip }: ClipMetaPanelProps) {
   ];
 
   return (
-    <div className="glass rounded-card border-hairline bg-panel shadow-glass-sm border px-[22px] py-5">
+    <div className="rounded-card glass-card-flat px-[22px] py-5">
       <dl className="grid grid-cols-2 gap-x-6 gap-y-[18px]">
         {fields.map((field) => (
           <div key={field.label}>
@@ -38,7 +38,7 @@ export function ClipMetaPanel({ clip }: ClipMetaPanelProps) {
         {clip.tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-pill border-accent-line bg-accent-soft text-accent border px-3 py-1 font-mono text-[11px]"
+            className="border-accent-line bg-accent-soft text-accent rounded-full border px-3 py-1 font-mono text-[11px]"
           >
             {tag}
           </span>

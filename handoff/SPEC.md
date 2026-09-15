@@ -1,6 +1,6 @@
 # CCTV AI Assistant — design spec for the Next.js port
 
-Everything below is the _current, approved_ design. Token names refer to `tokens.css`.
+Everything below is the *current, approved* design. Token names refer to `tokens.css`.
 
 ## 1. Shell
 
@@ -9,7 +9,7 @@ Everything below is the _current, approved_ design. Token names refer to `tokens
   (`--glow-1` top-left 520px, `--glow-2` right 560px, `--glow-3` bottom 600px), `pointer-events-none`.
 - **Sidebar**: `BrandLockup` at the top (mark in `text-brand`), then nav rows — a **pill row**
   (`rounded-pill`, `pl-1.5 pr-3.5 py-1.5`, gap 11px) containing a **32px circle** with the lucide icon and the
-  label _outside_ the circle. Resting: circle `bg-panel` + `border-hairline-strong`, label `text-ink-2`.
+  label *outside* the circle. Resting: circle `bg-panel` + `border-hairline-strong`, label `text-ink-2`.
   Active: row `bg-[var(--accent-soft)]`/ink pill in light, circle `bg-action` + `shadow-action`, label full ink.
   Footer: precinct + investigator in `font-mono text-[11px] text-ink-3`.
 - **Top bar**: 64px, sticky, `bg-topbar glass`, `border-b border-hairline`, **z-25** (must sit above the
@@ -40,7 +40,7 @@ No filter chips on this screen.
 1. `<QueryField variant="compact" />` at the top (same store state, stays editable).
 2. **Query AI Overview**: 24px `bg-brand-grad` rounded-lg badge, heading "Query AI Overview", and an
    **Ask more →** pill that opens the assistant. Below it the plain-language summary, e.g.
-   _"Found 16 indexed events matching "…" across 8 cameras. Top match: vehicle arrival on G328 at 13:58:02 (96% confidence)."_
+   *"Found 16 indexed events matching "…" across 8 cameras. Top match: vehicle arrival on G328 at 13:58:02 (96% confidence)."*
 3. Result count + active filter chips (removable) + Grid/Timeline switch.
 4. Grid of clip cards (`min 260px`, thumbnail desaturated `grayscale(.55) contrast(1.05) brightness(.85)`,
    camera code badge, confidence badge in `--match/--review/--flag`) or the timeline list with a rail.
@@ -71,15 +71,15 @@ next `pending` job when fewer than 2 are running.
 
 ## 8. Glassmorphism rules (non-negotiable)
 
-| Rule      | Value                                                                                               |
-| --------- | --------------------------------------------------------------------------------------------------- |
-| Fill      | dark: white 3.5–7% · light: white 68–82%                                                            |
-| Blur      | 18px fields/bars · 28px overlay panels & modals                                                     |
-| Edge      | 1px hairline + **one** top inset highlight (`inset 0 1px 0 rgb(255 255 255 / .12)`) — no full sheen |
-| Elevation | one soft shadow per layer; `shadow-glass-lg` only for floating panels/menus                         |
-| Text      | body copy only on `--panel-strong` / `--panel-solid`; 4.5:1 contrast (3:1 display)                  |
-| Budget    | 3–5 glass layers per screen; every glass node gets `transform: translateZ(0)`                       |
-| Radius    | 12 chips/menus · 18 cards/panels · 34 query field & circular actions                                |
+| Rule | Value |
+|---|---|
+| Fill | dark: white 3.5–7% · light: white 68–82% |
+| Blur | 18px fields/bars · 28px overlay panels & modals |
+| Edge | 1px hairline + **one** top inset highlight (`inset 0 1px 0 rgb(255 255 255 / .12)`) — no full sheen |
+| Elevation | one soft shadow per layer; `shadow-glass-lg` only for floating panels/menus |
+| Text | body copy only on `--panel-strong` / `--panel-solid`; 4.5:1 contrast (3:1 display) |
+| Budget | 3–5 glass layers per screen; every glass node gets `transform: translateZ(0)` |
+| Radius | 12 chips/menus · 18 cards/panels · 34 query field & circular actions |
 
 ## 9. Icons & type
 

@@ -18,7 +18,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         className={cn(
           "rounded-chip max-w-[88%] border px-3 py-2.5 text-[13px] leading-[1.4]",
           isUser
-            ? "bg-chat-user border-accent-line text-ink"
+            ? "surface-chat-user border-accent-line text-ink"
             : "border-hairline bg-panel-solid text-ink-2",
         )}
       >

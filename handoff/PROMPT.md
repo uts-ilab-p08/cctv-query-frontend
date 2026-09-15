@@ -12,7 +12,6 @@ Port the finished design of the "CCTV AI Assistant" prototype into this stack. T
 this handoff folder — follow it literally; do not invent new visual decisions.
 
 Files provided:
-
 - `SPEC.md` — screens, components, behaviour, glassmorphism + icon rules, acceptance criteria
 - `tokens.css` — the complete dual-theme token layer, ready for `app/globals.css`
 - `store/useAppStore.ts` — Zustand store (theme, view, query, filters, chat, pipeline)
@@ -22,7 +21,6 @@ Files provided:
 - `brand/logo-mark-violet.svg`, `brand/logo-mark-currentcolor.svg` — source assets
 
 Rules for the port:
-
 1. **Tokens first.** Copy `tokens.css` into `app/globals.css`. Never hardcode a hex in a component —
    use the Tailwind token classes it generates (`bg-panel`, `text-ink-2`, `border-hairline`, `shadow-glass`…).
 2. **Theme** is `data-theme="dark" | "light"` on `<html>`; dark is the default and must be the server-rendered

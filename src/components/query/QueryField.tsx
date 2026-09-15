@@ -121,7 +121,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           setMenu(null);
         }}
         className={cn(
-          "glass rounded-field border-hairline bg-panel shadow-glass relative z-20 w-full cursor-text border",
+          "rounded-field glass-card relative z-20 w-full cursor-text",
           !hero && "max-w-[820px]",
         )}
       >
@@ -174,7 +174,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           <div
             onClick={(event) => event.stopPropagation()}
             style={{ top: menu.top, left: menu.left }}
-            className="rounded-chip border-hairline-strong bg-panel-solid shadow-glass-lg absolute z-40 max-h-[252px] min-w-[212px] overflow-y-auto border p-2"
+            className="glass-panel rounded-chip absolute z-40 max-h-[252px] min-w-[212px] overflow-y-auto p-2"
           >
             <div className="text-ink-3 px-2 pt-1 pb-2 font-mono text-[10px] tracking-[1px]">
               {menu.hit.def.title}
@@ -211,7 +211,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
               onClick={openFilters}
               aria-label="Filters"
               className={cn(
-                "border-hairline-strong bg-panel text-ink-2 flex cursor-pointer items-center justify-center rounded-full border",
+                "glass-card-flat text-ink-2 flex cursor-pointer items-center justify-center rounded-full",
                 hero ? "size-11" : "size-[38px]",
               )}
             >
@@ -223,7 +223,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
             onClick={onSubmit}
             aria-label="Search"
             className={cn(
-              "bg-action shadow-action flex cursor-pointer items-center justify-center rounded-full",
+              "surface-action shadow-action flex cursor-pointer items-center justify-center rounded-full",
               hero ? "size-11" : "size-[38px]",
             )}
           >

@@ -51,7 +51,7 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
   return (
     <aside
       aria-label="Query Assistant"
-      className="glass-overlay rounded-l-card border-hairline bg-panel-strong shadow-glass-lg fixed top-20 right-0 bottom-4 z-30 flex w-[380px] flex-col overflow-hidden border-y border-l"
+      className="rounded-l-card glass-panel fixed top-20 right-0 bottom-4 z-30 flex w-[380px] flex-col overflow-hidden border-y border-l"
     >
       <header className="border-hairline flex items-center gap-2 border-b px-[18px] py-4">
         <BrandMark size={20} className="text-brand shrink-0" />
@@ -59,7 +59,7 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
         <button
           type="button"
           onClick={() => resetChat(chatKey)}
-          className="rounded-pill border-hairline-strong bg-panel text-ink-2 hover:text-ink ml-auto cursor-pointer border px-3 py-[5px] font-sans text-[11px] transition-colors duration-150"
+          className="glass-card-flat text-ink-2 hover:text-ink ml-auto cursor-pointer rounded-full px-3 py-[5px] font-sans text-[11px] transition-colors duration-150"
         >
           + New
         </button>
@@ -97,12 +97,12 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Ask a follow-up question…"
-          className="rounded-pill border-hairline-strong bg-panel text-ink placeholder:text-ink-3 focus:border-accent-line flex-1 border px-3.5 py-2.5 font-sans text-[13px] transition-colors duration-150"
+          className="glass-card-flat text-ink placeholder:text-ink-3 focus:border-accent-line flex-1 rounded-full px-3.5 py-2.5 font-sans text-[13px] transition-colors duration-150"
         />
         <button
           type="submit"
           aria-label="Send question"
-          className="bg-action shadow-action flex size-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          className="surface-action shadow-action flex size-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <ArrowRight size={17} strokeWidth={2} aria-hidden />
         </button>

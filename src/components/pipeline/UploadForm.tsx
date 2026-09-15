@@ -42,13 +42,13 @@ export function UploadForm() {
         event.preventDefault();
         submitAnnotationJob();
       }}
-      className="glass rounded-card border-hairline bg-panel shadow-glass relative mb-8 overflow-hidden border p-6"
+      className="rounded-card glass-card-flat relative mb-8 overflow-hidden p-6"
     >
-      <span aria-hidden className="bg-brand-grad absolute inset-x-0 top-0 h-[3px]" />
+      <span aria-hidden className="surface-brand absolute inset-x-0 top-0 h-[3px]" />
 
       <h2 className="mb-4 text-[15px] font-semibold">Submit footage for annotation</h2>
 
-      <div className="rounded-card border-hairline-strong bg-panel-soft mb-5 border-2 border-dashed p-[26px] text-center">
+      <div className="rounded-card glass-card-soft mb-5 border-2 border-dashed p-[26px] text-center">
         <p className="text-ink-2 mb-1 text-sm">Drop a video file here, or browse</p>
         <p className="text-ink-3 text-xs">
           MP4, MOV, AVI · full recording or a trimmed clip · {scopeLabel}
@@ -107,7 +107,7 @@ export function UploadForm() {
 
       <button
         type="submit"
-        className="bg-action shadow-action rounded-pill h-12 w-full cursor-pointer font-sans text-sm font-semibold"
+        className="surface-action shadow-action h-12 w-full cursor-pointer rounded-full font-sans text-sm font-semibold"
       >
         Start Annotation
       </button>

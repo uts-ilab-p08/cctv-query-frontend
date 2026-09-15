@@ -93,7 +93,7 @@ export function SettingsModal() {
                   "cursor-pointer rounded-md border px-3.5 py-2 font-sans text-[13px] transition-colors duration-150",
                   active
                     ? "border-accent-line bg-accent-soft text-accent"
-                    : "border-hairline-strong text-ink-2 hover:text-ink bg-panel",
+                    : "text-ink-2 hover:text-ink glass-card-flat",
                 )}
               >
                 {precinct}

@@ -15,7 +15,7 @@ export function ClipCard({ clip }: ClipCardProps) {
   return (
     <Link
       href={`/clips/${clip.id}`}
-      className="rounded-card border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong block overflow-hidden border no-underline transition-transform duration-200 hover:-translate-y-0.5"
+      className="rounded-card glass-card-flat hover:border-hairline-strong block overflow-hidden no-underline transition-transform duration-200 hover:-translate-y-0.5"
     >
       <div className="relative h-[150px]">
         <div

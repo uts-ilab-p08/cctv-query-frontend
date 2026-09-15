@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import Script from "next/script";
 
-import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { DEFAULT_THEME, themeInitScript } from "@/lib/theme";
 
 import "./globals.css";
@@ -39,7 +38,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="cctv-theme" strategy="beforeInteractive">
           {themeInitScript}
         </Script>
-        <BackgroundOrbs />
         {children}
       </body>
     </html>

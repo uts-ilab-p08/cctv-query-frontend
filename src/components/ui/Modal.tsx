@@ -95,7 +95,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         style={{ width }}
         className={cn(
-          "glass-overlay rounded-card border-hairline bg-panel-strong shadow-glass-lg max-h-[80vh] w-full max-w-[90vw] overflow-y-auto border p-[26px]",
+          "rounded-card glass-panel max-h-[80vh] w-full max-w-[90vw] overflow-y-auto p-[26px]",
         )}
       >
         <div className={cn("flex items-center justify-between", description ? "mb-1.5" : "mb-5")}>
