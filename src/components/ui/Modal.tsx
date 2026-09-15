@@ -85,7 +85,7 @@ export function Modal({
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(11,28,77,0.35)] p-4 backdrop-blur-[4px]"
+      className="bg-scrim fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-[4px]"
     >
       <div
         ref={dialogRef}
@@ -95,7 +95,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         style={{ width }}
         className={cn(
-          "max-h-[80vh] w-full max-w-[90vw] overflow-y-auto rounded-xl border border-white/70 bg-white/90 p-[26px] shadow-[0_30px_80px_rgba(67,56,202,0.25)] backdrop-blur-[24px]",
+          "glass-overlay rounded-card border-hairline bg-panel-strong shadow-glass-lg max-h-[80vh] w-full max-w-[90vw] overflow-y-auto border p-[26px]",
         )}
       >
         <div className={cn("flex items-center justify-between", description ? "mb-1.5" : "mb-5")}>
@@ -106,14 +106,14 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="text-ink-subtle hover:text-ink cursor-pointer rounded-xs p-1 transition-colors duration-150"
+            className="text-ink-2 hover:text-ink cursor-pointer rounded-lg p-1 transition-colors duration-150"
           >
             <X size={18} aria-hidden />
           </button>
         </div>
 
         {description ? (
-          <p id={descriptionId} className="text-ink-muted mb-[18px] text-xs">
+          <p id={descriptionId} className="text-ink-2 mb-[18px] text-xs">
             {description}
           </p>
         ) : null}

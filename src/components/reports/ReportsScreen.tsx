@@ -18,7 +18,7 @@ export function ReportsScreen() {
   return (
     <div className="mx-auto w-full max-w-[900px] px-8 pt-12 pb-15">
       <h1 className="mb-1.5 text-2xl font-bold">Reports</h1>
-      <p className="text-ink-muted mb-7 text-sm">
+      <p className="text-ink-2 mb-7 text-sm">
         Generated activity summaries across the camera network.
       </p>
 
@@ -33,15 +33,15 @@ export function ReportsScreen() {
         {reports.map((report) => (
           <li
             key={report.id}
-            className="flex items-center justify-between rounded-xl border border-white/60 bg-white/65 px-[18px] py-4 shadow-[0_8px_24px_rgba(11,28,77,0.06)] backdrop-blur-[16px]"
+            className="glass rounded-card border-hairline bg-panel shadow-glass-sm flex items-center justify-between border px-[18px] py-4"
           >
             <div>
               <p className="text-ink mb-1 text-sm">{report.title}</p>
-              <p className="text-ink-subtle font-mono text-xs">
+              <p className="text-ink-3 font-mono text-xs">
                 {report.range} · {report.cameras} cameras
               </p>
             </div>
-            <span className="text-ink-muted shrink-0 font-mono text-xs">{report.generatedOn}</span>
+            <span className="text-ink-2 shrink-0 font-mono text-xs">{report.generatedOn}</span>
           </li>
         ))}
       </ul>

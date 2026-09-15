@@ -12,7 +12,7 @@ export function Input({ mono = false, className, ...props }: InputProps) {
   return (
     <input
       className={cn(
-        "border-border-input text-ink placeholder:text-ink-subtle focus:border-indigo-strong h-10 w-full rounded-lg border bg-white px-3 text-[13px] transition-colors duration-150",
+        "rounded-chip border-hairline-strong bg-panel text-ink placeholder:text-ink-3 focus:border-accent-line h-10 w-full border px-3 text-[13px] transition-colors duration-150",
         mono ? "font-mono" : "font-sans",
         className,
       )}

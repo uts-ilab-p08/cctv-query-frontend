@@ -10,7 +10,7 @@ interface FieldLabelProps {
 }
 
 export function FieldLabel({ children, htmlFor, as = "label", className }: FieldLabelProps) {
-  const classes = cn("mb-2 block text-xs text-ink-muted", className);
+  const classes = cn("text-ink-2 mb-2 block text-xs", className);
 
   if (as === "div") {
     return <div className={classes}>{children}</div>;

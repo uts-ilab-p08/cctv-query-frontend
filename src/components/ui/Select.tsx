@@ -12,7 +12,7 @@ export function Select({ options, className, ...props }: SelectProps) {
   return (
     <select
       className={cn(
-        "border-border-input text-ink focus:border-indigo-strong h-10 w-full cursor-pointer rounded-lg border bg-white px-2.5 font-sans text-[13px] transition-colors duration-150",
+        "rounded-chip border-hairline-strong bg-panel-solid text-ink focus:border-accent-line h-10 w-full cursor-pointer border px-2.5 font-sans text-[13px] transition-colors duration-150",
         className,
       )}
       {...props}

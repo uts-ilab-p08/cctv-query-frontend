@@ -32,12 +32,12 @@ export function FiltersModal() {
       }
     >
       <fieldset className="mb-5 border-0 p-0">
-        <legend className="text-ink-muted mb-2 text-xs">Cameras</legend>
+        <legend className="text-ink-2 mb-2 text-xs">Cameras</legend>
         <div className="flex flex-wrap gap-2">
           {cameraNames.map((camera) => (
             <Chip
               key={camera}
-              tone="navy"
+              tone="solid"
               active={filters.cameras.includes(camera)}
               onClick={() => toggleCamera(camera)}
               className="rounded-xl px-3 py-1.5"
@@ -56,7 +56,7 @@ export function FiltersModal() {
             type="datetime-local"
             value={filters.dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
-            className="border-border-input text-ink rounded-xs border bg-white px-2.5 py-2 font-mono text-[13px]"
+            className="border-hairline-strong text-ink bg-panel rounded-chip border px-2.5 py-2 font-mono text-[13px]"
           />
         </div>
         <div>
@@ -66,7 +66,7 @@ export function FiltersModal() {
             type="datetime-local"
             value={filters.dateTo}
             onChange={(event) => setDateTo(event.target.value)}
-            className="border-border-input text-ink rounded-xs border bg-white px-2.5 py-2 font-mono text-[13px]"
+            className="border-hairline-strong text-ink bg-panel rounded-chip border px-2.5 py-2 font-mono text-[13px]"
           />
         </div>
         <div className="min-w-[180px] flex-1">
@@ -80,13 +80,13 @@ export function FiltersModal() {
             max={100}
             value={filters.confidence}
             onChange={(event) => setConfidence(Number(event.target.value))}
-            className="accent-indigo-strong w-full"
+            className="w-full accent-[var(--accent)]"
           />
         </div>
       </div>
 
       <fieldset className="mb-2 border-0 p-0">
-        <legend className="text-ink-muted mb-2 text-xs">Event type</legend>
+        <legend className="text-ink-2 mb-2 text-xs">Event type</legend>
         <div className="flex flex-wrap gap-2">
           {tagNames.map((tag) => (
             <Chip

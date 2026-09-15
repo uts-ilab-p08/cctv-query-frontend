@@ -23,7 +23,7 @@ export function PipelineScreen() {
   return (
     <div className="mx-auto w-full max-w-[1040px] px-8 pt-12 pb-15">
       <h1 className="mb-1.5 text-2xl font-bold">Video Annotation Pipeline</h1>
-      <p className="text-ink-muted mb-7 text-sm">
+      <p className="text-ink-2 mb-7 text-sm">
         Feed camera footage without annotations through a captioning/detection model to prepare it
         for semantic search.
       </p>

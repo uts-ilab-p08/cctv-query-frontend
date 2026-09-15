@@ -22,10 +22,10 @@ export function RecentQueries() {
                 runSearch(query.text);
                 router.push("/results");
               }}
-              className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-white/60 bg-white/65 px-4 py-3.5 text-left shadow-[0_6px_18px_rgba(11,28,77,0.05)] backdrop-blur-[16px] transition-shadow duration-150 hover:shadow-[0_10px_26px_rgba(11,28,77,0.1)]"
+              className="glass rounded-card border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong flex w-full cursor-pointer items-center justify-between border px-4 py-3.5 text-left transition-colors duration-150"
             >
               <span className="text-ink text-sm">{query.text}</span>
-              <span className="text-ink-subtle font-mono text-xs">{query.ts}</span>
+              <span className="text-ink-3 font-mono text-xs">{query.ts}</span>
             </button>
           </li>
         ))}

@@ -34,25 +34,30 @@ describe("Dashboard", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Query your camera network" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Ask anything/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Search the camera network/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
   });
 
-  it("surfaces keyword chips as the investigator types", async () => {
+  it("underlines detected terms inline as the investigator types", async () => {
     const user = userEvent.setup();
     render(<QueryComposer />);
 
-    await user.type(screen.getByPlaceholderText(/Ask anything/), "anyone who entered");
+    await user.type(
+      screen.getByRole("textbox", { name: /Search the camera network/ }),
+      "anyone who entered",
+    );
 
-    expect(screen.getByRole("button", { name: /Person/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Entry/ })).toBeInTheDocument();
+    const tokens = screen
+      .getAllByText(/anyone|entered/, { selector: "span" })
+      .filter((node) => node.className.includes("border-dashed"));
+    expect(tokens).toHaveLength(2);
   });
 
   it("runs a search and navigates to the results route", async () => {
     const user = userEvent.setup();
     render(<QueryComposer />);
 
-    await user.type(screen.getByPlaceholderText(/Ask anything/), "red car");
+    await user.type(screen.getByRole("textbox", { name: /Search the camera network/ }), "red car");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
     expect(pushMock).toHaveBeenCalledWith("/results");
@@ -111,9 +116,24 @@ describe("Clip detail", () => {
     useAppStore.setState({ query: "red car" });
     render(<ClipDetailScreen clip={clip} />);
 
+    const thread = useAppStore.getState().chats[String(clip.id)] ?? [];
+    expect(thread[0]).toMatchObject({ role: "user", text: "red car" });
+    expect(thread[1]?.text).toMatch(/Matched against "red car"/);
+  });
+
+  it("keeps the assistant closed until the floating pill is used", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "red car" });
+    render(<ClipDetailScreen clip={clip} />);
+
+    expect(
+      screen.queryByRole("complementary", { name: "Query Assistant" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Query Assistant/ }));
+
     const assistant = screen.getByRole("complementary", { name: "Query Assistant" });
     expect(within(assistant).getByText("red car")).toBeInTheDocument();
-    expect(within(assistant).getByText(/Matched against "red car"/)).toBeInTheDocument();
   });
 });
 
@@ -198,13 +218,8 @@ describe("Pipeline", () => {
 describe("Query Assistant", () => {
   it("answers a suggested question in the results thread", async () => {
     const user = userEvent.setup();
-    render(
-      <QueryAssistant
-        chatKey="results"
-        suggestedQuestions={resultsSuggestedQuestions}
-        heightClassName="h-96"
-      />,
-    );
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
 
     await user.click(screen.getByRole("button", { name: "Which camera has the most matches?" }));
 
@@ -213,18 +228,26 @@ describe("Query Assistant", () => {
 
   it("clears the thread with + New", async () => {
     const user = userEvent.setup();
-    render(
-      <QueryAssistant
-        chatKey="results"
-        suggestedQuestions={resultsSuggestedQuestions}
-        heightClassName="h-96"
-      />,
-    );
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
 
     await user.click(screen.getByRole("button", { name: "What's the most recent match?" }));
     await user.click(screen.getByRole("button", { name: "+ New" }));
 
     expect(screen.getByText("Suggested questions")).toBeInTheDocument();
+  });
+
+  it("collapses from the header chevron", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
+
+    await user.click(screen.getByRole("button", { name: "Collapse assistant" }));
+
+    expect(useAppStore.getState().chatOpen).toBe(false);
+    expect(
+      screen.queryByRole("complementary", { name: "Query Assistant" }),
+    ).not.toBeInTheDocument();
   });
 });
 

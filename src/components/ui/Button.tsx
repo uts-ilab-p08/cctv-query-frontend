@@ -14,10 +14,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "bg-brand-gradient text-white border-transparent shadow-[0_6px_16px_rgba(67,56,202,0.3)] hover:shadow-[0_10px_24px_rgba(67,56,202,0.38)]",
-  secondary: "bg-white/70 text-ink-muted border-border hover:bg-white hover:text-ink",
-  ghost: "bg-transparent text-ink-muted border-transparent hover:text-ink",
+  primary: "bg-action shadow-action border-transparent",
+  secondary: "bg-panel text-ink-2 border-hairline-strong hover:text-ink glass",
+  ghost: "border-transparent bg-transparent text-ink-2 hover:text-ink",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -38,7 +37,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border font-sans transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60",
+        "rounded-pill inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 border font-sans transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],
         sizeClasses[size],
         className,

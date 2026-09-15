@@ -10,6 +10,11 @@ interface GlassPanelProps {
   className?: string;
 }
 
+/**
+ * SPEC §8 — one hairline, one soft shadow and a single top inset highlight
+ * (carried by the shadow token). `glass` adds the 18px blur and the
+ * translateZ(0) compositing layer every glass node needs.
+ */
 export function GlassPanel({
   children,
   variant = "default",
@@ -19,10 +24,9 @@ export function GlassPanel({
   return (
     <Component
       className={cn(
-        "border shadow-[0_8px_24px_rgba(11,28,77,0.06)] backdrop-blur-[16px]",
-        variant === "default" && "rounded-xl border-white/60 bg-white/65",
-        variant === "elevated" &&
-          "rounded-2xl border-white/70 bg-white/70 shadow-[0_16px_40px_rgba(99,102,241,0.1)] backdrop-blur-[20px]",
+        "glass border-hairline border",
+        variant === "default" && "rounded-card bg-panel shadow-glass-sm",
+        variant === "elevated" && "rounded-card bg-panel-soft shadow-glass",
         className,
       )}
     >

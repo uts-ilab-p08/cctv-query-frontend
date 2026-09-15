@@ -17,10 +17,10 @@ export function ProgressBar({ value, label, className }: ProgressBarProps) {
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={cn("bg-border h-1.5 overflow-hidden rounded-[3px]", className)}
+      className={cn("bg-track h-1.5 overflow-hidden rounded-[3px]", className)}
     >
       <div
-        className="bg-progress-gradient h-1.5 rounded-[3px] transition-[width] duration-500 ease-out"
+        className="bg-brand-grad h-1.5 rounded-[3px] transition-[width] duration-500 ease-out"
         style={{ width: `${clamped}%` }}
       />
     </div>

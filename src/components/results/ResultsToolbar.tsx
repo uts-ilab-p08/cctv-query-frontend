@@ -1,5 +1,7 @@
 "use client";
 
+import { SlidersHorizontal } from "lucide-react";
+
 import { ActiveFilterChips } from "@/components/dashboard/ActiveFilterChips";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/store/useAppStore";
@@ -22,7 +24,7 @@ export function ResultsToolbar({ resultCount }: ResultsToolbarProps) {
   return (
     <div className="mb-[22px] flex flex-wrap items-center justify-between gap-3.5">
       <div className="flex flex-wrap items-center gap-2.5">
-        <p className="text-ink-muted text-[13px]">{resultCount} matches</p>
+        <p className="text-ink-2 text-[13px]">{resultCount} matches</p>
         <ActiveFilterChips layout="inline" />
       </div>
 
@@ -30,9 +32,10 @@ export function ResultsToolbar({ resultCount }: ResultsToolbarProps) {
         <button
           type="button"
           onClick={openFilters}
-          className="border-border-input text-ink-muted hover:text-ink h-9 cursor-pointer rounded-md border bg-white px-4 font-sans text-[13px] transition-colors duration-150"
+          aria-label="Filters"
+          className="border-hairline-strong bg-panel text-ink-2 hover:text-ink glass flex size-11 cursor-pointer items-center justify-center rounded-full border transition-colors duration-150"
         >
-          Filters
+          <SlidersHorizontal size={19} strokeWidth={2} aria-hidden />
         </button>
         <SegmentedControl<ResultsMode>
           label="Results view"

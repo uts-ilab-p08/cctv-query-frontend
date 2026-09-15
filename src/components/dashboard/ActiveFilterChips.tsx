@@ -37,13 +37,10 @@ export function ActiveFilterChips({ layout = "centered", className }: ActiveFilt
           onClick={() =>
             chip.kind === "camera" ? toggleCamera(chip.label) : toggleTag(chip.label as ClipTag)
           }
-          className={cn(
-            "text-ink-muted hover:text-ink flex cursor-pointer items-center gap-1.5 rounded-[14px] border px-2.5 py-[5px] font-mono text-xs transition-colors duration-150",
-            layout === "centered" ? "border-border bg-white/70" : "border-border-input bg-white",
-          )}
+          className="rounded-pill border-hairline-strong bg-panel text-ink-2 hover:text-ink flex cursor-pointer items-center gap-1.5 border px-2.5 py-[5px] font-mono text-xs transition-colors duration-150"
         >
           {chip.label}
-          <X size={12} aria-hidden className="text-ink-subtle" />
+          <X size={12} aria-hidden className="text-ink-3" />
         </button>
       ))}
     </div>

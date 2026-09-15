@@ -42,15 +42,15 @@ export function UploadForm() {
         event.preventDefault();
         submitAnnotationJob();
       }}
-      className="relative mb-8 overflow-hidden rounded-xl border border-white/70 bg-white/70 p-6 shadow-[0_16px_40px_rgba(99,102,241,0.1)] backdrop-blur-[20px]"
+      className="glass rounded-card border-hairline bg-panel shadow-glass relative mb-8 overflow-hidden border p-6"
     >
-      <span aria-hidden className="bg-accent-bar absolute inset-x-0 top-0 h-[3px]" />
+      <span aria-hidden className="bg-brand-grad absolute inset-x-0 top-0 h-[3px]" />
 
       <h2 className="mb-4 text-[15px] font-semibold">Submit footage for annotation</h2>
 
-      <div className="border-border-dashed mb-5 rounded-xl border-2 border-dashed bg-[rgba(238,240,254,0.4)] p-[26px] text-center">
-        <p className="text-ink-soft mb-1 text-sm">Drop a video file here, or browse</p>
-        <p className="text-ink-subtle text-xs">
+      <div className="rounded-card border-hairline-strong bg-panel-soft mb-5 border-2 border-dashed p-[26px] text-center">
+        <p className="text-ink-2 mb-1 text-sm">Drop a video file here, or browse</p>
+        <p className="text-ink-3 text-xs">
           MP4, MOV, AVI · full recording or a trimmed clip · {scopeLabel}
         </p>
       </div>
@@ -107,7 +107,7 @@ export function UploadForm() {
 
       <button
         type="submit"
-        className="bg-brand-gradient-strong h-12 w-full cursor-pointer rounded-md font-sans text-sm font-semibold text-white shadow-[0_12px_28px_rgba(67,56,202,0.3)] transition-shadow duration-150 hover:shadow-[0_16px_36px_rgba(67,56,202,0.4)]"
+        className="bg-action shadow-action rounded-pill h-12 w-full cursor-pointer font-sans text-sm font-semibold"
       >
         Start Annotation
       </button>

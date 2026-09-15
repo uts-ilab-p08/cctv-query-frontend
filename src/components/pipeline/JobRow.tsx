@@ -7,15 +7,15 @@ interface JobRowProps {
 }
 
 const statusDotClasses: Record<JobStatus, string> = {
-  processing: "bg-conf-mid",
-  done: "bg-conf-high",
-  pending: "bg-ink-subtle",
+  processing: "bg-review",
+  done: "bg-match",
+  pending: "bg-ink-3",
 };
 
 const statusTextClasses: Record<JobStatus, string> = {
-  processing: "text-conf-mid",
-  done: "text-conf-high",
-  pending: "text-ink-subtle",
+  processing: "text-review",
+  done: "text-match",
+  pending: "text-ink-3",
 };
 
 function statusLabel(job: PipelineJob): string {
@@ -26,7 +26,7 @@ function statusLabel(job: PipelineJob): string {
 
 export function JobRow({ job }: JobRowProps) {
   return (
-    <li className="flex items-center gap-4 rounded-xl border border-white/60 bg-white/65 px-[18px] py-3.5 shadow-[0_6px_18px_rgba(11,28,77,0.05)] backdrop-blur-[16px]">
+    <li className="glass rounded-card border-hairline bg-panel shadow-glass-sm flex items-center gap-4 border px-[18px] py-3.5">
       <span
         aria-hidden
         className={cn("h-2 w-2 shrink-0 rounded-full", statusDotClasses[job.status])}
@@ -34,7 +34,7 @@ export function JobRow({ job }: JobRowProps) {
 
       <div className="min-w-0 flex-1">
         <p className="text-ink mb-0.5 truncate text-[13px] font-semibold">{job.filename}</p>
-        <p className="text-ink-subtle font-mono text-[11px]">
+        <p className="text-ink-3 font-mono text-[11px]">
           {job.camera} · {job.duration} · {job.model} · {job.target}
         </p>
       </div>

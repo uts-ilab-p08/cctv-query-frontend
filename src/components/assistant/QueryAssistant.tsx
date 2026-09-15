@@ -1,10 +1,11 @@
 "use client";
 
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { BrandMark } from "@/components/brand/BrandMark";
 import { ChatMessage } from "@/components/assistant/ChatMessage";
 import { SuggestedQuestions } from "@/components/assistant/SuggestedQuestions";
-import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 import type { ChatKey, ChatMessage as ChatMessageData } from "@/types";
 
@@ -15,18 +16,19 @@ interface QueryAssistantProps {
   /** Thread scope: a clip id, or `results` for the search-wide thread. */
   chatKey: ChatKey;
   suggestedQuestions: string[];
-  /** Tailwind height for the sticky panel, which differs per screen. */
-  heightClassName: string;
 }
 
-export function QueryAssistant({
-  chatKey,
-  suggestedQuestions,
-  heightClassName,
-}: QueryAssistantProps) {
+/**
+ * SPEC §6 — a floating overlay, not a column: fixed at z-30 with only its left
+ * corners rounded. Hidden until "Ask more →" (Results) or the assistant pill
+ * (Detail) opens it, so it never occupies the document flow.
+ */
+export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantProps) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const open = useAppStore((state) => state.chatOpen);
+  const setChatOpen = useAppStore((state) => state.setChatOpen);
   const messages = useAppStore((state) => state.chats[String(chatKey)]) ?? EMPTY_THREAD;
   const askInResults = useAppStore((state) => state.askInResults);
   const askAboutClip = useAppStore((state) => state.askAboutClip);
@@ -44,30 +46,30 @@ export function QueryAssistant({
     if (node) node.scrollTop = node.scrollHeight;
   }, [messages.length]);
 
+  if (!open) return null;
+
   return (
     <aside
       aria-label="Query Assistant"
-      className={cn(
-        "sticky top-0 flex flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/68 shadow-[0_24px_60px_rgba(99,102,241,0.18),0_8px_20px_rgba(236,72,153,0.08)] backdrop-blur-[28px]",
-        heightClassName,
-      )}
+      className="glass-overlay rounded-l-card border-hairline bg-panel-strong shadow-glass-lg fixed top-20 right-0 bottom-4 z-30 flex w-[380px] flex-col overflow-hidden border-y border-l"
     >
-      <span aria-hidden className="bg-accent-bar absolute inset-x-0 top-0 h-[3px]" />
-
-      <header className="border-border/70 flex items-center gap-2 border-b px-[18px] py-4">
-        <span
-          aria-hidden
-          className="bg-mark-gradient flex h-[22px] w-[22px] items-center justify-center rounded-[7px] text-xs text-white"
-        >
-          ✦
-        </span>
-        <h2 className="text-sm font-semibold">Query Assistant</h2>
+      <header className="border-hairline flex items-center gap-2 border-b px-[18px] py-4">
+        <BrandMark size={20} className="text-brand shrink-0" />
+        <h2 className="text-ink text-sm font-semibold">Query Assistant</h2>
         <button
           type="button"
           onClick={() => resetChat(chatKey)}
-          className="border-border text-ink-muted hover:text-ink ml-auto cursor-pointer rounded-[20px] border bg-white/70 px-3 py-[5px] font-sans text-[11px] transition-colors duration-150"
+          className="rounded-pill border-hairline-strong bg-panel text-ink-2 hover:text-ink ml-auto cursor-pointer border px-3 py-[5px] font-sans text-[11px] transition-colors duration-150"
         >
           + New
+        </button>
+        <button
+          type="button"
+          onClick={() => setChatOpen(false)}
+          aria-label="Collapse assistant"
+          className="text-ink-2 hover:text-ink cursor-pointer rounded-lg p-1 transition-colors duration-150"
+        >
+          <ChevronRight size={18} strokeWidth={2} aria-hidden />
         </button>
       </header>
 
@@ -85,7 +87,7 @@ export function QueryAssistant({
           event.preventDefault();
           ask(draft);
         }}
-        className="border-border/70 flex gap-2 border-t px-3.5 py-3"
+        className="border-hairline flex items-center gap-2 border-t px-3.5 py-3"
       >
         <label htmlFor={`assistant-input-${chatKey}`} className="sr-only">
           Ask a follow-up question
@@ -95,14 +97,14 @@ export function QueryAssistant({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Ask a follow-up question…"
-          className="border-border text-ink placeholder:text-ink-subtle focus:border-indigo-strong flex-1 rounded-sm border bg-white/70 px-3 py-2.5 font-sans text-[13px] transition-colors duration-150"
+          className="rounded-pill border-hairline-strong bg-panel text-ink placeholder:text-ink-3 focus:border-accent-line flex-1 border px-3.5 py-2.5 font-sans text-[13px] transition-colors duration-150"
         />
         <button
           type="submit"
           aria-label="Send question"
-          className="bg-mark-gradient h-9 w-9 shrink-0 cursor-pointer rounded-sm text-[15px] text-white shadow-[0_6px_16px_rgba(99,102,241,0.35)] transition-shadow duration-150 hover:shadow-[0_10px_22px_rgba(99,102,241,0.45)]"
+          className="bg-action shadow-action flex size-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
-          →
+          <ArrowRight size={17} strokeWidth={2} aria-hidden />
         </button>
       </form>
     </aside>

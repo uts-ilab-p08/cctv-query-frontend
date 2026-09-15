@@ -4,12 +4,12 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
-type ChipTone = "navy" | "indigo";
+type ChipTone = "solid" | "accent";
 
 interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
   active?: boolean;
-  /** `navy` fills solid when active; `indigo` uses the wash treatment. */
+  /** `solid` fills with the action gradient; `accent` uses the soft wash. */
   tone?: ChipTone;
   mono?: boolean;
 }
@@ -17,7 +17,7 @@ interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function Chip({
   children,
   active = false,
-  tone = "indigo",
+  tone = "accent",
   mono = true,
   className,
   type = "button",
@@ -28,12 +28,11 @@ export function Chip({
       type={type}
       aria-pressed={active}
       className={cn(
-        "cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors duration-150",
+        "rounded-pill cursor-pointer border px-3 py-1.5 text-xs transition-colors duration-150",
         mono ? "font-mono" : "font-sans",
-        !active &&
-          "border-border-input text-ink-muted hover:border-indigo-strong hover:text-indigo-strong bg-white",
-        active && tone === "navy" && "border-navy bg-navy text-white",
-        active && tone === "indigo" && "border-indigo-strong bg-indigo-wash text-indigo-strong",
+        !active && "border-hairline-strong bg-panel text-ink-2 hover:text-ink",
+        active && tone === "solid" && "bg-action border-transparent",
+        active && tone === "accent" && "border-accent-line bg-accent-soft text-accent",
         className,
       )}
       {...props}

@@ -16,10 +16,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
       <p
         className={cn(
-          "max-w-[88%] rounded-md border px-3 py-2.5 text-[13px] leading-[1.4]",
+          "rounded-chip max-w-[88%] border px-3 py-2.5 text-[13px] leading-[1.4]",
           isUser
-            ? "bg-user-bubble border-indigo/30 text-navy-deep"
-            : "border-border text-ink-soft bg-white/70",
+            ? "bg-chat-user border-accent-line text-ink"
+            : "border-hairline bg-panel-solid text-ink-2",
         )}
       >
         {message.text}
@@ -28,7 +28,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {message.relatedId ? (
         <Link
           href={`/clips/${message.relatedId}`}
-          className="text-indigo-strong mt-[5px] font-sans text-xs no-underline hover:underline"
+          className="text-accent mt-[5px] font-sans text-xs no-underline hover:underline"
         >
           View related clip →
         </Link>

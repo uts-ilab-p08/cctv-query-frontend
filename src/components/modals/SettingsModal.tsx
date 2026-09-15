@@ -57,26 +57,26 @@ export function SettingsModal() {
               onClick={() => setSearchMode(option.value)}
               className={cn(
                 "flex cursor-pointer items-start gap-3 rounded-md border p-3.5 text-left transition-colors duration-150",
-                active ? "border-indigo-strong bg-indigo-wash" : "border-border bg-transparent",
+                active ? "border-accent-line bg-accent-soft" : "border-hairline bg-transparent",
               )}
             >
               <span
                 aria-hidden
-                className="border-indigo-strong mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+                className="border-accent-line mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
               >
-                {active ? <span className="bg-indigo-strong h-2 w-2 rounded-full" /> : null}
+                {active ? <span className="bg-accent size-2 rounded-full" /> : null}
               </span>
               <span>
                 <span className="mb-[3px] block text-sm font-semibold">{option.title}</span>
-                <span className="text-ink-muted block text-xs">{option.description}</span>
+                <span className="text-ink-2 block text-xs">{option.description}</span>
               </span>
             </button>
           );
         })}
       </div>
 
-      <div className="border-border mt-[22px] border-t pt-[18px]">
-        <p className="text-ink-muted mb-2.5 text-xs">
+      <div className="border-hairline mt-[22px] border-t pt-[18px]">
+        <p className="text-ink-2 mb-2.5 text-xs">
           Precinct — which camera network you&apos;re querying.
         </p>
         <div role="radiogroup" aria-label="Precinct" className="flex flex-wrap gap-2">
@@ -92,8 +92,8 @@ export function SettingsModal() {
                 className={cn(
                   "cursor-pointer rounded-md border px-3.5 py-2 font-sans text-[13px] transition-colors duration-150",
                   active
-                    ? "border-indigo-strong bg-indigo-wash text-indigo-strong"
-                    : "border-border-input text-ink-muted hover:text-ink bg-white",
+                    ? "border-accent-line bg-accent-soft text-accent"
+                    : "border-hairline-strong text-ink-2 hover:text-ink bg-panel",
                 )}
               >
                 {precinct}

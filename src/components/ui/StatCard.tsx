@@ -13,18 +13,13 @@ export function StatCard({ label, value, size = "default" }: StatCardProps) {
     <GlassPanel className={size === "default" ? "p-[18px]" : "p-4"}>
       <div
         className={cn(
-          "text-ink-subtle mb-1.5 font-mono tracking-[1px]",
+          "text-ink-3 mb-1.5 font-mono tracking-[1.6px]",
           size === "default" ? "mb-2 text-[11px]" : "text-[10px]",
         )}
       >
         {label}
       </div>
-      <div
-        className={cn(
-          "text-navy-deep font-bold",
-          size === "default" ? "text-[26px]" : "text-[22px]",
-        )}
-      >
+      <div className={cn("text-ink font-bold", size === "default" ? "text-[26px]" : "text-[22px]")}>
         {value}
       </div>
     </GlassPanel>

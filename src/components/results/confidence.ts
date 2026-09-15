@@ -1,24 +1,22 @@
 import { getConfidenceLevel } from "@/lib/clips";
 
-/** Text colour classes for the confidence scale. */
+/** SPEC §4 — the confidence scale maps to --match / --review / --flag. */
 const textClasses = {
-  high: "text-conf-high",
-  mid: "text-conf-mid",
-  low: "text-conf-low",
+  high: "text-match",
+  mid: "text-review",
+  low: "text-flag",
 } as const;
 
-/** Border colour classes for the confidence badge. */
 const borderClasses = {
-  high: "border-conf-high",
-  mid: "border-conf-mid",
-  low: "border-conf-low",
+  high: "border-match",
+  mid: "border-review",
+  low: "border-flag",
 } as const;
 
-/** Background colour classes for the timeline markers. */
 const bgClasses = {
-  high: "bg-conf-high",
-  mid: "bg-conf-mid",
-  low: "bg-conf-low",
+  high: "bg-match",
+  mid: "bg-review",
+  low: "bg-flag",
 } as const;
 
 export function confidenceTextClass(confidence: number): string {

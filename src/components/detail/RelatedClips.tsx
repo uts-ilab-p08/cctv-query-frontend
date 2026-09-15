@@ -17,7 +17,7 @@ export function RelatedClips({ clips }: RelatedClipsProps) {
           <li key={clip.id} className="shrink-0">
             <Link
               href={`/clips/${clip.id}`}
-              className="block w-40 overflow-hidden rounded-sm border border-white/60 bg-white/70 no-underline shadow-[0_6px_18px_rgba(11,28,77,0.06)] backdrop-blur-[14px] transition-shadow duration-150 hover:shadow-[0_10px_24px_rgba(11,28,77,0.12)]"
+              className="glass rounded-chip border-hairline bg-panel shadow-glass-sm hover:border-hairline-strong block w-40 overflow-hidden border no-underline transition-colors duration-150"
             >
               <span
                 aria-hidden
@@ -26,7 +26,7 @@ export function RelatedClips({ clips }: RelatedClipsProps) {
               />
               <span className="block px-2.5 py-2">
                 <span className="text-ink block text-xs font-semibold">{clip.action}</span>
-                <span className="text-ink-subtle block font-mono text-[11px]">{clip.ts}</span>
+                <span className="text-ink-3 block font-mono text-[11px]">{clip.ts}</span>
               </span>
             </Link>
           </li>
