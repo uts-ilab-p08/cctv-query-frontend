@@ -35,6 +35,34 @@ export function BrandMark({ size = 26, ...props }: BrandMarkProps) {
   );
 }
 
+export interface CameraGlyphProps extends Omit<SVGProps<SVGSVGElement>, "viewBox"> {
+  size?: number;
+}
+
+/**
+ * Small camera glyph used on Login/Landing next to the wordmark — distinct from
+ * `BrandMark` (the aperture + magnifier mark used in the app shell).
+ */
+export function CameraGlyph({ size = 26, ...props }: CameraGlyphProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="2.5" y="5.5" width="14" height="10" rx="2" />
+      <path d="M16.5 9l5-2.5v11L16.5 15z" />
+    </svg>
+  );
+}
+
 export interface BrandLockupProps {
   size?: number;
 }
