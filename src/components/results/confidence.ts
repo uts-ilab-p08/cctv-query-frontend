@@ -30,3 +30,19 @@ export function confidenceBorderClass(confidence: number): string {
 export function confidenceBgClass(confidence: number): string {
   return bgClasses[getConfidenceLevel(confidence)];
 }
+
+const cssVars = {
+  high: "var(--ok)",
+  mid: "var(--warn)",
+  low: "var(--bad)",
+} as const;
+
+/**
+ * Same 85/65 thresholds as the Tailwind helpers above, but returns the raw
+ * `var(--ok|warn|bad)` token — for contexts that must set an inline `color`
+ * (overlays drawn on top of video, where a fixed value is intentional and
+ * cannot go through a Tailwind utility class).
+ */
+export function confidenceVar(confidence: number): string {
+  return cssVars[getConfidenceLevel(confidence)];
+}

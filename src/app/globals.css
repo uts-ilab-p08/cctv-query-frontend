@@ -38,6 +38,9 @@
   --color-flag: var(--bad);
   --color-track: var(--track);
   --color-scrim: var(--scrim);
+  --color-video-stage: var(--video-stage);
+  --color-video-frame: var(--video-frame);
+  --color-video-bar: var(--video-bar);
 
   --shadow-glass-sm: var(--shadow-sm);
   --shadow-glass: var(--shadow-md);
@@ -99,6 +102,12 @@
   --nav-ink-active: #ffffff;
   --nav-ink: #b8b8c2;
 
+  /* Results video surfaces: near-black, independent of the panel glass system —
+     the frame must read as footage, not as a themed UI surface. */
+  --video-stage: #121016;
+  --video-frame: #0b0a0f;
+  --video-bar: #17141e;
+
   /* one soft drop shadow + ONE top inset highlight — the whole glass edge treatment */
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
   --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
@@ -159,6 +168,10 @@
   --nav-ink-active: #ffffff;
   --nav-ink: #a7b0bd;
 
+  --video-stage: #14181d;
+  --video-frame: #0c0f13;
+  --video-bar: #1b2129;
+
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
   --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
   --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
@@ -218,6 +231,10 @@
   --nav-ink-active: #ffffff;
   --nav-ink: #b9b3ad;
 
+  --video-stage: #141212;
+  --video-frame: #0c0b0b;
+  --video-bar: #1f1c1b;
+
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
   --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
   --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
@@ -274,6 +291,11 @@
   --chat-user-bg: linear-gradient(135deg, rgb(91 70 245 / 0.12), rgb(249 106 58 / 0.08));
   --nav-ink-active: #111114;
   --nav-ink: #5c5c66;
+
+  /* Footage stays dark even in a light UI theme — a CCTV frame is not a themed surface. */
+  --video-stage: #1c1c22;
+  --video-frame: #121216;
+  --video-bar: #26262e;
 
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.6);
   --shadow-sm: 0 8px 24px rgb(17 17 20 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.55);

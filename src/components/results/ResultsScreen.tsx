@@ -1,63 +1,131 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { QueryAssistant } from "@/components/assistant/QueryAssistant";
-import { QueryField } from "@/components/query/QueryField";
-import { ClipGrid } from "@/components/results/ClipGrid";
-import { ClipTimeline } from "@/components/results/ClipTimeline";
-import { QueryOverview } from "@/components/results/QueryOverview";
-import { ResultsToolbar } from "@/components/results/ResultsToolbar";
-import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
-import { summarizeResults } from "@/lib/assistant";
+import { MatchStrip } from "@/components/results/MatchStrip";
+import { QueryPanel } from "@/components/results/QueryPanel";
+import { VideoStage } from "@/components/results/VideoStage";
 import { getAllClips } from "@/lib/clips";
-import { cn } from "@/lib/cn";
-import { filterClips } from "@/lib/filters";
+import { clipPos, WIN_LEN } from "@/lib/time";
 import { useAppStore } from "@/store/useAppStore";
+import type { Clip } from "@/types";
 
+/**
+ * Results workspace: query/assistant column + video player + matching-moments strip.
+ * Player state (selection, camera, playhead, playing/muted/meta) is local to this
+ * component — it is presentation-only and does not belong in the shared app store.
+ */
 export function ResultsScreen() {
   const query = useAppStore((state) => state.query);
-  const filters = useAppStore((state) => state.filters);
-  const viewMode = useAppStore((state) => state.resultsMode);
-  const chatOpen = useAppStore((state) => state.chatOpen);
-  const runSearch = useAppStore((state) => state.runSearch);
+  const clips = useMemo(() => getAllClips(), []);
 
-  const clips = useMemo(() => filterClips(getAllClips(), filters), [filters]);
-  const summary = useMemo(
-    () => summarizeResults(clips, query || "all indexed events"),
-    [clips, query],
+  const [selectedClipId, setSelectedClipId] = useState<number | null>(null);
+  const [activeCamera, setActiveCamera] = useState(clips[0]?.camera ?? "");
+  const [currentTime, setCurrentTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [metaOpen, setMetaOpen] = useState(false);
+
+  /* Top 10 by confidence, presented in chronological order (SPEC §2). */
+  const matches = useMemo(
+    () =>
+      [...clips]
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 10)
+        .sort((a, b) => a.order - b.order),
+    [clips],
   );
 
+  const selected = clips.find((clip) => clip.id === selectedClipId);
+
+  const nearestOnFeed = useMemo(() => {
+    const onCamera = clips.filter((clip) => clip.camera === activeCamera);
+    return (
+      [...onCamera].sort(
+        (a, b) => Math.abs(clipPos(a) - currentTime) - Math.abs(clipPos(b) - currentTime),
+      )[0] ?? clips[0]
+    );
+  }, [clips, activeCamera, currentTime]);
+
+  const activeClip: Clip | undefined = selected ?? nearestOnFeed;
+
+  useEffect(() => {
+    if (!playing) return;
+    const id = window.setInterval(() => {
+      setCurrentTime((t) => (t >= WIN_LEN ? 0 : t + 1));
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [playing]);
+
+  const selectMatch = useCallback((clip: Clip) => {
+    setSelectedClipId(clip.id);
+    setActiveCamera(clip.camera);
+    setCurrentTime(clipPos(clip));
+  }, []);
+
+  const jumpToClip = useCallback(
+    (id: number) => {
+      const clip = clips.find((candidate) => candidate.id === id);
+      if (clip) selectMatch(clip);
+    },
+    [clips, selectMatch],
+  );
+
+  const ticks = useMemo(
+    () =>
+      clips
+        .filter((clip) => clip.camera === activeCamera)
+        .map((clip) => ({
+          id: clip.id,
+          left: (clipPos(clip) / WIN_LEN) * 100,
+          active: clip.id === selectedClipId,
+        })),
+    [clips, activeCamera, selectedClipId],
+  );
+
+  if (!activeClip) {
+    return (
+      <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
+        No indexed clips available.
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        "pt-7 pb-15 pl-8 transition-[padding] duration-200",
-        // SPEC §6 — the floating panel is fixed, so the content reserves space
-        // for it only while it is open.
-        chatOpen ? "pr-[412px]" : "pr-8",
-      )}
-    >
-      <section className="min-w-0">
-        <div className="mb-[22px]">
-          <QueryField variant="compact" onSubmit={() => runSearch(query)} />
+    <div className="flex h-[calc(100vh-64px)] min-h-0 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1">
+        <QueryPanel
+          query={query || "All indexed events"}
+          selectedClipId={selectedClipId}
+          contextLabel={selected ? `${selected.camera} · ${selected.ts}` : "Top 5 matches"}
+          onClearSelection={() => setSelectedClipId(null)}
+          onJumpToClip={jumpToClip}
+        />
+
+        <div className="bg-video-frame flex min-h-0 min-w-[280px] flex-1 basis-[440px] flex-col overflow-hidden">
+          <VideoStage
+            clip={activeClip}
+            activeCamera={activeCamera}
+            currentTime={currentTime}
+            playing={playing}
+            muted={muted}
+            metaOpen={metaOpen}
+            ticks={ticks}
+            onTogglePlay={() => setPlaying((p) => !p)}
+            onToggleMute={() => setMuted((m) => !m)}
+            onToggleMeta={() => setMetaOpen((m) => !m)}
+            onSeek={setCurrentTime}
+          />
         </div>
+      </div>
 
-        <QueryOverview summary={summary} />
-
-        <ResultsToolbar resultCount={clips.length} />
-
-        {clips.length === 0 ? (
-          <p className="text-ink-2 text-[13px]">
-            No clips match the current filters. Relax the confidence threshold or clear a chip.
-          </p>
-        ) : viewMode === "grid" ? (
-          <ClipGrid clips={clips} />
-        ) : (
-          <ClipTimeline clips={clips} />
-        )}
-      </section>
-
-      <QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />
+      <MatchStrip
+        matches={matches}
+        selectedClipId={selectedClipId}
+        hasSelection={!!selected}
+        onSelect={selectMatch}
+        onClearSelection={() => setSelectedClipId(null)}
+      />
     </div>
   );
 }
