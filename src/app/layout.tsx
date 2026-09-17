@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, Barlow, Barlow_Semi_Condensed, IBM_Plex_Mono } from "next/font/google";
 import Script from "next/script";
 
 import { DEFAULT_THEME, themeInitScript } from "@/lib/theme";
@@ -20,6 +20,22 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
+/* DIN (Barlow): opt-in typeface for Results/Login/Landing via `font-barlow`.
+   Does not replace Archivo (--font-sans), which the rest of the app keeps using. */
+const barlow = Barlow({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-barlow-ui",
+  display: "swap",
+});
+
+const barlowSemiCondensed = Barlow_Semi_Condensed({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-barlow-semicond",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "CCTV AI Assistant",
   description:
@@ -31,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       data-theme={DEFAULT_THEME}
-      className={`${archivo.variable} ${ibmPlexMono.variable}`}
+      className={`${archivo.variable} ${ibmPlexMono.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}
       suppressHydrationWarning
     >
       <body className="bg-canvas text-ink antialiased">
