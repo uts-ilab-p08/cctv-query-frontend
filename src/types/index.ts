@@ -40,8 +40,6 @@ export type SearchMode = "nlq" | "classic";
 /** Dark-mode accent palette; has no effect while the active theme is light. */
 export type Palette = "violet" | "slate" | "amber";
 
-export type ResultsMode = "grid" | "timeline";
-
 export interface Filters {
   cameras: string[];
   tags: ClipTag[];

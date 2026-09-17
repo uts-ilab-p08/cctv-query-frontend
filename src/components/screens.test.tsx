@@ -75,28 +75,26 @@ describe("Dashboard", () => {
 });
 
 describe("Results", () => {
-  it("lists every clip when no filter is active", () => {
+  it("renders the query panel, video stage and matching-moments strip", () => {
     render(<ResultsScreen />);
 
-    expect(screen.getByText(`${getAllClips().length} matches`)).toBeInTheDocument();
-    expect(screen.getAllByText("View detail →")).toHaveLength(getAllClips().length);
+    expect(screen.getByText("YOUR QUERY")).toBeInTheDocument();
+    expect(screen.getByText(/MATCHING/)).toBeInTheDocument();
+    expect(screen.getByText("Top 5 matches")).toBeInTheDocument();
   });
 
-  it("switches to the timeline view", async () => {
+  it("selecting a match updates the CONTEXT chip", async () => {
     const user = userEvent.setup();
     render(<ResultsScreen />);
 
-    await user.click(screen.getByRole("button", { name: "Timeline" }));
+    const clips = getAllClips();
+    const topMatch = [...clips].sort((a, b) => b.confidence - a.confidence)[0];
 
-    expect(useAppStore.getState().resultsMode).toBe("timeline");
-    expect(screen.queryByText("View detail →")).not.toBeInTheDocument();
-  });
+    const card = screen.getByText(topMatch.ts).closest("button");
+    if (!card) throw new Error("match strip card not rendered");
+    await user.click(card);
 
-  it("narrows the result count when a filter is applied", () => {
-    useAppStore.setState((state) => ({ filters: { ...state.filters, cameras: ["G301"] } }));
-    render(<ResultsScreen />);
-
-    expect(screen.getByText("3 matches")).toBeInTheDocument();
+    expect(screen.getByText(`${topMatch.camera} · ${topMatch.ts}`)).toBeInTheDocument();
   });
 });
 

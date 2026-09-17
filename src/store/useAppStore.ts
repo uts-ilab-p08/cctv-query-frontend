@@ -16,7 +16,6 @@ import type {
   ExecutionTarget,
   Filters,
   PipelineJob,
-  ResultsMode,
   SearchMode,
   UploadScope,
 } from "@/types";
@@ -29,7 +28,6 @@ interface AppState {
   searchMode: SearchMode;
   query: string;
   filters: Filters;
-  resultsMode: ResultsMode;
   precinct: string;
 
   chats: Record<string, ChatMessage[]>;
@@ -50,7 +48,6 @@ interface AppState {
   setTheme: (theme: Theme) => void;
   setSearchMode: (mode: SearchMode) => void;
   setQuery: (query: string) => void;
-  setResultsMode: (mode: ResultsMode) => void;
   setPrecinct: (precinct: string) => void;
 
   setCameras: (cameras: string[]) => void;
@@ -106,7 +103,6 @@ export const useAppStore = create<AppState>()(
       searchMode: "nlq",
       query: "",
       filters: emptyFilters,
-      resultsMode: "grid",
       precinct: defaultPrecinct,
 
       chats: {},
@@ -130,7 +126,6 @@ export const useAppStore = create<AppState>()(
       },
       setSearchMode: (searchMode) => set({ searchMode }),
       setQuery: (query) => set({ query }),
-      setResultsMode: (resultsMode) => set({ resultsMode }),
       setPrecinct: (precinct) => set({ precinct }),
 
       setCameras: (cameras) => set((s) => ({ filters: { ...s.filters, cameras } })),
