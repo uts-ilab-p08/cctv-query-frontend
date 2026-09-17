@@ -2,13 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+import { DEFAULT_PALETTE, isPalette, PALETTE_STORAGE_KEY } from "@/lib/palette";
 import type { Palette } from "@/types";
 
-/** localStorage key holding the investigator's palette choice. */
-export const PALETTE_STORAGE_KEY = "cctvai.palette";
-
-/** Violet is the design's default palette — keep in sync with `src/app/layout.tsx`. */
-export const DEFAULT_PALETTE: Palette = "violet";
+export { DEFAULT_PALETTE, PALETTE_STORAGE_KEY } from "@/lib/palette";
 
 export const PALETTES: ReadonlyArray<{
   id: Palette;
@@ -35,10 +32,6 @@ export const PALETTES: ReadonlyArray<{
     swatch: ["#14110a", "#1c1710", "#ffc400"],
   },
 ];
-
-function isPalette(value: unknown): value is Palette {
-  return value === "violet" || value === "slate" || value === "amber";
-}
 
 interface PaletteContextValue {
   palette: Palette;
@@ -89,10 +82,3 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function usePalette(): PaletteContextValue {
   return useContext(PaletteContext);
 }
-
-/**
- * Runs before hydration to stamp the stored palette on <html>, so a slate/amber
- * user never sees a violet first paint. Serialized into an inline script, so it
- * must stay self-contained and reference no module-scope binding.
- */
-export const paletteInitScript = `(function(){try{var p=localStorage.getItem("${PALETTE_STORAGE_KEY}");if(p==="slate"||p==="amber"||p==="violet"){document.documentElement.setAttribute("data-palette",p)}}catch(e){}})()`;
