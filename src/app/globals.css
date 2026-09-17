@@ -8,9 +8,10 @@
   /* next/font self-hosts the faces and exposes them through these variables. */
   --font-sans: var(--font-archivo), "Archivo", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
-  /* DIN (Barlow): opt-in per-screen, does not replace --font-sans anywhere else. */
-  --font-barlow: var(--font-barlow-ui), Barlow, "DIN 1451", "FF DIN", sans-serif;
-  --font-barlow-cond: var(--font-barlow-semicond), "Barlow Semi Condensed", Barlow, sans-serif;
+  /* Eurostile-style pairing (Saira + Michroma): opt-in per-screen, does not
+     replace --font-sans anywhere else. */
+  --font-barlow: var(--font-barlow-ui), Saira, "Eurostile", sans-serif;
+  --font-barlow-cond: var(--font-barlow-semicond), Michroma, "Eurostile", sans-serif;
 
   --radius-chip: 12px;
   --radius-card: 18px;
@@ -451,11 +452,12 @@ body {
     filter: grayscale(0.55) contrast(1.05) brightness(0.85);
   }
 
-  /* Product wordmark ("CCTV AI") on Login/Landing — Barlow Semi Condensed 700,
-     17px, 0.8px tracking, per handoff-nextjs SPEC.md §3. */
+  /* Product wordmark ("CCTV AI") on Login/Landing — Michroma (single weight: 400),
+     17px, 0.8px tracking. Adapted from handoff-nextjs SPEC.md §3, which specified
+     Barlow Semi Condensed 700 — Michroma has no bold cut, so weight is dropped. */
   .brand-wordmark {
     font-family: var(--font-barlow-cond);
-    font-weight: 700;
+    font-weight: 400;
     font-size: 17px;
     letter-spacing: 0.8px;
     line-height: 1.1;

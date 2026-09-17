@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import { Archivo, Barlow, Barlow_Semi_Condensed, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Michroma, Saira } from "next/font/google";
 import Script from "next/script";
 
-import {
-  DEFAULT_PALETTE,
-  paletteInitScript,
-  ThemeProvider,
-} from "@/components/theme/ThemeProvider";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { DEFAULT_PALETTE, paletteInitScript } from "@/lib/palette";
 import { DEFAULT_THEME, themeInitScript } from "@/lib/theme";
 
 import "./globals.css";
@@ -25,18 +22,21 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-/* DIN (Barlow): opt-in typeface for Results/Login/Landing via `font-barlow`.
+/* Eurostile-style pairing: opt-in typeface for Results/Login/Landing via `font-barlow`.
    Does not replace Archivo (--font-sans), which the rest of the app keeps using. */
-const barlow = Barlow({
+const saira = Saira({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-barlow-ui",
   display: "swap",
 });
 
-const barlowSemiCondensed = Barlow_Semi_Condensed({
+/* Michroma ships a single weight (400) — used only for the wordmark and short
+   display headings, never for body copy (its wide letterforms hurt legibility
+   past a few words). */
+const michroma = Michroma({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400"],
   variable: "--font-barlow-semicond",
   display: "swap",
 });
@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       data-theme={DEFAULT_THEME}
       data-palette={DEFAULT_PALETTE}
-      className={`${archivo.variable} ${ibmPlexMono.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}
+      className={`${archivo.variable} ${ibmPlexMono.variable} ${saira.variable} ${michroma.variable}`}
       suppressHydrationWarning
     >
       <body className="bg-canvas text-ink antialiased">
