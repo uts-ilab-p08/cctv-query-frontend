@@ -92,7 +92,7 @@ export function ResultsScreen() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] min-h-0 flex-col overflow-hidden">
+    <div className="font-barlow flex h-[calc(100vh-64px)] min-h-0 flex-col overflow-hidden">
       <div className="flex min-h-0 flex-1">
         <QueryPanel
           query={query || "All indexed events"}
