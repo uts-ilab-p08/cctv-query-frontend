@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
+import { PALETTES, usePalette } from "@/components/theme/ThemeProvider";
 import { precincts } from "@/data/precincts";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
@@ -34,8 +35,11 @@ export function SettingsModal() {
   const setSearchMode = useAppStore((state) => state.setSearchMode);
   const selectedPrecinct = useAppStore((state) => state.precinct);
   const setPrecinct = useAppStore((state) => state.setPrecinct);
+  const theme = useAppStore((state) => state.theme);
+  const { palette, setPalette } = usePalette();
 
   const close = closeSettings;
+  const paletteApplies = theme === "dark";
 
   return (
     <Modal
@@ -101,6 +105,51 @@ export function SettingsModal() {
             );
           })}
         </div>
+      </div>
+
+      <div className="border-hairline mt-[22px] border-t pt-[18px]">
+        <p className="text-ink-2 mb-2.5 text-xs">
+          Appearance — accent palette used while the theme is dark.
+        </p>
+
+        {paletteApplies ? (
+          <div role="radiogroup" aria-label="Palette" className="grid gap-2.5 sm:grid-cols-3">
+            {PALETTES.map((option) => {
+              const active = palette === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setPalette(option.id)}
+                  className={cn(
+                    "flex flex-col gap-2 rounded-md border p-3 text-left transition-colors duration-150",
+                    active ? "border-accent-line bg-accent-soft" : "border-hairline bg-transparent",
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {option.swatch.map((color) => (
+                      <span
+                        key={color}
+                        aria-hidden
+                        className="border-hairline h-4 w-4 rounded-full border"
+                        style={{ background: color }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-semibold">{option.label}</span>
+                  <span className="text-ink-2 text-xs leading-relaxed">{option.hint}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-ink-3 border-hairline rounded-md border px-3.5 py-3 text-xs leading-relaxed">
+            Color palettes are available in dark mode. Switch to dark from the theme toggle in the
+            top bar to choose one.
+          </p>
+        )}
       </div>
     </Modal>
   );

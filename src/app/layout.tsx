@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { Archivo, Barlow, Barlow_Semi_Condensed, IBM_Plex_Mono } from "next/font/google";
 import Script from "next/script";
 
+import {
+  DEFAULT_PALETTE,
+  paletteInitScript,
+  ThemeProvider,
+} from "@/components/theme/ThemeProvider";
 import { DEFAULT_THEME, themeInitScript } from "@/lib/theme";
 
 import "./globals.css";
@@ -47,14 +52,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       data-theme={DEFAULT_THEME}
+      data-palette={DEFAULT_PALETTE}
       className={`${archivo.variable} ${ibmPlexMono.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}
       suppressHydrationWarning
     >
       <body className="bg-canvas text-ink antialiased">
+        {/* Anti-flash: both theme (dark/light) and palette (violet/slate/amber) must be
+            stamped on <html> before the first paint, so this runs as one script. */}
         <Script id="cctv-theme" strategy="beforeInteractive">
-          {themeInitScript}
+          {`${themeInitScript}${paletteInitScript}`}
         </Script>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
