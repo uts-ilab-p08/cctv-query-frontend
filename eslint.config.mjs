@@ -18,6 +18,7 @@ const eslintConfig = [
       "design-reference/**",
       "coverage/**",
       "next-env.d.ts",
+      "handoff-nextjs/**",
     ],
   },
   {
