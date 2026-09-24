@@ -44,7 +44,9 @@ function asClipTag(value: string | undefined): ClipTag | undefined {
 /**
  * The tokenized query field: a highlight overlay (z-2, pointer-events-none except tokens)
  * sits ON TOP of a transparent textarea (z-1) that owns the caret and typing.
- * Detected terms are bold + dashed-underlined in --token-ink and open a dropdown on click.
+ * Detected terms are dashed-underlined in --token-ink and open a dropdown on click. Their
+ * emphasis is a text stroke, NOT font-weight: bold glyphs are wider than the textarea's
+ * regular ones, which would push the visible text ahead of the (textarea-owned) caret.
  */
 export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -147,7 +149,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
                 <span
                   key={index}
                   onClick={openMenu(segment.hit)}
-                  className="border-token-line text-token-ink pointer-events-auto cursor-pointer border-b-2 border-dashed pb-[3px] font-bold"
+                  className="border-token-line text-token-ink pointer-events-auto cursor-pointer border-b-2 border-dashed pb-[3px] [-webkit-text-stroke:0.45px_currentColor]"
                 >
                   {segment.text}
                 </span>

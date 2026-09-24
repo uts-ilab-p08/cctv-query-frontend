@@ -168,4 +168,17 @@ describe("QueryField", () => {
     expect(overlay?.className).toContain("z-[2]");
     expect(textarea?.className).toContain("z-[1]");
   });
+
+  it("keeps token glyph widths equal to the textarea so the caret stays aligned", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.type(screen.getByRole("textbox"), "red car");
+
+    // The caret lives in the plain-weight textarea; a heavier weight on the
+    // overlay widens the token and pushes the visible text ahead of the caret.
+    expect(token("red car").className).not.toMatch(
+      /\bfont-(thin|light|normal|medium|semibold|bold|extrabold|black)\b/,
+    );
+  });
 });
