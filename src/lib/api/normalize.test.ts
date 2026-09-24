@@ -43,4 +43,9 @@ describe("ragResultItemToClip", () => {
     expect(ragResultItemToClip({ ...item, start_seconds: 125.6 }, 0).ts).toBe("2:05");
     expect(ragResultItemToClip({ ...item, start_seconds: 3725 }, 0).ts).toBe("1:02:05");
   });
+
+  it("keeps the camera's scene when the backend sends it", () => {
+    expect(ragResultItemToClip({ ...item, scene: "admin" }, 0).scene).toBe("admin");
+    expect(ragResultItemToClip(item, 0).scene).toBeUndefined();
+  });
 });

@@ -30,6 +30,9 @@ export interface Clip {
   videoUrl?: string;
   /** Short event label from the RAG; when absent, `action` (the description) is shown. */
   eventName?: string;
+  /** Site within the facility (`bronze.videos.scene`, e.g. `admin`, from MEVA's file
+   *  names). Mocked for the demo set until /search returns it. */
+  scene?: string;
   /** Source video id — several moments (clips) can share one video. */
   videoId?: string;
   /** Where the moment starts/ends inside `videoUrl`, in seconds. */
@@ -44,6 +47,8 @@ export interface Camera {
 
 export interface CameraDirectoryEntry extends Camera {
   eventCount: number;
+  /** Site within the facility (`bronze.videos.scene`, e.g. `admin`). */
+  scene?: string;
 }
 
 export type SearchMode = "nlq" | "classic";
@@ -54,6 +59,8 @@ export type Palette =
 
 export interface Filters {
   cameras: string[];
+  /** Sites within the facility (`bronze.videos.scene`). */
+  scenes: string[];
   tags: ClipTag[];
   /** Minimum confidence, 0-100. */
   confidence: number;

@@ -1,7 +1,8 @@
+import { cameraScenes } from "@/data/cameras";
 import type { Clip } from "@/types";
 
 /** Indexed events for the demo footage window (Aug 4). */
-export const clips: Clip[] = [
+const demoClips: Clip[] = [
   {
     id: "1",
     camera: "G328",
@@ -211,3 +212,9 @@ export const clips: Clip[] = [
     action: "Person Exit",
   },
 ];
+
+/** Demo clips with their MOCK scene (see `cameraScenes`). */
+export const clips: Clip[] = demoClips.map((clip) => ({
+  ...clip,
+  scene: cameraScenes[clip.camera],
+}));

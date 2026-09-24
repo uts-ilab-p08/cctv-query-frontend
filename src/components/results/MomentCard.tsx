@@ -33,7 +33,10 @@ export function MomentCardContent({ clip, textClassName }: MomentCardContentProp
         <div className="text-ink line-clamp-2 text-[12px] leading-[1.3] font-semibold">
           {clip.eventName ?? clip.action}
         </div>
-        <div className="text-ink-2 truncate text-[11px]">{clip.camera}</div>
+        <div className="text-ink-2 truncate text-[11px]">
+          <span>{clip.camera}</span>
+          {clip.scene ? <span className="text-ink-3 ml-1">{`· ${clip.scene}`}</span> : null}
+        </div>
         <div className="text-ink-3 font-mono text-[10px] leading-[1.3]">{clip.ts}</div>
       </div>
     </>

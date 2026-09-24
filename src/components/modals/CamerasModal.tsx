@@ -28,6 +28,11 @@ export function CamerasModal() {
     };
   }, [camerasOpen]);
 
+  // Group by scene when the backend (or the demo data) provides it; otherwise one flat list.
+  const groups: Array<[string | null, CameraDirectoryEntry[]]> = directory.some((c) => c.scene)
+    ? [...Map.groupBy(directory, (camera) => camera.scene ?? "other")]
+    : [[null, directory]];
+
   return (
     <Modal
       open={camerasOpen}
@@ -36,22 +41,36 @@ export function CamerasModal() {
       description="Archived footage sources, not a live feed."
       width={480}
     >
-      <ul className="border-hairline rounded-chip flex flex-col overflow-hidden border">
-        {directory.map((camera) => (
-          <li
-            key={camera.code}
-            className="bg-panel-solid border-hairline flex items-center justify-between border-b px-4 py-3 last:border-b-0"
-          >
-            <div>
-              <p className="text-ink font-mono text-[13px] font-semibold">{camera.code}</p>
-              <p className="text-ink-3 text-xs">{camera.perspective}</p>
-            </div>
-            <span className="bg-accent-soft text-accent rounded-chip px-2 py-[3px] font-mono text-[11px]">
-              {camera.eventCount} events
-            </span>
-          </li>
-        ))}
-      </ul>
+      {groups.map(([scene, cameras]) => (
+        <div
+          key={scene ?? "all"}
+          role={scene ? "group" : undefined}
+          aria-label={scene ?? undefined}
+          className="mb-4 last:mb-0"
+        >
+          {scene ? (
+            <h3 className="text-ink-3 mb-1.5 font-mono text-[11px] tracking-[1px] uppercase">
+              {scene}
+            </h3>
+          ) : null}
+          <ul className="border-hairline rounded-chip flex flex-col overflow-hidden border">
+            {cameras.map((camera) => (
+              <li
+                key={camera.code}
+                className="bg-panel-solid border-hairline flex items-center justify-between border-b px-4 py-3 last:border-b-0"
+              >
+                <div>
+                  <p className="text-ink font-mono text-[13px] font-semibold">{camera.code}</p>
+                  <p className="text-ink-3 text-xs">{camera.perspective}</p>
+                </div>
+                <span className="bg-accent-soft text-accent rounded-chip px-2 py-[3px] font-mono text-[11px]">
+                  {camera.eventCount} events
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </Modal>
   );
 }

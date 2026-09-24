@@ -30,6 +30,7 @@ function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => stri
       mono: true,
     },
     { label: "CAMERA", value: `${clip.camera} (${clip.code})` },
+    ...(clip.scene ? [{ label: "SCENE", value: clip.scene }] : []),
     { label: "PERSPECTIVE", value: clip.perspective },
     { label: "ACTION TYPE", value: clip.action },
     { label: "OBJECTS DETECTED", value: clip.objects },

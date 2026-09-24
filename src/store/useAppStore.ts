@@ -54,6 +54,7 @@ interface AppState {
   addTag: (tag: ClipTag) => void;
   toggleTag: (tag: ClipTag) => void;
   toggleCamera: (camera: string) => void;
+  toggleScene: (scene: string) => void;
   setConfidence: (value: number) => void;
   setDateFrom: (value: string) => void;
   setDateTo: (value: string) => void;
@@ -176,6 +177,15 @@ export const useAppStore = create<AppState>()(
             tags: s.filters.tags.includes(tag)
               ? s.filters.tags.filter((item) => item !== tag)
               : [...s.filters.tags, tag],
+          },
+        })),
+      toggleScene: (scene) =>
+        set((s) => ({
+          filters: {
+            ...s.filters,
+            scenes: s.filters.scenes.includes(scene)
+              ? s.filters.scenes.filter((item) => item !== scene)
+              : [...s.filters.scenes, scene],
           },
         })),
       toggleCamera: (camera) =>

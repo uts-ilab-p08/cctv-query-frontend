@@ -72,3 +72,20 @@ describe("getActiveFilterChips", () => {
     expect(hasActiveFilters({ ...emptyFilters, confidence: 80 })).toBe(false);
   });
 });
+
+describe("scene filter", () => {
+  it("keeps only clips from the chosen scenes", () => {
+    const all = getAllClips();
+    const admin = filterClips(all, { ...emptyFilters, scenes: ["admin"] });
+    expect(admin.length).toBeGreaterThan(0);
+    expect(admin.every((clip) => clip.scene === "admin")).toBe(true);
+  });
+
+  it("shows a removable chip per scene", () => {
+    expect(getActiveFilterChips({ ...emptyFilters, scenes: ["admin"] })).toContainEqual({
+      key: "scene:admin",
+      label: "admin",
+      kind: "scene",
+    });
+  });
+});

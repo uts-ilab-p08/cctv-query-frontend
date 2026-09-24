@@ -14,6 +14,8 @@ export interface RagResultItem {
   score: number;
   /** Short event label. Not in the documented contract yet — optional until the RAG confirms it. */
   event_name?: string | null;
+  /** Requested (§4.1): `bronze.videos.scene`. Optional until /search returns it. */
+  scene?: string | null;
 }
 
 export interface RagQueryResult {
@@ -35,12 +37,16 @@ export interface ApiClip {
   action: string;
   thumbnailUrl: string | null;
   videoUrl: string | null;
+  /** Requested (§4.1): `bronze.videos.scene`. */
+  scene?: string | null;
 }
 
 export interface ApiCameraDirectoryEntry {
   code: string;
   perspective: string;
   eventCount: number;
+  /** Requested: `bronze.videos.scene`, to group the directory by site. */
+  scene?: string | null;
 }
 
 export interface ApiRecentQuery {

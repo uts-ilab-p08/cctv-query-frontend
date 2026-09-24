@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Modal } from "@/components/ui/Modal";
-import { cameraNames, tagNames } from "@/data/cameras";
+import { cameraNames, sceneNames, tagNames } from "@/data/cameras";
 import { useAppStore } from "@/store/useAppStore";
 
 export function FiltersModal() {
@@ -12,6 +12,7 @@ export function FiltersModal() {
   const closeFilters = useAppStore((state) => state.closeFilters);
   const filters = useAppStore((state) => state.filters);
   const toggleCamera = useAppStore((state) => state.toggleCamera);
+  const toggleScene = useAppStore((state) => state.toggleScene);
   const toggleTag = useAppStore((state) => state.toggleTag);
   const setConfidence = useAppStore((state) => state.setConfidence);
   const setDateFrom = useAppStore((state) => state.setDateFrom);
@@ -43,6 +44,24 @@ export function FiltersModal() {
               className="rounded-xl px-3 py-1.5"
             >
               {camera}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* MOCK scene list (see `cameraScenes`); real values come from /cameras. */}
+      <fieldset className="mb-5 border-0 p-0">
+        <legend className="text-ink-2 mb-2 text-xs">Scenes</legend>
+        <div className="flex flex-wrap gap-2">
+          {sceneNames.map((scene) => (
+            <Chip
+              key={scene}
+              tone="solid"
+              active={filters.scenes.includes(scene)}
+              onClick={() => toggleScene(scene)}
+              className="rounded-xl px-3 py-1.5"
+            >
+              {scene}
             </Chip>
           ))}
         </div>

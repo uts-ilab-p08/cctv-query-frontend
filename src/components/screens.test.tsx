@@ -16,6 +16,7 @@ import { SavedQueriesScreen } from "@/components/saved/SavedQueriesScreen";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { LoginScreen } from "@/components/login/LoginScreen";
 import { CamerasModal } from "@/components/modals/CamerasModal";
+import { FiltersModal } from "@/components/results/FiltersModal";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { recentQueries } from "@/data/recentQueries";
@@ -268,6 +269,24 @@ describe("Results", () => {
     expect(panel).toHaveClass("glass-panel");
     expect(panel.className).not.toMatch(/rgba\(|bg-\[/);
     expect(within(panel).getByText("CHUNK METADATA")).toHaveClass("text-ink-2");
+  });
+
+  it("shows each moment's scene with its camera, and in the chunk metadata", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    const topMatch = [...getAllClips()].sort((a, b) => b.confidence - a.confidence)[0];
+    expect(topMatch.scene).toBe("admin");
+    const card = screen.getByText(topMatch.ts).closest("button")!;
+    expect(within(card).getByText(`· ${topMatch.scene}`)).toBeInTheDocument();
+
+    await user.click(card);
+    await user.click(screen.getByRole("button", { name: "Show chunk metadata" }));
+
+    const panel = screen.getByRole("region", { name: "Chunk metadata" });
+    expect(within(panel).getByText("SCENE")).toBeInTheDocument();
+    expect(within(panel).getByText("admin")).toBeInTheDocument();
   });
 
   it("selecting a match updates the CONTEXT chip", async () => {
@@ -1036,6 +1055,26 @@ describe("Modals", () => {
     // MEVA is a single facility: there is no precinct to pick.
     expect(screen.queryByRole("radiogroup", { name: "Precinct" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("groups the camera directory by scene", async () => {
+    useAppStore.setState({ camerasOpen: true });
+    render(<CamerasModal />);
+
+    const admin = await screen.findByRole("group", { name: "admin" });
+    expect(within(admin).getByText("G328")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "school" })).toBeInTheDocument();
+  });
+
+  it("filters by scene from the filters dialog", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ filtersOpen: true });
+    render(<FiltersModal />);
+
+    const scenes = screen.getByRole("group", { name: "Scenes" });
+    await user.click(within(scenes).getByRole("button", { name: "admin" }));
+
+    expect(useAppStore.getState().filters.scenes).toEqual(["admin"]);
   });
 
   it("switches the search mode from settings", async () => {

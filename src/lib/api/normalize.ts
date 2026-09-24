@@ -74,6 +74,7 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
     thumbnailUrl: undefined,
     videoUrl: item.video_url ?? undefined,
     eventName: item.event_name?.trim() || undefined,
+    scene: item.scene?.trim() || undefined,
     videoId: item.video_id,
     startSeconds: item.start_seconds,
     endSeconds: item.end_seconds,
@@ -97,13 +98,14 @@ export function apiClipToClip(clip: ApiClip): Clip {
     action: clip.action,
     thumbnailUrl: clip.thumbnailUrl ?? undefined,
     videoUrl: clip.videoUrl ?? undefined,
+    scene: clip.scene ?? undefined,
   };
 }
 
 export function apiCameraToCameraDirectoryEntry(
   camera: ApiCameraDirectoryEntry,
 ): CameraDirectoryEntry {
-  return camera;
+  return { ...camera, scene: camera.scene ?? undefined };
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
