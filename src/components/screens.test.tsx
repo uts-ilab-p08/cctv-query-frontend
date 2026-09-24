@@ -17,6 +17,7 @@ import { LandingPage } from "@/components/landing/LandingPage";
 import { LoginScreen } from "@/components/login/LoginScreen";
 import { CamerasModal } from "@/components/modals/CamerasModal";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
 import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
@@ -895,6 +896,37 @@ describe("Modals", () => {
     await user.keyboard("{Escape}");
 
     expect(useAppStore.getState().camerasOpen).toBe(false);
+  });
+
+  it("offers the Soft Linen and Soft Lavender palettes and applies them", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ theme: "dark" });
+    render(
+      <ThemeProvider>
+        <SettingsScreen />
+      </ThemeProvider>,
+    );
+
+    await user.click(screen.getByRole("radio", { name: /^Soft linen/ }));
+
+    expect(screen.getByRole("radio", { name: /^Soft linen/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(document.documentElement.getAttribute("data-palette")).toBe("linen");
+    expect(localStorage.getItem("cctvai.palette")).toBe("linen");
+
+    await user.click(screen.getByRole("radio", { name: /^Soft lavender/ }));
+    expect(document.documentElement.getAttribute("data-palette")).toBe("lavender");
+
+    for (const [label, id] of [
+      [/^Midnight magic/, "magic"],
+      [/^Deep blue sea/, "sea"],
+      [/^Midnight blues/, "blues"],
+    ] as const) {
+      await user.click(screen.getByRole("radio", { name: label }));
+      expect(document.documentElement.getAttribute("data-palette")).toBe(id);
+    }
   });
 
   it("is a page with its own sections, not a dialog", () => {

@@ -49,7 +49,8 @@ export interface CameraDirectoryEntry extends Camera {
 export type SearchMode = "nlq" | "classic";
 
 /** Dark-mode accent palette; has no effect while the active theme is light. */
-export type Palette = "violet" | "slate" | "amber";
+export type Palette =
+  "violet" | "slate" | "amber" | "linen" | "lavender" | "magic" | "sea" | "blues";
 
 export interface Filters {
   cameras: string[];
