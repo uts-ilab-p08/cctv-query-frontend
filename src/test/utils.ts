@@ -14,6 +14,7 @@ export function resetStore(): void {
     chatOpen: false,
     theme: "dark",
     results: [],
+    lastSearch: null,
     searchPending: false,
     searchError: null,
     filtersOpen: false,

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { QueryField } from "@/components/query/QueryField";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 
 const MODE_COPY = {
@@ -27,7 +28,7 @@ export function QueryComposer() {
   const submit = () => {
     if (!query.trim()) return;
     void runSearch(query);
-    router.push("/results");
+    router.push(resultsHref(query));
   };
 
   const copy = MODE_COPY[searchMode];

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { getRecentQueries } from "@/lib/api/endpoints";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 import type { RecentQuery } from "@/types";
 
@@ -39,7 +40,7 @@ export function RecentQueries() {
               type="button"
               onClick={() => {
                 void runSearch(query.text);
-                router.push("/results");
+                router.push(resultsHref(query.text));
               }}
               className="rounded-card glass-card-flat hover:border-hairline-strong flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-left transition-colors duration-150"
             >

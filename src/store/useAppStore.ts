@@ -73,6 +73,9 @@ interface AppState {
 
   /** Seed the results thread with the query and the assistant's summary. */
   runSearch: (text: string) => Promise<void>;
+  /** Query of the latest `runSearch` — unlike `query`, not touched while typing. Lets
+   *  Results tell whether `?q=` still needs running (refresh) or already ran. */
+  lastSearch: string | null;
   /** Clips returned by the last `runSearch` call — what Results renders. */
   results: Clip[];
   searchPending: boolean;
@@ -138,6 +141,7 @@ export const useAppStore = create<AppState>()(
       chatOpen: false, // the assistant is hidden until "Ask more"
 
       results: [],
+      lastSearch: null,
       searchPending: false,
       searchError: null,
 
@@ -206,7 +210,7 @@ export const useAppStore = create<AppState>()(
           set({ query: text });
           return;
         }
-        set({ query: trimmed, searchPending: true, searchError: null });
+        set({ query: trimmed, lastSearch: trimmed, searchPending: true, searchError: null });
         try {
           const { clips, summary } = await searchClips(trimmed);
           set((s) => ({

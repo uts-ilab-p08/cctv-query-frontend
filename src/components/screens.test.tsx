@@ -83,6 +83,7 @@ beforeEach(() => {
   vi.mocked(saveQuery).mockClear();
   vi.mocked(askAssistant).mockClear();
   vi.mocked(deleteSavedQuery).mockClear();
+  vi.mocked(searchClips).mockClear();
 });
 
 describe("Dashboard", () => {
@@ -122,7 +123,7 @@ describe("Dashboard", () => {
     await user.type(screen.getByRole("textbox", { name: /Search the camera network/ }), "red car");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
-    expect(pushMock).toHaveBeenCalledWith("/results");
+    expect(pushMock).toHaveBeenCalledWith("/results?q=red+car");
     expect(useAppStore.getState().query).toBe("red car");
   });
 
@@ -225,6 +226,34 @@ describe("Results", () => {
     await user.click(retry);
     expect(saveQuery).toHaveBeenCalledTimes(2);
     expect(await screen.findByRole("button", { name: "Query saved" })).toBeDisabled();
+  });
+});
+
+describe("Results — query in the URL", () => {
+  it("re-runs the search from ?q= when the page is loaded directly (refresh, shared link)", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+
+    expect(searchClips).toHaveBeenCalledExactlyOnceWith("red car");
+    const box = await screen.findByRole("group", { name: "Your query" });
+    expect(within(box).getByText("red car")).toBeInTheDocument();
+  });
+
+  it("does not search twice when arriving from a search that already ran", async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+    vi.mocked(searchClips).mockClear();
+
+    render(<ResultsScreen urlQuery="red car" />);
+
+    expect(searchClips).not.toHaveBeenCalled();
+  });
+
+  it("follows the URL when it changes (back / forward)", async () => {
+    const { rerender } = render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByRole("group", { name: "Your query" });
+
+    rerender(<ResultsScreen urlQuery="loitering" />);
+
+    expect(searchClips).toHaveBeenLastCalledWith("loitering");
   });
 });
 
@@ -431,6 +460,7 @@ describe("Results — new query", () => {
     await user.keyboard("loitering at night{Enter}");
 
     expect(searchClips).toHaveBeenLastCalledWith("loitering at night");
+    expect(pushMock).toHaveBeenCalledWith("/results?q=loitering+at+night");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(await within(queryBox()).findByText("loitering at night")).toBeInTheDocument();
   });
@@ -622,7 +652,7 @@ describe("Saved queries", () => {
     const runAgainButtons = await screen.findAllByRole("button", { name: "Run again" });
     await user.click(runAgainButtons[0]);
 
-    expect(pushMock).toHaveBeenCalledWith("/results");
+    expect(pushMock).toHaveBeenCalledWith(expect.stringMatching(/^\/results\?q=.*red\+car/));
     expect(useAppStore.getState().query).toMatch(/red car/);
   });
 

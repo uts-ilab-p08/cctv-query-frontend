@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { QueryField } from "@/components/query/QueryField";
 import { Modal } from "@/components/ui/Modal";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 
 interface NewQueryModalProps {
@@ -14,6 +16,7 @@ interface NewQueryModalProps {
 /** The Home search field, floated over Results. It edits a local draft so the
  *  running query stays untouched until the new search is actually submitted. */
 export function NewQueryModal({ open, onClose }: NewQueryModalProps) {
+  const router = useRouter();
   const runSearch = useAppStore((state) => state.runSearch);
   const [draft, setDraft] = useState("");
 
@@ -25,6 +28,8 @@ export function NewQueryModal({ open, onClose }: NewQueryModalProps) {
   const submit = () => {
     if (!draft.trim()) return;
     void runSearch(draft);
+    // Push, not replace: Back returns to the previous search.
+    router.push(resultsHref(draft));
     close();
   };
 

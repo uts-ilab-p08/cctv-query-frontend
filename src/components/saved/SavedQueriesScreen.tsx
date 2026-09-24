@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
 import { deleteSavedQuery, getSavedQueries } from "@/lib/api/endpoints";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 import type { SavedQuery } from "@/types";
 
@@ -158,7 +159,7 @@ export function SavedQueriesScreen() {
                     type="button"
                     onClick={() => {
                       void runSearch(query.text);
-                      router.push("/results");
+                      router.push(resultsHref(query.text));
                     }}
                     className="surface-action shadow-action h-9 cursor-pointer rounded-full px-4 font-sans text-[13px]"
                   >

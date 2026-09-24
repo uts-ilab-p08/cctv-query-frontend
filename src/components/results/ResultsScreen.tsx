@@ -16,7 +16,12 @@ import type { Clip } from "@/types";
  * Player state (selection, camera, playhead, playing/muted/meta) is local to this
  * component — it is presentation-only and does not belong in the shared app store.
  */
-export function ResultsScreen() {
+interface ResultsScreenProps {
+  /** `?q=` from the URL — the search this page is showing. */
+  urlQuery?: string;
+}
+
+export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const query = useAppStore((state) => state.query);
   const clips = useAppStore((state) => state.results);
   const searchPending = useAppStore((state) => state.searchPending);
@@ -32,6 +37,15 @@ export function ResultsScreen() {
   const [seekRequest, setSeekRequest] = useState<SeekRequest | null>(null);
   /** Bumped on every match pick so re-picking the same match re-cues it. */
   const [cueCount, setCueCount] = useState(0);
+
+  // The URL owns the search: run `?q=` unless it is already the latest search — so a
+  // refresh or back/forward re-runs it, while arriving from Home doesn't search twice.
+  useEffect(() => {
+    const target = urlQuery.trim();
+    if (!target) return;
+    const { lastSearch, runSearch } = useAppStore.getState();
+    if (lastSearch !== target) void runSearch(target);
+  }, [urlQuery]);
 
   const matches = useMemo(() => topMatches(clips), [clips]);
 
