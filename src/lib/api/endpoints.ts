@@ -2,6 +2,7 @@ import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/type
 
 import { apiFetch } from "./client";
 import { mockAskAssistant } from "./mocks/assistant";
+import { mockGetTracks } from "./mocks/tracks";
 import {
   apiCameraToCameraDirectoryEntry,
   apiClipToClip,
@@ -16,6 +17,7 @@ import type {
   ApiRecentQuery,
   ApiSavedQuery,
   RagQueryResult,
+  TracksResponse,
 } from "./types";
 
 /**
@@ -114,4 +116,32 @@ export async function askAssistant(request: AssistantAskRequest): Promise<Assist
  */
 export async function deleteSavedQuery(id: string): Promise<void> {
   await apiFetch<void>(`/api/v1/queries/saved/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export interface TracksQuery {
+  video_id: string;
+  start_seconds: number;
+  end_seconds: number;
+  /** Once /search returns it: limit the tracks to this event's objects. */
+  event_id?: string | null;
+  /** Simulation only — the real endpoint reads objects from the database. */
+  caption: string;
+}
+
+/**
+ * PROPOSED `GET /api/v1/videos/{video_id}/tracks?start_seconds&end_seconds[&event_id]`
+ * — SIMULATED until the backend ships it (contract: `TracksResponse` in ./types.ts;
+ * spec: BACKEND_API_SPEC.md §3.3). To switch, replace the body with:
+ *
+ *   const params = new URLSearchParams({
+ *     start_seconds: String(query.start_seconds),
+ *     end_seconds: String(query.end_seconds),
+ *     ...(query.event_id ? { event_id: query.event_id } : {}),
+ *   });
+ *   return apiFetch<TracksResponse>(
+ *     `/api/v1/videos/${encodeURIComponent(query.video_id)}/tracks?${params}`,
+ *   );
+ */
+export async function getTracks(query: TracksQuery): Promise<TracksResponse> {
+  return mockGetTracks(query);
 }

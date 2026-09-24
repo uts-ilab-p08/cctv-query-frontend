@@ -2,6 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
+import { DetectionOverlay } from "@/components/results/DetectionOverlay";
+import type { TracksResponse } from "@/lib/api/types";
+
 /** A scrubber seek; `id` makes a repeated seek to the same second still fire. */
 export interface SeekRequest {
   sec: number;
@@ -20,6 +23,8 @@ interface MatchVideoProps {
   onTimeUpdate: (sec: number) => void;
   onDuration: (sec: number) => void;
   onStop: () => void;
+  /** Object tracks to highlight over the footage, when available. */
+  tracks?: TracksResponse | null;
 }
 
 /**
@@ -38,6 +43,7 @@ export function MatchVideo({
   onTimeUpdate,
   onDuration,
   onStop,
+  tracks,
 }: MatchVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   /** `src` whose metadata has loaded — only then can `currentTime` be set. */
@@ -80,26 +86,29 @@ export function MatchVideo({
   }, [playing, src, onStop]);
 
   return (
-    <video
-      ref={videoRef}
-      src={src}
-      aria-label="Match footage"
-      muted={muted}
-      playsInline
-      preload="metadata"
-      className="absolute inset-0 h-full w-full bg-black object-contain"
-      onLoadedMetadata={(event) => {
-        loadedSrc.current = src;
-        onDuration(
-          Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0,
-        );
-        if (pendingCue.current != null) {
-          seek(pendingCue.current);
-          pendingCue.current = null;
-        }
-      }}
-      onTimeUpdate={(event) => onTimeUpdate(event.currentTarget.currentTime)}
-      onEnded={onStop}
-    />
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        aria-label="Match footage"
+        muted={muted}
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 h-full w-full bg-black object-contain"
+        onLoadedMetadata={(event) => {
+          loadedSrc.current = src;
+          onDuration(
+            Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0,
+          );
+          if (pendingCue.current != null) {
+            seek(pendingCue.current);
+            pendingCue.current = null;
+          }
+        }}
+        onTimeUpdate={(event) => onTimeUpdate(event.currentTarget.currentTime)}
+        onEnded={onStop}
+      />
+      {tracks ? <DetectionOverlay tracks={tracks} videoRef={videoRef} /> : null}
+    </>
   );
 }

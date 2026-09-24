@@ -3,6 +3,7 @@
 import { Play } from "lucide-react";
 
 import { MatchVideo, type SeekRequest } from "@/components/results/MatchVideo";
+import type { TracksResponse } from "@/lib/api/types";
 import { MetadataOverlay } from "@/components/results/MetadataOverlay";
 import { PlayerBar, type PlayerTick } from "@/components/results/PlayerBar";
 import { getThumbUrl } from "@/lib/clips";
@@ -24,6 +25,8 @@ interface VideoStageProps {
   onTimeUpdate: (sec: number) => void;
   onDuration: (sec: number) => void;
   onStop: () => void;
+  /** Object tracks for the moment, drawn over the footage. */
+  tracks?: TracksResponse | null;
   onTogglePlay: () => void;
   onToggleMute: () => void;
   onToggleMeta: () => void;
@@ -49,6 +52,7 @@ export function VideoStage({
   onTimeUpdate,
   onDuration,
   onStop,
+  tracks,
   onTogglePlay,
   onToggleMute,
   onToggleMeta,
@@ -72,6 +76,7 @@ export function VideoStage({
               onTimeUpdate={onTimeUpdate}
               onDuration={onDuration}
               onStop={onStop}
+              tracks={tracks}
             />
           ) : (
             /* Still frame for clips without footage (the mock dataset). */

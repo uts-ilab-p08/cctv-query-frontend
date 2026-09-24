@@ -103,3 +103,42 @@ export interface AssistantAskResponse {
   /** Follow-ups shown under the answer. */
   suggested_questions: string[];
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * PROPOSED — `GET /api/v1/videos/{video_id}/tracks` (not implemented yet).
+ * Object tracks to draw over the player. Source: bronze.event_objects →
+ * bronze.objects → bronze.geometries, sized by bronze.videos.frame_width/height.
+ * Simulated in the frontend by `./mocks/tracks.ts` until the backend ships it.
+ * ---------------------------------------------------------------------------
+ */
+
+/** One bounding box at one instant, in pixels of the source frame (top-left + size). */
+export interface TrackBox {
+  /** `geometries.timestamp_seconds` — seconds into the video. */
+  t: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** `geometries.confidence`, 0–1. */
+  confidence: number | null;
+}
+
+export interface ObjectTrack {
+  object_id: string;
+  /** `geometries.label` / `objects.label_details` — e.g. "person", "vehicle". */
+  label: string;
+  /** Sorted by `t`. The frontend interpolates between boxes, so ~5–10 per second is plenty. */
+  boxes: TrackBox[];
+}
+
+export interface TracksResponse {
+  video_id: string;
+  /** `bronze.videos.frame_width` / `frame_height` — the coordinate space of every box. */
+  frame_width: number;
+  frame_height: number;
+  objects: ObjectTrack[];
+  /** Frontend-only: true when the tracks come from the simulation, never from the backend. */
+  simulated?: boolean;
+}

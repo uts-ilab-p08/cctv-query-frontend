@@ -25,12 +25,14 @@ import {
   askAssistant,
   deleteSavedQuery,
   getSavedQueries,
+  getTracks,
   saveQuery,
   searchClips,
 } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
 import { getAllClips } from "@/lib/clips";
 import { useAppStore } from "@/store/useAppStore";
+import type { TracksQuery } from "@/lib/api/endpoints";
 import type { AssistantAskRequest, AssistantAskResponse } from "@/lib/api/types";
 import type { Clip } from "@/types";
 
@@ -67,6 +69,11 @@ vi.mock("@/lib/api/endpoints", () => ({
   getRecentQueries: vi.fn(async () => recentQueries),
   getSavedQueries: vi.fn(async () => savedQueries),
   deleteSavedQuery: vi.fn(async () => undefined),
+  // Object tracks from the simulation, instantly.
+  getTracks: vi.fn(async (query: TracksQuery) => {
+    const { simulateTracks } = await import("@/lib/api/mocks/tracks");
+    return simulateTracks(query);
+  }),
   // The simulated backend, answering instantly so tests don't wait on its latency.
   askAssistant: vi.fn(async (request: AssistantAskRequest) => {
     const { answerQuestion } = await import("@/lib/api/mocks/assistant");
@@ -535,6 +542,7 @@ describe("Results with real footage", () => {
     order: 0,
     confidence: 90,
     videoUrl: "https://cdn.test/a.mp4",
+    videoId: "a",
     startSeconds: 12,
   });
   const clipB = moment({
@@ -543,6 +551,7 @@ describe("Results with real footage", () => {
     order: 1,
     confidence: 80,
     videoUrl: "https://cdn.test/a.mp4",
+    videoId: "a",
     startSeconds: 40,
   });
   const clipC = moment({
@@ -551,6 +560,7 @@ describe("Results with real footage", () => {
     order: 2,
     confidence: 70,
     videoUrl: "https://cdn.test/b.mp4",
+    videoId: "b",
     startSeconds: 5,
   });
 
@@ -595,6 +605,18 @@ describe("Results with real footage", () => {
 
     // No event name: the description stands in as the title.
     expect(screen.getByRole("button", { name: /Moment B/ })).toBeInTheDocument();
+  });
+
+  it("highlights the tracked object over the footage, flagged as simulated", async () => {
+    render(<ResultsScreen />);
+    await loadMetadata(footage());
+
+    expect(getTracks).toHaveBeenLastCalledWith(
+      expect.objectContaining({ video_id: "a", start_seconds: 12 }),
+    );
+    const overlay = await screen.findByRole("img", { name: /^Detected objects/ });
+    await vi.waitFor(() => expect(overlay.querySelector("rect")).not.toBeNull());
+    expect(within(overlay).getByText(/SIMULATED/)).toBeInTheDocument();
   });
 
   it("keeps the assistant on the query thread until a match is picked", () => {

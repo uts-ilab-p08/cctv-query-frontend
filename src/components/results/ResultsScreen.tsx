@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SeekRequest } from "@/components/results/MatchVideo";
 import { MatchStrip } from "@/components/results/MatchStrip";
 import { QueryPanel } from "@/components/results/QueryPanel";
+import { useMomentTracks } from "@/components/results/useMomentTracks";
 import { VideoStage } from "@/components/results/VideoStage";
 import { topMatches } from "@/lib/matches";
 import { clipPos, WIN_LEN } from "@/lib/time";
@@ -67,6 +68,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const activeClip: Clip | undefined =
     selected ?? (firstMatch?.videoUrl ? firstMatch : nearestOnFeed);
   const videoMode = !!activeClip?.videoUrl;
+  const tracks = useMomentTracks(activeClip);
 
   // A new search replaces the result set: a selection from the old one would
   // otherwise keep the assistant on a clip thread that no longer exists.
@@ -180,6 +182,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
             onTimeUpdate={setCurrentTime}
             onDuration={setDuration}
             onStop={stopPlayback}
+            tracks={tracks}
             onTogglePlay={() => setPlaying((p) => !p)}
             onToggleMute={() => setMuted((m) => !m)}
             onToggleMeta={() => setMetaOpen((m) => !m)}
