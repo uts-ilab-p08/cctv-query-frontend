@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
-
 import type { AssistantAskRequest, AssistantMoment } from "../types";
-import { answerQuestion } from "./assistant";
+import { answerQuestion, MOMENT_QUESTIONS, RESULTS_QUESTIONS } from "./assistant";
+
+const resultsSuggestedQuestions: string[] = Object.values(RESULTS_QUESTIONS);
+const clipSuggestedQuestions: string[] = Object.values(MOMENT_QUESTIONS);
 
 const moment = (overrides: Partial<AssistantMoment>): AssistantMoment => ({
   moment_id: "m",

@@ -3,9 +3,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
-import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { summarizeClip } from "@/lib/assistant";
-import { askAssistant, searchClips } from "@/lib/api/endpoints";
+import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
 import { clipToAssistantMoment } from "@/lib/api/normalize";
 import { getAllClips, getClipById } from "@/lib/clips";
 import { emptyFilters } from "@/lib/filters";
@@ -80,6 +79,11 @@ interface AppState {
   askInResults: (question: string, focusId?: string | null) => Promise<void>;
   /** Ask the assistant about one moment (that clip's thread). */
   askAboutClip: (clipId: string, question: string) => Promise<void>;
+  /** Opening questions per thread context (see `startersKey`), from the simulated
+   *  `/assistant/suggestions`. Empty while loading. */
+  starters: Record<string, string[]>;
+  /** Fetch the opening questions for a context once; cached by `startersKey`. */
+  loadStarters: (key: string, focusId: string | null) => Promise<void>;
   /** Shared by both scopes; `focusId` null means the whole result set. */
   ask: (key: string, question: string, focusId: string | null) => Promise<void>;
   /** Open a clip thread with the user's query and the model's read of the clip. */
@@ -101,6 +105,39 @@ interface AppState {
 }
 
 const chatKey = (key: ChatKey): string => String(key);
+
+/** Cache key for a context's opening questions: thread, focused moment, search. */
+export function startersKey(key: string, focusId: string | null, query: string): string {
+  return `${key}|${focusId ?? ""}|${query}`;
+}
+
+/**
+ * What the assistant endpoints receive: the moments on screen (the Results strip;
+ * without a live search, the demo set — unless the focus is a real API clip, which
+ * stands alone rather than being mixed with demo data) and the thread so far.
+ * `null` when the focused moment can't be found.
+ */
+function assistantContext(
+  state: AppState,
+  key: string,
+  focusId: string | null,
+): { moments: Clip[]; history: { role: "user" | "assistant"; text: string }[] } | null {
+  const known = focusId ? state.knownClips[focusId] : undefined;
+  const pool = state.results.length ? state.results : known ? [] : getAllClips();
+  const moments = topMatches(pool);
+  if (focusId && !moments.some((clip) => clip.id === focusId)) {
+    const focus = pool.find((clip) => clip.id === focusId) ?? known ?? getClipById(focusId);
+    if (!focus) return null;
+    moments.push(focus);
+  }
+  const history = (state.chats[key] ?? [])
+    .filter((message) => !message.status)
+    .map((message) => ({
+      role: message.role === "user" ? ("user" as const) : ("assistant" as const),
+      text: message.text,
+    }));
+  return { moments, history };
+}
 
 const THINKING: ChatMessage = { role: "agent", text: "", status: "pending" };
 const ASSISTANT_FAILED = "The assistant couldn't answer that. Try again.";
@@ -224,7 +261,7 @@ export const useAppStore = create<AppState>()(
               ...s.chats,
               results: [
                 { role: "user", text: trimmed },
-                { role: "agent", text: summary, suggestions: resultsSuggestedQuestions },
+                { role: "agent", text: summary },
               ],
             },
           }));
@@ -232,6 +269,35 @@ export const useAppStore = create<AppState>()(
           set({
             searchPending: false,
             searchError: error instanceof Error ? error.message : "Search failed.",
+          });
+        }
+      },
+
+      starters: {},
+
+      loadStarters: async (key, focusId) => {
+        const state = get();
+        const id = startersKey(key, focusId, state.query);
+        if (id in state.starters) return;
+        const context = assistantContext(state, key, focusId);
+        if (!context) return;
+        // Mark in flight: nothing to show yet, and no duplicate request.
+        set((s) => ({ starters: { ...s.starters, [id]: [] } }));
+        try {
+          const { suggested_questions } = await suggestQuestions({
+            query: state.query,
+            scope: focusId ? "moment" : "results",
+            focus_moment_id: focusId,
+            moments: context.moments.map(clipToAssistantMoment),
+            history: context.history,
+          });
+          set((s) => ({ starters: { ...s.starters, [id]: suggested_questions } }));
+        } catch {
+          // Forget the failed attempt so the next visit to this context retries.
+          set((s) => {
+            const starters = { ...s.starters };
+            delete starters[id];
+            return { starters };
           });
         }
       },
@@ -247,24 +313,9 @@ export const useAppStore = create<AppState>()(
         // One question at a time per thread, like a real chat.
         if (!trimmed || thread.some((message) => message.status === "pending")) return;
 
-        const known = focusId ? state.knownClips[focusId] : undefined;
-        // The context is what's on screen: the Results strip. Without a live search it is
-        // the demo clip set — unless the focus is a real API clip, which stands alone
-        // rather than being mixed with demo data.
-        const pool = state.results.length ? state.results : known ? [] : getAllClips();
-        const moments = topMatches(pool);
-        if (focusId && !moments.some((clip) => clip.id === focusId)) {
-          const focus = pool.find((clip) => clip.id === focusId) ?? known ?? getClipById(focusId);
-          if (!focus) return;
-          moments.push(focus);
-        }
-
-        const history = thread
-          .filter((message) => !message.status)
-          .map((message) => ({
-            role: message.role === "user" ? ("user" as const) : ("assistant" as const),
-            text: message.text,
-          }));
+        const context = assistantContext(state, key, focusId);
+        if (!context) return;
+        const { moments, history } = context;
 
         const focus = focusId ?? undefined;
         set((s) => ({
@@ -316,11 +367,7 @@ export const useAppStore = create<AppState>()(
           const seeded: ChatMessage[] = [];
           const trimmed = query.trim();
           if (trimmed) seeded.push({ role: "user", text: trimmed });
-          seeded.push({
-            role: "agent",
-            text: summarizeClip(clip, trimmed),
-            suggestions: clipSuggestedQuestions,
-          });
+          seeded.push({ role: "agent", text: summarizeClip(clip, trimmed) });
 
           return { chats: { ...s.chats, [id]: seeded } };
         }),

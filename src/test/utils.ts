@@ -14,6 +14,7 @@ export function resetStore(): void {
     theme: "dark",
     results: [],
     knownClips: {},
+    starters: {},
     lastSearch: null,
     searchPending: false,
     searchError: null,

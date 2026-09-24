@@ -21,21 +21,30 @@ import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
-import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import {
   askAssistant,
   deleteSavedQuery,
   getSavedQueries,
   getTracks,
+  suggestQuestions,
   saveQuery,
   searchClips,
 } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
+import { MOMENT_QUESTIONS, RESULTS_QUESTIONS } from "@/lib/api/mocks/assistant";
 import { getAllClips } from "@/lib/clips";
 import { useAppStore } from "@/store/useAppStore";
 import type { TracksQuery } from "@/lib/api/endpoints";
-import type { AssistantAskRequest, AssistantAskResponse } from "@/lib/api/types";
+import type {
+  AssistantAskRequest,
+  AssistantAskResponse,
+  AssistantSuggestionsRequest,
+} from "@/lib/api/types";
 import type { Clip } from "@/types";
+
+/** The questions the simulated assistant can suggest (it picks those that fit). */
+const resultsSuggestedQuestions: string[] = Object.values(RESULTS_QUESTIONS);
+const clipSuggestedQuestions: string[] = Object.values(MOMENT_QUESTIONS);
 
 /**
  * Screen tests exercise the mocked data path only — no network. `searchClips`
@@ -70,6 +79,11 @@ vi.mock("@/lib/api/endpoints", () => ({
   getRecentQueries: vi.fn(async () => recentQueries),
   getSavedQueries: vi.fn(async () => savedQueries),
   deleteSavedQuery: vi.fn(async () => undefined),
+  // Context-aware opening questions from the simulation, instantly.
+  suggestQuestions: vi.fn(async (request: AssistantSuggestionsRequest) => {
+    const { suggestQuestionsFor } = await import("@/lib/api/mocks/assistant");
+    return suggestQuestionsFor(request);
+  }),
   // Object tracks from the simulation, instantly.
   getTracks: vi.fn(async (query: TracksQuery) => {
     const { simulateTracks } = await import("@/lib/api/mocks/tracks");
@@ -94,6 +108,7 @@ beforeEach(() => {
   vi.mocked(saveQuery).mockClear();
   vi.mocked(askAssistant).mockClear();
   vi.mocked(deleteSavedQuery).mockClear();
+  vi.mocked(suggestQuestions).mockClear();
   vi.mocked(searchClips).mockClear();
 });
 
@@ -376,12 +391,17 @@ describe("Results — assistant", () => {
 
   const topMatch = () => [...getAllClips()].sort((a, b) => b.confidence - a.confidence)[0];
 
-  it("offers suggested questions under the search summary", () => {
+  it("asks the RAG for opening questions that fit this search, and offers them", async () => {
     render(<ResultsScreen />);
 
-    for (const question of resultsSuggestedQuestions) {
-      expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
-    }
+    const buttons = await screen.findAllByRole("button", {
+      name: (name) => resultsSuggestedQuestions.includes(name),
+    });
+    const request = vi.mocked(suggestQuestions).mock.calls[0][0];
+    expect(request).toMatchObject({ query: "red car", scope: "results", focus_moment_id: null });
+    expect(request.history.map((turn) => turn.text)).toContain("red car");
+    const { suggested_questions } = await vi.mocked(suggestQuestions).mock.results[0].value;
+    expect(buttons.map((button) => button.textContent)).toEqual(suggested_questions);
   });
 
   it("sends the search, the question and the moments on screen as context", async () => {
@@ -389,7 +409,7 @@ describe("Results — assistant", () => {
     render(<ResultsScreen />);
 
     await user.click(
-      screen.getByRole("button", { name: "Show only the highest-confidence event" }),
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
     );
 
     const request = vi.mocked(askAssistant).mock.calls[0][0];
@@ -412,7 +432,7 @@ describe("Results — assistant", () => {
     render(<ResultsScreen />);
 
     await user.click(
-      screen.getByRole("button", { name: "Show only the highest-confidence event" }),
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
     );
 
     expect(screen.getByText("Show only the highest-confidence event")).toBeInTheDocument();
@@ -442,10 +462,14 @@ describe("Results — assistant", () => {
 
     await user.click(screen.getByText(topMatch().ts).closest("button")!);
 
-    for (const question of clipSuggestedQuestions) {
-      expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
-    }
-    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    const [first] = await screen.findAllByRole("button", {
+      name: (name) => clipSuggestedQuestions.includes(name),
+    });
+    expect(vi.mocked(suggestQuestions).mock.lastCall?.[0]).toMatchObject({
+      scope: "moment",
+      focus_moment_id: topMatch().id,
+    });
+    await user.click(first);
     expect(vi.mocked(askAssistant).mock.calls[0][0]).toMatchObject({
       scope: "moment",
       focus_moment_id: topMatch().id,
@@ -468,7 +492,7 @@ describe("Results — assistant", () => {
     render(<ResultsScreen />);
 
     await user.click(screen.getByText(topMatch().ts).closest("button")!);
-    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    await user.click(await screen.findByRole("button", { name: clipSuggestedQuestions[0] }));
 
     const request = vi.mocked(askAssistant).mock.calls[0][0];
     expect(request.history.map((turn) => turn.text)).toContain("red car");
@@ -489,7 +513,7 @@ describe("Results — assistant", () => {
     render(<ResultsScreen />);
 
     await user.click(screen.getByText(topMatch().ts).closest("button")!);
-    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    await user.click(await screen.findByRole("button", { name: clipSuggestedQuestions[0] }));
     await screen.findAllByRole("button", { name: /^Jump to / });
     await user.click(screen.getByRole("button", { name: "Deselect" }));
 
@@ -504,7 +528,7 @@ describe("Results — assistant", () => {
     render(<ResultsScreen />);
 
     await user.click(screen.getByText(topMatch().ts).closest("button")!);
-    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    await user.click(await screen.findByRole("button", { name: clipSuggestedQuestions[0] }));
     await screen.findAllByRole("button", { name: /^Jump to / });
     await user.click(screen.getByRole("button", { name: "Deselect" }));
 
@@ -519,7 +543,9 @@ describe("Results — assistant", () => {
     vi.mocked(askAssistant).mockRejectedValueOnce(new Error("503"));
     render(<ResultsScreen />);
 
-    await user.click(screen.getByRole("button", { name: "What's the most recent match?" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
+    );
 
     expect(await screen.findByText(/couldn't answer/)).toBeInTheDocument();
   });
@@ -952,9 +978,11 @@ describe("Query Assistant", () => {
   it("answers a suggested question in the results thread", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ chatOpen: true });
-    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
+    render(<QueryAssistant chatKey="results" />);
 
-    await user.click(screen.getByRole("button", { name: "Which camera has the most matches?" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Which camera has the most matches?" }),
+    );
 
     expect(await screen.findByText(/has the most matches with/)).toBeInTheDocument();
   });
@@ -962,9 +990,11 @@ describe("Query Assistant", () => {
   it("offers follow-up questions under the latest answer", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ chatOpen: true });
-    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
+    render(<QueryAssistant chatKey="results" />);
 
-    await user.click(screen.getByRole("button", { name: "Which camera has the most matches?" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Which camera has the most matches?" }),
+    );
     await screen.findByText(/has the most matches with/);
 
     expect(
@@ -978,18 +1008,20 @@ describe("Query Assistant", () => {
   it("clears the thread with + New", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ chatOpen: true });
-    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
+    render(<QueryAssistant chatKey="results" />);
 
-    await user.click(screen.getByRole("button", { name: "What's the most recent match?" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
+    );
     await user.click(screen.getByRole("button", { name: "+ New" }));
 
-    expect(screen.getByText("Suggested questions")).toBeInTheDocument();
+    expect(await screen.findByText("Suggested questions")).toBeInTheDocument();
   });
 
   it("collapses from the header chevron", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ chatOpen: true });
-    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
+    render(<QueryAssistant chatKey="results" />);
 
     await user.click(screen.getByRole("button", { name: "Collapse assistant" }));
 

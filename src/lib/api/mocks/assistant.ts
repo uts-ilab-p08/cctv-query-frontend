@@ -1,7 +1,12 @@
-import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { fmtElapsed } from "@/lib/time";
 
-import type { AssistantAskRequest, AssistantAskResponse, AssistantMoment } from "../types";
+import type {
+  AssistantAskRequest,
+  AssistantAskResponse,
+  AssistantMoment,
+  AssistantSuggestionsRequest,
+  AssistantSuggestionsResponse,
+} from "../types";
 
 /**
  * SIMULATION of the proposed `POST /api/v1/assistant/ask` (contract in ../types.ts).
@@ -21,10 +26,66 @@ const where = (m: AssistantMoment) =>
   `${m.camera ?? `video ${m.video_id}`} at ${fmtElapsed(m.start_seconds)}`;
 const cite = (list: AssistantMoment[]) => list.map((m) => ({ moment_id: m.moment_id }));
 
+/** The questions this simulation knows how to answer — a real RAG would write its own. */
+export const RESULTS_QUESTIONS = {
+  camera: "Which camera has the most matches?",
+  highest: "Show only the highest-confidence event",
+  vehicles: "Narrow this to vehicle events only",
+  recent: "What's the most recent match?",
+} as const;
+
+export const MOMENT_QUESTIONS = {
+  before: "Did anyone leave the building before this?",
+  path: "Show this vehicle's full path across cameras",
+  near: "Who else was near this location around this time?",
+  next: "Jump to the next flagged event on this camera",
+} as const;
+
+/** Candidates that make sense for this context, most useful first. */
+function candidates(request: AssistantSuggestionsRequest): string[] {
+  const { moments } = request;
+  if (moments.length === 0) return [];
+
+  if (request.scope === "moment") {
+    const focus = moments.find((m) => m.moment_id === request.focus_moment_id);
+    if (!focus) return [];
+    const moment: (string | null)[] = [
+      VEHICLE.test(focus.caption) ? MOMENT_QUESTIONS.path : null,
+      MOMENT_QUESTIONS.near,
+      MOMENT_QUESTIONS.before,
+      MOMENT_QUESTIONS.next,
+    ];
+    return moment.filter((q): q is string => q !== null);
+  }
+
+  const sources = new Set(moments.map((m) => m.camera ?? m.video_id));
+  const vehicles = moments.filter((m) => VEHICLE.test(m.caption)).length;
+  const results: (string | null)[] = [
+    sources.size > 1 ? RESULTS_QUESTIONS.camera : null,
+    moments.length > 1 ? RESULTS_QUESTIONS.highest : null,
+    vehicles > 0 && vehicles < moments.length ? RESULTS_QUESTIONS.vehicles : null,
+    moments.length > 1 ? RESULTS_QUESTIONS.recent : null,
+  ];
+  return results.filter((q): q is string => q !== null);
+}
+
+/** Pure core of the simulated `/assistant/suggestions` — exported for tests. */
+export function suggestQuestionsFor(
+  request: AssistantSuggestionsRequest,
+): AssistantSuggestionsResponse {
+  const asked = new Set(request.history.filter((t) => t.role === "user").map((t) => t.text));
+  return {
+    suggested_questions: candidates(request)
+      .filter((question) => !asked.has(question))
+      .slice(0, MAX_FOLLOW_UPS),
+  };
+}
+
 function followUps(request: AssistantAskRequest): string[] {
-  const pool = request.scope === "moment" ? clipSuggestedQuestions : resultsSuggestedQuestions;
-  const asked = new Set([request.question, ...request.history.map((turn) => turn.text)]);
-  return pool.filter((question) => !asked.has(question)).slice(0, MAX_FOLLOW_UPS);
+  return suggestQuestionsFor({
+    ...request,
+    history: [...request.history, { role: "user", text: request.question }],
+  }).suggested_questions;
 }
 
 type Answer = Pick<AssistantAskResponse, "answer" | "citations">;
@@ -170,4 +231,13 @@ export async function mockAskAssistant(
 ): Promise<AssistantAskResponse> {
   await new Promise((resolve) => setTimeout(resolve, delayMs));
   return answerQuestion(request);
+}
+
+/** Network-shaped wrapper for the simulated `/assistant/suggestions`. */
+export async function mockSuggestQuestions(
+  request: AssistantSuggestionsRequest,
+  { delayMs = 400 }: { delayMs?: number } = {},
+): Promise<AssistantSuggestionsResponse> {
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+  return suggestQuestionsFor(request);
 }

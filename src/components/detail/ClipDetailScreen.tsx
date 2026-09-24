@@ -7,7 +7,6 @@ import { QueryAssistant } from "@/components/assistant/QueryAssistant";
 import { ClipMetaPanel } from "@/components/detail/ClipMetaPanel";
 import { RelatedClips } from "@/components/detail/RelatedClips";
 import { VideoPlayer } from "@/components/detail/VideoPlayer";
-import { clipSuggestedQuestions } from "@/data/suggestedQuestions";
 import { getRelatedClips } from "@/lib/api/endpoints";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
@@ -73,7 +72,7 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
         </button>
       )}
 
-      <QueryAssistant chatKey={clip.id} suggestedQuestions={clipSuggestedQuestions} />
+      <QueryAssistant chatKey={clip.id} />
     </div>
   );
 }

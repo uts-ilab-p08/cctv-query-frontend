@@ -1,7 +1,7 @@
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
 import { apiFetch } from "./client";
-import { mockAskAssistant } from "./mocks/assistant";
+import { mockAskAssistant, mockSuggestQuestions } from "./mocks/assistant";
 import { mockGetTracks } from "./mocks/tracks";
 import {
   apiCameraToCameraDirectoryEntry,
@@ -13,6 +13,8 @@ import type {
   ApiCameraDirectoryEntry,
   AssistantAskRequest,
   AssistantAskResponse,
+  AssistantSuggestionsRequest,
+  AssistantSuggestionsResponse,
   ApiClip,
   ApiRecentQuery,
   ApiSavedQuery,
@@ -106,6 +108,22 @@ export async function saveQuery(text: string): Promise<SavedQuery> {
  */
 export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
   return mockAskAssistant(request);
+}
+
+/**
+ * PROPOSED `POST /api/v1/assistant/suggestions` — SIMULATED until the backend ships
+ * it (spec: BACKEND_API_SPEC.md §3.4). The opening questions for a thread context;
+ * follow-ups after an answer come with `askAssistant`. To switch, replace the body:
+ *
+ *   return apiFetch<AssistantSuggestionsResponse>("/api/v1/assistant/suggestions", {
+ *     method: "POST",
+ *     body: JSON.stringify(request),
+ *   });
+ */
+export async function suggestQuestions(
+  request: AssistantSuggestionsRequest,
+): Promise<AssistantSuggestionsResponse> {
+  return mockSuggestQuestions(request);
 }
 
 /**

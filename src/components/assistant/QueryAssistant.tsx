@@ -7,16 +7,16 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { ChatMessage } from "@/components/assistant/ChatMessage";
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
 import { SuggestedQuestions } from "@/components/assistant/SuggestedQuestions";
-import { useAppStore } from "@/store/useAppStore";
+import { startersKey, useAppStore } from "@/store/useAppStore";
 import type { ChatKey, ChatMessage as ChatMessageData } from "@/types";
 
 /** Stable reference so an empty thread does not re-trigger the store selector. */
 const EMPTY_THREAD: ChatMessageData[] = [];
+const NO_QUESTIONS: string[] = [];
 
 interface QueryAssistantProps {
   /** Thread scope: a clip id, or `results` for the search-wide thread. */
   chatKey: ChatKey;
-  suggestedQuestions: string[];
 }
 
 /**
@@ -24,7 +24,7 @@ interface QueryAssistantProps {
  * corners rounded. Hidden until "Ask more →" (Results) or the assistant pill
  * (Detail) opens it, so it never occupies the document flow.
  */
-export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantProps) {
+export function QueryAssistant({ chatKey }: QueryAssistantProps) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +35,14 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
   const askAboutClip = useAppStore((state) => state.askAboutClip);
   const resetChat = useAppStore((state) => state.resetChat);
   const query = useAppStore((state) => state.query);
+  const key = String(chatKey);
+  const focusId = chatKey === "results" ? null : key;
+  const loadStarters = useAppStore((state) => state.loadStarters);
+  const starters =
+    useAppStore((state) => state.starters[startersKey(key, focusId, query)]) ?? NO_QUESTIONS;
+  // A clip opened from the API is registered by its page after this child mounts;
+  // retry once it is known.
+  const focusKnown = useAppStore((state) => (focusId ? focusId in state.knownClips : true));
 
   const ask = (question: string) => {
     if (!question.trim()) return;
@@ -43,10 +51,20 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
     setDraft("");
   };
 
-  // Follow-ups come from the latest answer; an empty thread shows the starters instead.
+  // Opening questions for this thread come from the RAG (simulated /assistant/suggestions).
+  useEffect(() => {
+    if (open) void loadStarters(key, focusId);
+  }, [open, key, focusId, focusKnown, query, loadStarters]);
+
+  // Follow-ups come from the latest answer; otherwise the thread's opening questions.
   const last = messages.at(-1);
-  const followUps =
-    last?.role === "agent" && !last.status && last.suggestions?.length ? last.suggestions : null;
+  const asked = new Set(messages.filter((m) => m.role === "user").map((m) => m.text));
+  const suggestions =
+    last?.status === "pending"
+      ? NO_QUESTIONS
+      : last?.role === "agent" && !last.status && last.suggestions?.length
+        ? last.suggestions
+        : starters.filter((question) => !asked.has(question));
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -81,9 +99,6 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
       </header>
 
       <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-[18px] py-4">
-        {messages.length === 0 ? (
-          <SuggestedQuestions questions={suggestedQuestions} onAsk={ask} />
-        ) : null}
         {messages.map((message, index) => {
           // Only the search that seeded the thread is saveable, not follow-ups.
           const isOriginalQuery =
@@ -100,7 +115,7 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
             />
           );
         })}
-        {followUps ? <SuggestedQuestions questions={followUps} onAsk={ask} /> : null}
+        {suggestions.length ? <SuggestedQuestions questions={suggestions} onAsk={ask} /> : null}
       </div>
 
       <form

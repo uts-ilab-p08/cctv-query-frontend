@@ -7,13 +7,13 @@ import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
 import { ThinkingDots } from "@/components/assistant/ThinkingDots";
 import { MomentCardContent } from "@/components/results/MomentCard";
 import { NewQueryModal } from "@/components/results/NewQueryModal";
-import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { cn } from "@/lib/cn";
-import { useAppStore } from "@/store/useAppStore";
+import { startersKey, useAppStore } from "@/store/useAppStore";
 import type { ChatMessage } from "@/types";
 
 /** Stable reference so an empty thread does not re-trigger the store selector. */
 const EMPTY_THREAD: ChatMessage[] = [];
+const NO_QUESTIONS: string[] = [];
 
 interface QueryPanelProps {
   query: string;
@@ -48,18 +48,32 @@ export function QueryPanel({
   const askInResults = useAppStore((state) => state.askInResults);
   const results = useAppStore((state) => state.results);
 
+  const storeQuery = useAppStore((state) => state.query);
+  const loadStarters = useAppStore((state) => state.loadStarters);
+  const starters =
+    useAppStore((state) => state.starters[startersKey("results", selectedClipId, storeQuery)]) ??
+    NO_QUESTIONS;
+
+  // The opening questions for this context come from the RAG (simulated
+  // /assistant/suggestions); fetched once per search + selected moment.
+  useEffect(() => {
+    void loadStarters("results", selectedClipId);
+  }, [loadStarters, selectedClipId, storeQuery]);
+
   // Suggestions follow the current context. The latest answer's follow-ups apply only
-  // if it was about the same context; otherwise offer that context's starters not yet asked.
+  // if it was about the same context; otherwise that context's opening questions.
   const last = chat.at(-1);
   const asked = new Set(chat.filter((m) => m.role === "user").map((m) => m.text));
+  const answerFollowUps =
+    last?.role === "agent" && !last.status && (last.focus ?? null) === selectedClipId
+      ? last.suggestions
+      : undefined;
   const suggestions =
     last?.status === "pending"
-      ? []
-      : last?.role === "agent" && !last.status && (last.focus ?? null) === selectedClipId
-        ? (last.suggestions ?? [])
-        : (selectedClipId != null ? clipSuggestedQuestions : resultsSuggestedQuestions).filter(
-            (question) => !asked.has(question),
-          );
+      ? NO_QUESTIONS
+      : answerFollowUps?.length
+        ? answerFollowUps
+        : starters.filter((question) => !asked.has(question));
 
   useEffect(() => {
     const el = listRef.current;
