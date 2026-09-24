@@ -44,9 +44,11 @@ function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => stri
 }
 
 /**
- * Chunk metadata drawn over the video frame. Colors are fixed black/white on
- * purpose (SPEC §2): this overlay must read the same over any frame, so it is
- * one of the documented exceptions to always-tokenized color.
+ * Chunk metadata drawn over the video frame, on the palette's floating surface
+ * (`glass-panel`: --panel-strong at 94–96% opacity + blur), so it follows the active
+ * palette and theme. That near-opaque fill is what keeps it legible over any frame —
+ * the reason it used to be a fixed dark colour — and the text tokens on it are
+ * contrast-checked for every palette (theme-contrast.test.ts).
  */
 export function MetadataOverlay({
   clip,
@@ -55,14 +57,18 @@ export function MetadataOverlay({
   onClose,
 }: MetadataOverlayProps) {
   return (
-    <div className="absolute right-3 bottom-3 left-3 max-h-[calc(100%-24px)] overflow-y-auto rounded-xl border border-white/[0.18] bg-[rgba(27,33,41,0.80)] px-3.5 py-3 shadow-[0_18px_44px_rgba(0,0,0,0.45)] backdrop-blur-[22px]">
+    <div
+      role="region"
+      aria-label="Chunk metadata"
+      className="glass-panel absolute right-3 bottom-3 left-3 max-h-[calc(100%-24px)] overflow-y-auto rounded-xl px-3.5 py-3"
+    >
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="font-mono text-[11px] tracking-[1.2px] text-white/70">CHUNK METADATA</span>
+        <span className="text-ink-2 font-mono text-[11px] tracking-[1.2px]">CHUNK METADATA</span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close metadata"
-          className="text-white/70"
+          className="text-ink-2 hover:text-ink cursor-pointer transition-colors duration-150"
         >
           <X size={15} strokeWidth={2} aria-hidden />
         </button>
@@ -71,11 +77,9 @@ export function MetadataOverlay({
       <div className="grid grid-cols-2 gap-x-[18px] gap-y-2.5">
         {rows(clip, currentTime, formatTime).map((row) => (
           <div key={row.label}>
-            <div className="mb-1 font-mono text-[10px] tracking-[1px] text-white/60">
-              {row.label}
-            </div>
+            <div className="text-ink-3 mb-1 font-mono text-[10px] tracking-[1px]">{row.label}</div>
             <div
-              className={`text-[13px] text-white ${row.mono ? "font-mono" : ""}`}
+              className={`text-ink text-[13px] ${row.mono ? "font-mono" : ""}`}
               style={row.color ? { color: row.color } : undefined}
             >
               {row.value}

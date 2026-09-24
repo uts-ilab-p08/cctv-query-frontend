@@ -257,6 +257,19 @@ describe("Results", () => {
     );
   });
 
+  it("draws the chunk metadata on the palette's floating surface, not a fixed colour", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Show chunk metadata" }));
+
+    const panel = screen.getByRole("region", { name: "Chunk metadata" });
+    expect(panel).toHaveClass("glass-panel");
+    expect(panel.className).not.toMatch(/rgba\(|bg-\[/);
+    expect(within(panel).getByText("CHUNK METADATA")).toHaveClass("text-ink-2");
+  });
+
   it("selecting a match updates the CONTEXT chip", async () => {
     const user = userEvent.setup();
     await act(() => useAppStore.getState().runSearch("red car"));
