@@ -38,15 +38,20 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
 
   const ask = (question: string) => {
     if (!question.trim()) return;
-    if (chatKey === "results") askInResults(question);
-    else askAboutClip(chatKey, question);
+    if (chatKey === "results") void askInResults(question);
+    else void askAboutClip(chatKey, question);
     setDraft("");
   };
+
+  // Follow-ups come from the latest answer; an empty thread shows the starters instead.
+  const last = messages.at(-1);
+  const followUps =
+    last?.role === "agent" && !last.status && last.suggestions?.length ? last.suggestions : null;
 
   useEffect(() => {
     const node = scrollRef.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, last?.status]);
 
   if (!open) return null;
 
@@ -95,6 +100,7 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
             />
           );
         })}
+        {followUps ? <SuggestedQuestions questions={followUps} onAsk={ask} /> : null}
       </div>
 
       <form

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { ThinkingDots } from "@/components/assistant/ThinkingDots";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
@@ -25,9 +27,10 @@ export function ChatMessage({ message, action }: ChatMessageProps) {
             isUser
               ? "surface-chat-user border-accent-line text-ink"
               : "border-hairline bg-panel-solid text-ink-2",
+            message.status === "error" && "text-flag",
           )}
         >
-          {message.text}
+          {message.status === "pending" ? <ThinkingDots /> : message.text}
         </p>
       </div>
 

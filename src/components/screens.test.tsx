@@ -17,11 +17,18 @@ import { CamerasModal } from "@/components/modals/CamerasModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
-import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
-import { deleteSavedQuery, getSavedQueries, saveQuery, searchClips } from "@/lib/api/endpoints";
+import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
+import {
+  askAssistant,
+  deleteSavedQuery,
+  getSavedQueries,
+  saveQuery,
+  searchClips,
+} from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
 import { getAllClips } from "@/lib/clips";
 import { useAppStore } from "@/store/useAppStore";
+import type { AssistantAskRequest, AssistantAskResponse } from "@/lib/api/types";
 import type { Clip } from "@/types";
 
 /**
@@ -57,6 +64,11 @@ vi.mock("@/lib/api/endpoints", () => ({
   getRecentQueries: vi.fn(async () => recentQueries),
   getSavedQueries: vi.fn(async () => savedQueries),
   deleteSavedQuery: vi.fn(async () => undefined),
+  // The simulated backend, answering instantly so tests don't wait on its latency.
+  askAssistant: vi.fn(async (request: AssistantAskRequest) => {
+    const { answerQuestion } = await import("@/lib/api/mocks/assistant");
+    return answerQuestion(request);
+  }),
   saveQuery: vi.fn(async (text: string) => ({
     id: "test-saved",
     text,
@@ -69,6 +81,7 @@ beforeEach(() => {
   resetStore();
   pushMock.mockClear();
   vi.mocked(saveQuery).mockClear();
+  vi.mocked(askAssistant).mockClear();
   vi.mocked(deleteSavedQuery).mockClear();
 });
 
@@ -212,6 +225,162 @@ describe("Results", () => {
     await user.click(retry);
     expect(saveQuery).toHaveBeenCalledTimes(2);
     expect(await screen.findByRole("button", { name: "Query saved" })).toBeDisabled();
+  });
+});
+
+describe("Results — assistant", () => {
+  beforeEach(async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+  });
+
+  const topMatch = () => [...getAllClips()].sort((a, b) => b.confidence - a.confidence)[0];
+
+  it("offers suggested questions under the search summary", () => {
+    render(<ResultsScreen />);
+
+    for (const question of resultsSuggestedQuestions) {
+      expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
+    }
+  });
+
+  it("sends the search, the question and the moments on screen as context", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Show only the highest-confidence event" }),
+    );
+
+    const request = vi.mocked(askAssistant).mock.calls[0][0];
+    expect(request).toMatchObject({
+      query: "red car",
+      question: "Show only the highest-confidence event",
+      scope: "results",
+      focus_moment_id: null,
+    });
+    expect(request.moments.map((m) => m.moment_id)).toContain(topMatch().id);
+    expect(request.history.at(-1)).toMatchObject({ role: "assistant" });
+  });
+
+  it("shows the question, a thinking state, then the answer with its cited moment", async () => {
+    const user = userEvent.setup();
+    let reply: (value: AssistantAskResponse) => void = () => {};
+    vi.mocked(askAssistant).mockImplementationOnce(
+      () => new Promise((resolve) => (reply = resolve)),
+    );
+    render(<ResultsScreen />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Show only the highest-confidence event" }),
+    );
+
+    expect(screen.getByText("Show only the highest-confidence event")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Assistant is thinking" })).toBeInTheDocument();
+
+    await act(async () =>
+      reply({
+        answer: "This is the strongest match.",
+        citations: [{ moment_id: topMatch().id }],
+        suggested_questions: ["What's the most recent match?"],
+      }),
+    );
+
+    expect(screen.getByText("This is the strongest match.")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Assistant is thinking" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "What's the most recent match?" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: new RegExp(`^Jump to ${topMatch().ts}`) }));
+    expect(screen.getByText(`${topMatch().camera} · ${topMatch().ts}`)).toBeInTheDocument();
+  });
+
+  it("switches to moment questions once a moment is selected", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+
+    for (const question of clipSuggestedQuestions) {
+      expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    expect(vi.mocked(askAssistant).mock.calls[0][0]).toMatchObject({
+      scope: "moment",
+      focus_moment_id: topMatch().id,
+    });
+  });
+
+  it("keeps the same conversation when a moment is selected", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    const summary = useAppStore.getState().chats.results[1].text;
+
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+
+    expect(screen.getByText(summary)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save query" })).toBeInTheDocument();
+  });
+
+  it("asks about the selected moment inside that same thread, and labels the question", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+
+    const request = vi.mocked(askAssistant).mock.calls[0][0];
+    expect(request.history.map((turn) => turn.text)).toContain("red car");
+    const thread = useAppStore.getState().chats.results;
+    expect(thread.at(-2)).toMatchObject({ role: "user", text: clipSuggestedQuestions[0] });
+    // The question bubble carries the selected moment's card: thumbnail, score, title, camera, time.
+    const bubble = screen.getByRole("group", { name: "Question about a moment" });
+    expect(within(bubble).getByText(clipSuggestedQuestions[0])).toBeInTheDocument();
+    expect(within(bubble).getByText(`${topMatch().confidence}%`)).toBeInTheDocument();
+    expect(within(bubble).getByText(topMatch().action)).toBeInTheDocument();
+    expect(within(bubble).getByText(topMatch().camera)).toBeInTheDocument();
+    expect(within(bubble).getByText(topMatch().ts)).toBeInTheDocument();
+    expect(useAppStore.getState().chats[topMatch().id]).toBeUndefined();
+  });
+
+  it("jumps back to the moment from the card in the question bubble", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    await screen.findAllByRole("button", { name: /^Jump to / });
+    await user.click(screen.getByRole("button", { name: "Deselect" }));
+
+    const bubble = screen.getByRole("group", { name: "Question about a moment" });
+    await user.click(within(bubble).getByRole("button"));
+
+    expect(screen.getByText(`${topMatch().camera} · ${topMatch().ts}`)).toBeInTheDocument();
+  });
+
+  it("brings back the results suggestions once the selection is cleared", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+    await user.click(screen.getByRole("button", { name: clipSuggestedQuestions[0] }));
+    await screen.findAllByRole("button", { name: /^Jump to / });
+    await user.click(screen.getByRole("button", { name: "Deselect" }));
+
+    expect(
+      screen.queryByRole("button", { name: clipSuggestedQuestions[1] }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: resultsSuggestedQuestions[0] })).toBeInTheDocument();
+  });
+
+  it("says so when the assistant cannot answer", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockRejectedValueOnce(new Error("503"));
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "What's the most recent match?" }));
+
+    expect(await screen.findByText(/couldn't answer/)).toBeInTheDocument();
   });
 });
 
@@ -608,7 +777,23 @@ describe("Query Assistant", () => {
 
     await user.click(screen.getByRole("button", { name: "Which camera has the most matches?" }));
 
-    expect(screen.getByText(/has the most matches with/)).toBeInTheDocument();
+    expect(await screen.findByText(/has the most matches with/)).toBeInTheDocument();
+  });
+
+  it("offers follow-up questions under the latest answer", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" suggestedQuestions={resultsSuggestedQuestions} />);
+
+    await user.click(screen.getByRole("button", { name: "Which camera has the most matches?" }));
+    await screen.findByText(/has the most matches with/);
+
+    expect(
+      screen.queryByRole("button", { name: "Which camera has the most matches?" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "What's the most recent match?" }),
+    ).toBeInTheDocument();
   });
 
   it("clears the thread with + New", async () => {

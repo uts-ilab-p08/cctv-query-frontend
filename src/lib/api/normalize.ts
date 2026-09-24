@@ -1,7 +1,15 @@
 import { fmtElapsed } from "@/lib/time";
 import type { Clip, ClipTag } from "@/types";
 
-import type { ApiCameraDirectoryEntry, ApiClip, ApiSavedQuery, RagResultItem } from "./types";
+import { clipPos } from "@/lib/time";
+
+import type {
+  ApiCameraDirectoryEntry,
+  ApiClip,
+  ApiSavedQuery,
+  AssistantMoment,
+  RagResultItem,
+} from "./types";
 import type { CameraDirectoryEntry, SavedQuery } from "@/types";
 
 /**
@@ -111,4 +119,18 @@ export function apiSavedQueryToSavedQuery(query: ApiSavedQuery): SavedQuery {
   const savedOn =
     date && !Number.isNaN(date.getTime()) ? SAVED_ON_FORMAT.format(date) : query.savedOn;
   return { ...query, savedOn };
+}
+
+/** A clip as the assistant's context moment — the inverse of `ragResultItemToClip`. */
+export function clipToAssistantMoment(clip: Clip): AssistantMoment {
+  return {
+    moment_id: clip.id,
+    video_id: clip.videoId ?? clip.id,
+    // Mock clips have no video offset; their position in the demo window stands in.
+    start_seconds: clip.startSeconds ?? clipPos(clip),
+    end_seconds: clip.endSeconds ?? null,
+    caption: clip.eventName ?? clip.action,
+    score: clip.confidence / 100,
+    camera: clip.camera === "Unknown" ? null : clip.camera,
+  };
 }

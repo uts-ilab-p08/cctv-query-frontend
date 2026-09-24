@@ -1,6 +1,7 @@
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
 import { apiFetch } from "./client";
+import { mockAskAssistant } from "./mocks/assistant";
 import {
   apiCameraToCameraDirectoryEntry,
   apiClipToClip,
@@ -9,6 +10,8 @@ import {
 } from "./normalize";
 import type {
   ApiCameraDirectoryEntry,
+  AssistantAskRequest,
+  AssistantAskResponse,
   ApiClip,
   ApiRecentQuery,
   ApiSavedQuery,
@@ -87,6 +90,20 @@ export async function saveQuery(text: string): Promise<SavedQuery> {
     body: JSON.stringify({ text }),
   });
   return apiSavedQueryToSavedQuery(saved);
+}
+
+/**
+ * PROPOSED `POST /api/v1/assistant/ask` — SIMULATED until the backend ships it
+ * (contract: `AssistantAskRequest` / `AssistantAskResponse` in ./types.ts).
+ * To switch to the real endpoint, replace the body with:
+ *
+ *   return apiFetch<AssistantAskResponse>("/api/v1/assistant/ask", {
+ *     method: "POST",
+ *     body: JSON.stringify(request),
+ *   });
+ */
+export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
+  return mockAskAssistant(request);
 }
 
 /**

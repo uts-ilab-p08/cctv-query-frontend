@@ -131,12 +131,15 @@ export interface ChatMessage {
   text: string;
   /** Clip this answer points at, rendered as a "View related clip" action. */
   relatedId?: string;
+  /** Clip ids the answer cites — rendered as "jump to" buttons on Results. */
+  citations?: string[];
+  /** Follow-up questions offered under this answer. */
+  suggestions?: string[];
+  /** Moment this turn was about, when asked with one selected (Results keeps one thread). */
+  focus?: string;
+  /** `pending` while the assistant is answering; `error` when it failed. */
+  status?: "pending" | "error";
 }
 
 /** Chat threads are keyed by clip id, or by the literal `results` scope. */
 export type ChatKey = string | "results";
-
-export interface AssistantAnswer {
-  text: string;
-  relatedId?: string;
-}

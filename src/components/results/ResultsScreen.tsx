@@ -6,6 +6,7 @@ import type { SeekRequest } from "@/components/results/MatchVideo";
 import { MatchStrip } from "@/components/results/MatchStrip";
 import { QueryPanel } from "@/components/results/QueryPanel";
 import { VideoStage } from "@/components/results/VideoStage";
+import { topMatches } from "@/lib/matches";
 import { clipPos, WIN_LEN } from "@/lib/time";
 import { useAppStore } from "@/store/useAppStore";
 import type { Clip } from "@/types";
@@ -32,15 +33,7 @@ export function ResultsScreen() {
   /** Bumped on every match pick so re-picking the same match re-cues it. */
   const [cueCount, setCueCount] = useState(0);
 
-  /* Top 10 by confidence, presented in chronological order (SPEC §2). */
-  const matches = useMemo(
-    () =>
-      [...clips]
-        .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 10)
-        .sort((a, b) => a.order - b.order),
-    [clips],
-  );
+  const matches = useMemo(() => topMatches(clips), [clips]);
 
   const selected = clips.find((clip) => clip.id === selectedClipId);
 

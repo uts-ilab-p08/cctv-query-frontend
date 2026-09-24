@@ -4,10 +4,13 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
 import { defaultPrecinct } from "@/data/precincts";
-import { answerForClip, answerForResults, summarizeClip } from "@/lib/assistant";
-import { searchClips } from "@/lib/api/endpoints";
+import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
+import { summarizeClip } from "@/lib/assistant";
+import { askAssistant, searchClips } from "@/lib/api/endpoints";
+import { clipToAssistantMoment } from "@/lib/api/normalize";
 import { getAllClips, getClipById } from "@/lib/clips";
-import { emptyFilters, filterClips } from "@/lib/filters";
+import { emptyFilters } from "@/lib/filters";
+import { topMatches } from "@/lib/matches";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 import type {
   ChatKey,
@@ -74,8 +77,13 @@ interface AppState {
   results: Clip[];
   searchPending: boolean;
   searchError: string | null;
-  askInResults: (question: string) => void;
-  askAboutClip: (clipId: string, question: string) => void;
+  /** Ask in the Results thread — about all moments on screen, or about `focusId` when a
+   *  moment is selected. The selection narrows the question; it doesn't start a new chat. */
+  askInResults: (question: string, focusId?: string | null) => Promise<void>;
+  /** Ask the assistant about one moment (that clip's thread). */
+  askAboutClip: (clipId: string, question: string) => Promise<void>;
+  /** Shared by both scopes; `focusId` null means the whole result set. */
+  ask: (key: string, question: string, focusId: string | null) => Promise<void>;
   /** Open a clip thread with the user's query and the model's read of the clip. */
   seedClipChat: (clipId: string, query: string) => void;
   resetChat: (key: ChatKey) => void;
@@ -91,6 +99,22 @@ interface AppState {
 }
 
 const chatKey = (key: ChatKey): string => String(key);
+
+const THINKING: ChatMessage = { role: "agent", text: "", status: "pending" };
+const ASSISTANT_FAILED = "The assistant couldn't answer that. Try again.";
+
+/** Swap a thread's pending placeholder for the real answer. If the thread was reset
+ *  meanwhile ("+ New"), there is no placeholder and the late answer is dropped. */
+function settlePending(
+  chats: Record<string, ChatMessage[]>,
+  key: string,
+  message: ChatMessage,
+): Record<string, ChatMessage[]> {
+  const thread = chats[key] ?? [];
+  const index = thread.findIndex((item) => item.status === "pending");
+  if (index === -1) return chats;
+  return { ...chats, [key]: thread.map((item, i) => (i === index ? message : item)) };
+}
 
 function pushMessages(
   chats: Record<string, ChatMessage[]>,
@@ -192,7 +216,7 @@ export const useAppStore = create<AppState>()(
               ...s.chats,
               results: [
                 { role: "user", text: trimmed },
-                { role: "agent", text: summary },
+                { role: "agent", text: summary, suggestions: resultsSuggestedQuestions },
               ],
             },
           }));
@@ -204,31 +228,72 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      askInResults: (question) => {
-        const trimmed = question.trim();
-        if (!trimmed) return;
-        const matches = filterClips(getAllClips(), get().filters);
-        const answer = answerForResults(matches, trimmed);
-        set((s) => ({
-          chats: pushMessages(s.chats, "results", [
-            { role: "user", text: trimmed },
-            { role: "agent", text: answer.text, relatedId: answer.relatedId },
-          ]),
-        }));
-      },
+      askInResults: (question, focusId = null) => get().ask("results", question, focusId),
 
-      askAboutClip: (clipId, question) => {
+      askAboutClip: (clipId, question) => get().ask(clipId, question, clipId),
+
+      ask: async (key, question, focusId) => {
         const trimmed = question.trim();
-        if (!trimmed) return;
-        const clip: Clip | undefined = getClipById(clipId);
-        if (!clip) return;
-        const answer = answerForClip(getAllClips(), clip, trimmed);
+        const state = get();
+        const thread = state.chats[key] ?? [];
+        // One question at a time per thread, like a real chat.
+        if (!trimmed || thread.some((message) => message.status === "pending")) return;
+
+        // The context is what's on screen: the Results strip. Without a live search
+        // (the mock-backed detail page) it falls back to the demo clip set.
+        const pool = state.results.length ? state.results : getAllClips();
+        const moments = topMatches(pool);
+        if (focusId && !moments.some((clip) => clip.id === focusId)) {
+          const focus = pool.find((clip) => clip.id === focusId) ?? getClipById(focusId);
+          if (!focus) return;
+          moments.push(focus);
+        }
+
+        const history = thread
+          .filter((message) => !message.status)
+          .map((message) => ({
+            role: message.role === "user" ? ("user" as const) : ("assistant" as const),
+            text: message.text,
+          }));
+
+        const focus = focusId ?? undefined;
         set((s) => ({
-          chats: pushMessages(s.chats, clipId, [
-            { role: "user", text: trimmed },
-            { role: "agent", text: answer.text, relatedId: answer.relatedId },
-          ]),
+          chats: pushMessages(s.chats, key, [{ role: "user", text: trimmed, focus }, THINKING]),
         }));
+
+        try {
+          const response = await askAssistant({
+            query: state.query,
+            question: trimmed,
+            scope: focusId ? "moment" : "results",
+            focus_moment_id: focusId,
+            moments: moments.map(clipToAssistantMoment),
+            history,
+          });
+          // Never trust an id we didn't send.
+          const known = new Set(moments.map((clip) => clip.id));
+          const citations = response.citations
+            .map((citation) => citation.moment_id)
+            .filter((id) => known.has(id));
+          set((s) => ({
+            chats: settlePending(s.chats, key, {
+              role: "agent",
+              text: response.answer,
+              citations,
+              relatedId: citations[0],
+              suggestions: response.suggested_questions,
+              focus,
+            }),
+          }));
+        } catch {
+          set((s) => ({
+            chats: settlePending(s.chats, key, {
+              role: "agent",
+              text: ASSISTANT_FAILED,
+              status: "error",
+            }),
+          }));
+        }
       },
 
       seedClipChat: (clipId, query) =>
@@ -241,7 +306,11 @@ export const useAppStore = create<AppState>()(
           const seeded: ChatMessage[] = [];
           const trimmed = query.trim();
           if (trimmed) seeded.push({ role: "user", text: trimmed });
-          seeded.push({ role: "agent", text: summarizeClip(clip, trimmed) });
+          seeded.push({
+            role: "agent",
+            text: summarizeClip(clip, trimmed),
+            suggestions: clipSuggestedQuestions,
+          });
 
           return { chats: { ...s.chats, [id]: seeded } };
         }),

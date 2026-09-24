@@ -56,3 +56,50 @@ export interface ApiSavedQuery {
   savedOn: string;
   hits: number;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * PROPOSED — `POST /api/v1/assistant/ask` (not implemented by the backend yet).
+ * The frontend runs against a simulation of it (`./mocks/assistant.ts`); these
+ * types are the contract the backend/RAG team is asked to implement.
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * One matched moment, exactly as the frontend holds it. The request carries the
+ * moments on screen so the endpoint can stay stateless (no stored search to look
+ * up); the alternative is a `search_id` returned by `/search`, which keeps the
+ * payload small but makes the backend persist every result set.
+ */
+export interface AssistantMoment {
+  /** The frontend's id for the moment — the response cites moments by it. */
+  moment_id: string;
+  video_id: string;
+  start_seconds: number;
+  end_seconds: number | null;
+  caption: string;
+  /** 0–1, as `/search` returned it. */
+  score: number;
+  /** `null` while the RAG doesn't return cameras (see the /search gaps). */
+  camera: string | null;
+}
+
+export interface AssistantAskRequest {
+  /** The search that produced the moments. */
+  query: string;
+  question: string;
+  /** "results": about all moments on screen. "moment": about `focus_moment_id`. */
+  scope: "results" | "moment";
+  focus_moment_id: string | null;
+  moments: AssistantMoment[];
+  /** Earlier turns of this thread, oldest first, for follow-up questions. */
+  history: { role: "user" | "assistant"; text: string }[];
+}
+
+export interface AssistantAskResponse {
+  answer: string;
+  /** Moments the answer is about, by `moment_id` — rendered as "jump to" buttons. */
+  citations: { moment_id: string }[];
+  /** Follow-ups shown under the answer. */
+  suggested_questions: string[];
+}
