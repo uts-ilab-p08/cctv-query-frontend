@@ -13,6 +13,9 @@ export interface PlayerTick {
 
 interface PlayerBarProps {
   currentTime: number;
+  /** Scrubber length in seconds — the demo window, or the loaded video's duration. */
+  duration?: number;
+  formatTime?: (sec: number) => string;
   playing: boolean;
   muted: boolean;
   metaOpen: boolean;
@@ -29,6 +32,8 @@ const iconBtn =
 /** Playback control strip: play/pause, clock, scrubber with per-clip ticks, mute, info, fullscreen. */
 export function PlayerBar({
   currentTime,
+  duration = WIN_LEN,
+  formatTime = fmtClock,
   playing,
   muted,
   metaOpen,
@@ -38,12 +43,12 @@ export function PlayerBar({
   onToggleMeta,
   onSeek,
 }: PlayerBarProps) {
-  const pct = (currentTime / WIN_LEN) * 100;
+  const pct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   const seek = (event: MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-    onSeek(Math.round(ratio * WIN_LEN));
+    onSeek(Math.round(ratio * duration));
   };
 
   return (
@@ -61,7 +66,7 @@ export function PlayerBar({
         )}
       </button>
 
-      <span className="shrink-0 font-mono text-[12px] text-white">{fmtClock(currentTime)}</span>
+      <span className="shrink-0 font-mono text-[12px] text-white">{formatTime(currentTime)}</span>
 
       <div onClick={seek} className="relative flex h-6 min-w-0 flex-1 cursor-pointer items-center">
         <div className="absolute right-0 left-0 h-[5px] rounded-[3px] bg-white/[0.16]" />

@@ -18,10 +18,11 @@ import { SettingsModal } from "@/components/modals/SettingsModal";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
-import { deleteSavedQuery, getSavedQueries, saveQuery } from "@/lib/api/endpoints";
+import { deleteSavedQuery, getSavedQueries, saveQuery, searchClips } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
 import { getAllClips } from "@/lib/clips";
 import { useAppStore } from "@/store/useAppStore";
+import type { Clip } from "@/types";
 
 /**
  * Screen tests exercise the mocked data path only — no network. `searchClips`
@@ -181,6 +182,101 @@ describe("Results", () => {
     await user.click(retry);
     expect(saveQuery).toHaveBeenCalledTimes(2);
     expect(await screen.findByRole("button", { name: "Query saved" })).toBeDisabled();
+  });
+});
+
+describe("Results with real footage", () => {
+  const moment = (overrides: Partial<Clip>): Clip => ({
+    id: "",
+    camera: "Unknown",
+    code: "Unknown",
+    perspective: "Unknown",
+    ts: "",
+    date: "",
+    order: 0,
+    confidence: 0,
+    tags: [],
+    objects: "",
+    action: "",
+    ...overrides,
+  });
+
+  // Chronological strip order: A, B (same video as A), C.
+  const clipA = moment({
+    id: "a:12",
+    action: "Moment A",
+    order: 0,
+    confidence: 90,
+    videoUrl: "https://cdn.test/a.mp4",
+    startSeconds: 12,
+  });
+  const clipB = moment({
+    id: "a:40",
+    action: "Moment B",
+    order: 1,
+    confidence: 80,
+    videoUrl: "https://cdn.test/a.mp4",
+    startSeconds: 40,
+  });
+  const clipC = moment({
+    id: "b:5",
+    action: "Moment C",
+    order: 2,
+    confidence: 70,
+    videoUrl: "https://cdn.test/b.mp4",
+    startSeconds: 5,
+  });
+
+  beforeEach(async () => {
+    vi.mocked(searchClips).mockResolvedValueOnce({
+      clips: [clipC, clipA, clipB],
+      summary: "Three moments found.",
+    });
+    await act(() => useAppStore.getState().runSearch("red car"));
+  });
+
+  const footage = () => screen.getByLabelText("Match footage") as HTMLVideoElement;
+  const loadMetadata = (video: HTMLVideoElement) =>
+    act(() => {
+      video.dispatchEvent(new Event("loadedmetadata"));
+    });
+
+  it("opens on the first top match's video, cued to its moment", async () => {
+    render(<ResultsScreen />);
+
+    const video = footage();
+    expect(video.getAttribute("src")).toBe("https://cdn.test/a.mp4");
+    await loadMetadata(video);
+    expect(video.currentTime).toBe(12);
+  });
+
+  it("keeps the assistant on the query thread until a match is picked", () => {
+    render(<ResultsScreen />);
+
+    expect(screen.getByText("Top 5 matches")).toBeInTheDocument();
+  });
+
+  it("loads the selected match's video and cues its moment", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByText("Moment C").closest("button")!);
+
+    const video = footage();
+    expect(video.getAttribute("src")).toBe("https://cdn.test/b.mp4");
+    await loadMetadata(video);
+    expect(video.currentTime).toBe(5);
+  });
+
+  it("seeks within the loaded video when the match shares it", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    await loadMetadata(footage());
+
+    await user.click(screen.getByText("Moment B").closest("button")!);
+
+    expect(footage().getAttribute("src")).toBe("https://cdn.test/a.mp4");
+    expect(footage().currentTime).toBe(40);
   });
 });
 

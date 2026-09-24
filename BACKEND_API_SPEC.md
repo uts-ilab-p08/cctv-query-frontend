@@ -131,9 +131,10 @@ Since the backend returns raw `RagResultItem[]` and not `Clip[]`, the frontend n
 
 | `Clip` field | Derived from | Caveat |
 |---|---|---|
-| `id` | `video_id` | This identifies the **source video**, not a specific event within it — two results from the same video get the same `id`. Fine for `videoUrl` linking, but `GET /clips/{id}` (a real event id) and this `id` are **not interchangeable**. Do not use this `id` to call `getClipById`. |
+| `id` | `` `${video_id}:${start_seconds}` `` | One video can contain several matching moments, so `video_id` alone collided (two results → same id → wrong selection/seek). Still **not** an event id — never pass it to `GET /clips/{id}`. |
+| `videoId`, `videoUrl`, `startSeconds`, `endSeconds` | `video_id`, `video_url`, `start_seconds`, `end_seconds` | Drive the Results player: it loads `videoUrl` and seeks to `startSeconds`. With no selection, it opens on the first top match. |
 | `confidence` | `Math.round(score * 100)` | Straight unit conversion |
-| `ts` | `start_seconds` via `fmtClock()` | Uses the existing 50-minute demo window math in `src/lib/time.ts` — meaningless once real multi-day footage is indexed; needs revisiting |
+| `ts` | `start_seconds`, formatted as `m:ss` (or `h:mm:ss`) | Shown as-is: it's the **offset into the source video**, not a wall-clock time. The earlier version added it to the demo window's fake 13:55:00 clock, so a moment at 12s showed as 13:55:12. Switch to wall-clock time once the RAG returns a timestamp. |
 | `objects`, `action` | both set to `caption` | The RAG gives one free-text field, not separate object/action breakdowns like the mock data has |
 | `camera`, `code`, `perspective` | hardcoded `"Unknown"` | **Not present anywhere in `RagResultItem`.** This is the biggest gap — Results/MatchStrip render "Unknown" for every camera-related field until the backend enriches this response |
 | `tags` | keyword-matched against `caption` | Best-effort regex (`car/vehicle` → Vehicle, `enter/arriv` → Entry, etc. — see `TAG_KEYWORDS` in `normalize.ts`). Not authoritative; can miss or misclassify |

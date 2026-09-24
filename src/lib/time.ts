@@ -8,9 +8,9 @@ import type { Clip } from "@/types";
 export const WIN_START = 50100; // 13:55:00 in seconds since midnight
 export const WIN_LEN = 3000; // 50 minutes, in seconds
 
+/** Seconds in `h:mm:ss` or `m:ss`. */
 export function tsToSec(ts: string): number {
-  const [h, m, s] = ts.split(":").map(Number);
-  return h * 3600 + m * 60 + s;
+  return ts.split(":").reduce((total, part) => total * 60 + Number(part), 0);
 }
 
 /** Position of a clip's timestamp within the indexed window, in seconds. */
@@ -24,4 +24,12 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function fmtClock(sec: number): string {
   const t = WIN_START + Math.round(sec);
   return `${pad(Math.floor(t / 3600) % 24)}:${pad(Math.floor((t % 3600) / 60))}:${pad(t % 60)}`;
+}
+
+/** Elapsed time inside a real video (m:ss, or h:mm:ss past an hour). */
+export function fmtElapsed(sec: number): string {
+  const t = Math.max(0, Math.floor(sec));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  return h > 0 ? `${h}:${pad(m)}:${pad(t % 60)}` : `${m}:${pad(t % 60)}`;
 }

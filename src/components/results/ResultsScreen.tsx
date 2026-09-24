@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import type { SeekRequest } from "@/components/results/MatchVideo";
 import { MatchStrip } from "@/components/results/MatchStrip";
 import { QueryPanel } from "@/components/results/QueryPanel";
 import { VideoStage } from "@/components/results/VideoStage";
@@ -26,6 +27,10 @@ export function ResultsScreen() {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [seekRequest, setSeekRequest] = useState<SeekRequest | null>(null);
+  /** Bumped on every match pick so re-picking the same match re-cues it. */
+  const [cueCount, setCueCount] = useState(0);
 
   /* Top 10 by confidence, presented in chronological order (SPEC §2). */
   const matches = useMemo(
@@ -48,21 +53,39 @@ export function ResultsScreen() {
     );
   }, [clips, activeCamera, currentTime]);
 
-  const activeClip: Clip | undefined = selected ?? nearestOnFeed;
+  // Real footage opens on the first top match without *selecting* it, so the
+  // assistant stays on the query thread. Mock clips (no video) keep the
+  // demo-window behaviour of showing the event nearest the playhead.
+  const firstMatch = matches[0];
+  const activeClip: Clip | undefined =
+    selected ?? (firstMatch?.videoUrl ? firstMatch : nearestOnFeed);
+  const videoMode = !!activeClip?.videoUrl;
 
   useEffect(() => {
-    if (!playing) return;
+    // Real video drives its own clock through `onTimeUpdate`.
+    if (!playing || videoMode) return;
     const id = window.setInterval(() => {
       setCurrentTime((t) => (t >= WIN_LEN ? 0 : t + 1));
     }, 250);
     return () => window.clearInterval(id);
-  }, [playing]);
+  }, [playing, videoMode]);
 
   const selectMatch = useCallback((clip: Clip) => {
     setSelectedClipId(clip.id);
     setActiveCamera(clip.camera);
-    setCurrentTime(clipPos(clip));
+    setCurrentTime(clip.videoUrl ? (clip.startSeconds ?? 0) : clipPos(clip));
+    setCueCount((n) => n + 1);
   }, []);
+
+  const seekTo = useCallback(
+    (sec: number) => {
+      setCurrentTime(sec);
+      if (videoMode) setSeekRequest((prev) => ({ sec, id: (prev?.id ?? 0) + 1 }));
+    },
+    [videoMode],
+  );
+
+  const stopPlayback = useCallback(() => setPlaying(false), []);
 
   const jumpToClip = useCallback(
     (id: string) => {
@@ -72,17 +95,26 @@ export function ResultsScreen() {
     [clips, selectMatch],
   );
 
-  const ticks = useMemo(
-    () =>
-      clips
-        .filter((clip) => clip.camera === activeCamera)
+  const ticks = useMemo(() => {
+    if (activeClip?.videoUrl) {
+      // Mark every matching moment that lives in the loaded video.
+      if (duration <= 0) return [];
+      return clips
+        .filter((clip) => clip.videoUrl === activeClip.videoUrl)
         .map((clip) => ({
           id: clip.id,
-          left: (clipPos(clip) / WIN_LEN) * 100,
+          left: Math.min(100, ((clip.startSeconds ?? 0) / duration) * 100),
           active: clip.id === selectedClipId,
-        })),
-    [clips, activeCamera, selectedClipId],
-  );
+        }));
+    }
+    return clips
+      .filter((clip) => clip.camera === activeCamera)
+      .map((clip) => ({
+        id: clip.id,
+        left: (clipPos(clip) / WIN_LEN) * 100,
+        active: clip.id === selectedClipId,
+      }));
+  }, [clips, activeClip, activeCamera, selectedClipId, duration]);
 
   if (searchPending) {
     return (
@@ -128,10 +160,16 @@ export function ResultsScreen() {
             muted={muted}
             metaOpen={metaOpen}
             ticks={ticks}
+            duration={duration}
+            cueKey={`${activeClip.id}#${cueCount}`}
+            seekRequest={seekRequest}
+            onTimeUpdate={setCurrentTime}
+            onDuration={setDuration}
+            onStop={stopPlayback}
             onTogglePlay={() => setPlaying((p) => !p)}
             onToggleMute={() => setMuted((m) => !m)}
             onToggleMeta={() => setMetaOpen((m) => !m)}
-            onSeek={setCurrentTime}
+            onSeek={seekTo}
           />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { fmtClock } from "@/lib/time";
+import { fmtElapsed } from "@/lib/time";
 import type { Clip, ClipTag } from "@/types";
 
 import type { ApiCameraDirectoryEntry, ApiClip, ApiSavedQuery, RagResultItem } from "./types";
@@ -12,10 +12,14 @@ import type { CameraDirectoryEntry, SavedQuery } from "@/types";
  * or wall-clock date. Until the backend does this mapping itself, the
  * frontend derives the closest reasonable `Clip` from what's available:
  *
- * - `id`            -> `video_id` (stable per source video, not per event —
- *                       see note below)
+ * - `id`            -> `video_id:start_seconds` — one video can hold several
+ *                       matching moments, so `video_id` alone collides. Still
+ *                       NOT an event id: never pass it to `GET /clips/{id}`.
+ * - `videoId`/`startSeconds`/`endSeconds` -> kept so the player can load the
+ *                       source video and cue the matching moment
  * - `confidence`    -> `score * 100`, rounded
- * - `ts`            -> `start_seconds` formatted as a clock value via `fmtClock`
+ * - `ts`            -> `start_seconds` as the offset into its video (`m:ss`); no
+ *                       wall-clock time is returned yet
  * - `objects`/`action` -> `caption` (the RAG gives us one free-text field,
  *                       not a separate object/action breakdown)
  * - `camera`/`code`/`perspective` -> unknown from this payload; left as
@@ -46,11 +50,13 @@ function inferTags(caption: string): ClipTag[] {
 
 export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
   return {
-    id: item.video_id,
+    id: `${item.video_id}:${item.start_seconds}`,
     camera: "Unknown",
     code: "Unknown",
     perspective: "Unknown",
-    ts: fmtClock(item.start_seconds),
+    // Offset into the source video, straight from the endpoint. Switch to wall-clock time
+    // once the RAG returns it.
+    ts: fmtElapsed(item.start_seconds),
     date: "",
     order,
     confidence: Math.round(item.score * 100),
@@ -59,6 +65,9 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
     action: item.caption,
     thumbnailUrl: undefined,
     videoUrl: item.video_url ?? undefined,
+    videoId: item.video_id,
+    startSeconds: item.start_seconds,
+    endSeconds: item.end_seconds,
   };
 }
 

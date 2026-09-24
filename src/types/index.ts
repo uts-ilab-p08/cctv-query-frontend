@@ -14,7 +14,8 @@ export interface Clip {
   camera: string;
   code: string;
   perspective: string;
-  /** Wall-clock time of the event, `HH:MM:SS`. */
+  /** Time of the event as shown: wall-clock `HH:MM:SS` for the mock data; for RAG
+   *  results, the offset into the source video (`m:ss`) until wall-clock time exists. */
   ts: string;
   /** Human-readable event date, e.g. `Aug 4`. */
   date: string;
@@ -27,6 +28,11 @@ export interface Clip {
   action: string;
   thumbnailUrl?: string;
   videoUrl?: string;
+  /** Source video id — several moments (clips) can share one video. */
+  videoId?: string;
+  /** Where the moment starts/ends inside `videoUrl`, in seconds. */
+  startSeconds?: number;
+  endSeconds?: number;
 }
 
 export interface Camera {
