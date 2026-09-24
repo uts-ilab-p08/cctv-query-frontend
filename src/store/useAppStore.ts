@@ -86,6 +86,10 @@ interface AppState {
   ask: (key: string, question: string, focusId: string | null) => Promise<void>;
   /** Open a clip thread with the user's query and the model's read of the clip. */
   seedClipChat: (clipId: string, query: string) => void;
+  /** Clips loaded from the API outside a search (the /clips/[id] page), by id — so the
+   *  assistant can find a clip that is neither in `results` nor in the demo set. */
+  knownClips: Record<string, Clip>;
+  rememberClip: (clip: Clip) => void;
   resetChat: (key: ChatKey) => void;
 
   setUploadCamera: (camera: string) => void;
@@ -138,6 +142,7 @@ export const useAppStore = create<AppState>()(
       chatOpen: false, // the assistant is hidden until "Ask more"
 
       results: [],
+      knownClips: {},
       lastSearch: null,
       searchPending: false,
       searchError: null,
@@ -237,12 +242,14 @@ export const useAppStore = create<AppState>()(
         // One question at a time per thread, like a real chat.
         if (!trimmed || thread.some((message) => message.status === "pending")) return;
 
-        // The context is what's on screen: the Results strip. Without a live search
-        // (the mock-backed detail page) it falls back to the demo clip set.
-        const pool = state.results.length ? state.results : getAllClips();
+        const known = focusId ? state.knownClips[focusId] : undefined;
+        // The context is what's on screen: the Results strip. Without a live search it is
+        // the demo clip set — unless the focus is a real API clip, which stands alone
+        // rather than being mixed with demo data.
+        const pool = state.results.length ? state.results : known ? [] : getAllClips();
         const moments = topMatches(pool);
         if (focusId && !moments.some((clip) => clip.id === focusId)) {
-          const focus = pool.find((clip) => clip.id === focusId) ?? getClipById(focusId);
+          const focus = pool.find((clip) => clip.id === focusId) ?? known ?? getClipById(focusId);
           if (!focus) return;
           moments.push(focus);
         }
@@ -298,7 +305,7 @@ export const useAppStore = create<AppState>()(
         set((s) => {
           const id = chatKey(clipId);
           if (s.chats[id]?.length) return s;
-          const clip = getClipById(clipId);
+          const clip = s.knownClips[id] ?? getClipById(clipId);
           if (!clip) return s;
 
           const seeded: ChatMessage[] = [];
@@ -312,6 +319,8 @@ export const useAppStore = create<AppState>()(
 
           return { chats: { ...s.chats, [id]: seeded } };
         }),
+
+      rememberClip: (clip) => set((s) => ({ knownClips: { ...s.knownClips, [clip.id]: clip } })),
 
       resetChat: (key) => set((s) => ({ chats: { ...s.chats, [chatKey(key)]: [] } })),
 

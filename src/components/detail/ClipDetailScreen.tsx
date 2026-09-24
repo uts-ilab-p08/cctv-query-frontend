@@ -20,6 +20,7 @@ interface ClipDetailScreenProps {
 export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
   const query = useAppStore((state) => state.query);
   const seedClipChat = useAppStore((state) => state.seedClipChat);
+  const rememberClip = useAppStore((state) => state.rememberClip);
   const chatOpen = useAppStore((state) => state.chatOpen);
   const setChatOpen = useAppStore((state) => state.setChatOpen);
 
@@ -40,9 +41,12 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
   }, [clip.id]);
 
   // Open the thread with the investigator's query and the model's read of this clip.
+  // The clip comes from the API, so register it first: the assistant looks clips up
+  // by id and would otherwise only find the demo set.
   useEffect(() => {
+    rememberClip(clip);
     seedClipChat(clip.id, query);
-  }, [clip.id, query, seedClipChat]);
+  }, [clip, query, rememberClip, seedClipChat]);
 
   return (
     <div

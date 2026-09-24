@@ -663,6 +663,28 @@ describe("Clip detail", () => {
     expect(within(assistant).getByText("red car")).toBeInTheDocument();
   });
 
+  it("seeds and answers for a clip that only exists in the API, not the demo set", async () => {
+    const user = userEvent.setup();
+    const apiClip = { ...clip, id: "evt-api-only" };
+    useAppStore.setState({ query: "red car", chatOpen: true });
+    render(<ClipDetailScreen clip={apiClip} />);
+
+    const thread = useAppStore.getState().chats["evt-api-only"] ?? [];
+    expect(thread[0]).toMatchObject({ role: "user", text: "red car" });
+    expect(thread[1]?.role).toBe("agent");
+
+    await user.click(await screen.findByRole("button", { name: clipSuggestedQuestions[0] }));
+
+    const request = vi.mocked(askAssistant).mock.calls[0][0];
+    expect(request).toMatchObject({ scope: "moment", focus_moment_id: "evt-api-only" });
+    expect(request.moments.map((m) => m.moment_id)).toContain("evt-api-only");
+    const assistant = screen.getByRole("complementary", { name: "Query Assistant" });
+    expect(await within(assistant).findByText(clipSuggestedQuestions[0])).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(useAppStore.getState().chats["evt-api-only"]?.at(-1)?.status).toBeUndefined(),
+    );
+  });
+
   it("saves the original query from the assistant thread", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ query: "red car", chatOpen: true });
