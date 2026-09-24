@@ -1,13 +1,14 @@
 "use client";
 
-import { AlignLeft, Bookmark, Layers, Search, Settings } from "lucide-react";
+import { AlignLeft, Bookmark, Layers, LogOut, Search, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { BrandLockup } from "@/components/brand/BrandMark";
-import { investigatorName } from "@/data/precincts";
 import { cn } from "@/lib/cn";
+import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/store/useAppStore";
 
 interface NavItem {
@@ -45,8 +46,21 @@ const LABEL_RESTING = "text-[var(--nav-ink)] hover:text-[var(--nav-ink-active)]"
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const precinct = useAppStore((state) => state.precinct);
   const openSettings = useAppStore((state) => state.openSettings);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+  }, []);
+
+  const signOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <aside className="surface-sidebar border-hairline relative z-10 flex w-[232px] shrink-0 flex-col border-r px-4 py-5">
@@ -95,7 +109,15 @@ export function Sidebar() {
 
       <div className="border-hairline flex flex-col gap-0.5 border-t pt-3.5">
         <p className="text-ink-2 font-mono text-[11px]">{precinct}</p>
-        <p className="text-ink-3 font-mono text-[11px]">{investigatorName}</p>
+        <p className="text-ink-3 truncate font-mono text-[11px]">{userEmail ?? "—"}</p>
+        <button
+          type="button"
+          onClick={signOut}
+          className="text-ink-3 hover:text-ink-2 mt-1.5 flex cursor-pointer items-center gap-1.5 text-left font-mono text-[11px]"
+        >
+          <LogOut size={13} strokeWidth={2} aria-hidden />
+          Sign out
+        </button>
       </div>
     </aside>
   );

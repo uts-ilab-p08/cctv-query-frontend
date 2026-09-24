@@ -4,15 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CameraGlyph } from "@/components/brand/BrandMark";
+import { createClient } from "@/lib/supabase/client";
 
 interface LoginScreenProps {
   redirectTo?: string;
 }
 
-/**
- * Login: narrative panel (left) + precinct-credentials form (right). No real auth —
- * this only checks that both fields are non-empty, then navigates.
- */
+/** Login: narrative panel (left) + precinct-credentials form (right), backed by Supabase auth. */
 export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -20,15 +18,27 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   const [reveal, setReveal] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email || !password) {
       setError("Enter your badge email and password to continue.");
       return;
     }
     setError("");
+    setPending(true);
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+    setPending(false);
+    if (authError) {
+      setError(authError.message);
+      return;
+    }
     router.push(redirectTo);
+    router.refresh();
   };
 
   return (
@@ -153,9 +163,10 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
 
             <button
               type="submit"
-              className="surface-action h-[50px] w-full rounded-[11px] text-[15px] font-semibold"
+              disabled={pending}
+              className="surface-action h-[50px] w-full rounded-[11px] text-[15px] font-semibold disabled:opacity-60"
             >
-              Sign in
+              {pending ? "Signing in…" : "Sign in"}
             </button>
 
             {error ? (
@@ -167,20 +178,6 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                 {error}
               </p>
             ) : null}
-
-            <div className="my-1 flex items-center gap-3">
-              <span className="bg-hairline h-px flex-1" />
-              <span className="text-ink-3 font-mono text-[11px]">OR</span>
-              <span className="bg-hairline h-px flex-1" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => router.push(redirectTo)}
-              className="border-hairline-strong bg-panel text-ink h-12 w-full rounded-[11px] border text-[14px]"
-            >
-              Continue with agency SSO
-            </button>
           </form>
 
           <p
