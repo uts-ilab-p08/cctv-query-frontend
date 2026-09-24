@@ -7,7 +7,8 @@ export interface BrandMarkProps extends Omit<SVGProps<SVGSVGElement>, "viewBox">
 
 /**
  * CCTV AI logo: aperture + magnifier on a 24px grid, uniform 2px stroke.
- * Inherits colour from `currentColor` — wrap in `text-brand` for the violet mark.
+ * Inherits colour from `currentColor` — wrap in `text-brand`, which follows the
+ * active palette (violet / slate / amber / light) via the `--brand` token.
  * Brand rules: never rotate, refill the ring, change the stroke weight, or add effects.
  */
 export function BrandMark({ size = 26, ...props }: BrandMarkProps) {
@@ -35,41 +36,13 @@ export function BrandMark({ size = 26, ...props }: BrandMarkProps) {
   );
 }
 
-export interface CameraGlyphProps extends Omit<SVGProps<SVGSVGElement>, "viewBox"> {
-  size?: number;
-}
-
-/**
- * Small camera glyph used on Login/Landing next to the wordmark — distinct from
- * `BrandMark` (the aperture + magnifier mark used in the app shell).
- */
-export function CameraGlyph({ size = 26, ...props }: CameraGlyphProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      {...props}
-    >
-      <rect x="2.5" y="5.5" width="14" height="10" rx="2" />
-      <path d="M16.5 9l5-2.5v11L16.5 15z" />
-    </svg>
-  );
-}
-
 export interface BrandLockupProps {
   size?: number;
 }
 
 export function BrandLockup({ size = 30 }: BrandLockupProps) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div role="img" aria-label="CCTV AI Assistant" className="flex items-center gap-2.5">
       <BrandMark size={size} className="text-brand shrink-0" />
       <div className="flex flex-col leading-none">
         <span className="text-ink text-[15px] font-bold tracking-[0.2px]">CCTV AI</span>

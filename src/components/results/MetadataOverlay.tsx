@@ -9,6 +9,8 @@ import type { Clip } from "@/types";
 interface MetadataOverlayProps {
   clip: Clip;
   currentTime: number;
+  /** Playhead formatter — wall clock for the demo window, elapsed time for real video. */
+  formatTime?: (sec: number) => string;
   onClose: () => void;
 }
 
@@ -19,10 +21,16 @@ interface MetaRow {
   color?: string;
 }
 
-function rows(clip: Clip, currentTime: number): MetaRow[] {
+function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => string): MetaRow[] {
   return [
-    { label: "TIMESTAMP", value: `${clip.date} · ${clip.ts}`, mono: true },
+    {
+      label: "TIMESTAMP",
+      // RAG results have no date yet — don't render a dangling separator.
+      value: [clip.date, clip.ts].filter(Boolean).join(" · "),
+      mono: true,
+    },
     { label: "CAMERA", value: `${clip.camera} (${clip.code})` },
+    ...(clip.scene ? [{ label: "SCENE", value: clip.scene }] : []),
     { label: "PERSPECTIVE", value: clip.perspective },
     { label: "ACTION TYPE", value: clip.action },
     { label: "OBJECTS DETECTED", value: clip.objects },
@@ -32,38 +40,47 @@ function rows(clip: Clip, currentTime: number): MetaRow[] {
       mono: true,
       color: confidenceVar(clip.confidence),
     },
-    { label: "PLAYHEAD", value: fmtClock(currentTime), mono: true },
+    { label: "PLAYHEAD", value: formatTime(currentTime), mono: true },
   ];
 }
 
 /**
- * Chunk metadata drawn over the video frame. Colors are fixed black/white on
- * purpose (SPEC §2): this overlay must read the same over any frame, so it is
- * one of the documented exceptions to always-tokenized color.
+ * Chunk metadata drawn over the video frame, on the palette's floating surface
+ * (`glass-panel`: --panel-strong at 94–96% opacity + blur), so it follows the active
+ * palette and theme. That near-opaque fill is what keeps it legible over any frame —
+ * the reason it used to be a fixed dark colour — and the text tokens on it are
+ * contrast-checked for every palette (theme-contrast.test.ts).
  */
-export function MetadataOverlay({ clip, currentTime, onClose }: MetadataOverlayProps) {
+export function MetadataOverlay({
+  clip,
+  currentTime,
+  formatTime = fmtClock,
+  onClose,
+}: MetadataOverlayProps) {
   return (
-    <div className="absolute right-3 bottom-3 left-3 max-h-[calc(100%-24px)] overflow-y-auto rounded-xl border border-white/[0.18] bg-[rgba(27,33,41,0.80)] px-3.5 py-3 shadow-[0_18px_44px_rgba(0,0,0,0.45)] backdrop-blur-[22px]">
+    <div
+      role="region"
+      aria-label="Chunk metadata"
+      className="glass-panel absolute right-3 bottom-3 left-3 max-h-[calc(100%-24px)] overflow-y-auto rounded-xl px-3.5 py-3"
+    >
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="font-mono text-[11px] tracking-[1.2px] text-white/70">CHUNK METADATA</span>
+        <span className="text-ink-2 font-mono text-[11px] tracking-[1.2px]">CHUNK METADATA</span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close metadata"
-          className="text-white/70"
+          className="text-ink-2 hover:text-ink cursor-pointer transition-colors duration-150"
         >
           <X size={15} strokeWidth={2} aria-hidden />
         </button>
       </div>
 
       <div className="grid grid-cols-2 gap-x-[18px] gap-y-2.5">
-        {rows(clip, currentTime).map((row) => (
+        {rows(clip, currentTime, formatTime).map((row) => (
           <div key={row.label}>
-            <div className="mb-1 font-mono text-[10px] tracking-[1px] text-white/60">
-              {row.label}
-            </div>
+            <div className="text-ink-3 mb-1 font-mono text-[10px] tracking-[1px]">{row.label}</div>
             <div
-              className={`text-[13px] text-white ${row.mono ? "font-mono" : ""}`}
+              className={`text-ink text-[13px] ${row.mono ? "font-mono" : ""}`}
               style={row.color ? { color: row.color } : undefined}
             >
               {row.value}

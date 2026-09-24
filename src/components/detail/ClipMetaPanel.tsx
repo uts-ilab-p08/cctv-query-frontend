@@ -11,6 +11,7 @@ export function ClipMetaPanel({ clip }: ClipMetaPanelProps) {
   const fields: Array<{ label: string; value: string; className?: string }> = [
     { label: "TIMESTAMP", value: `${clip.date} · ${clip.ts}`, className: "font-mono" },
     { label: "CAMERA", value: `${clip.camera} (${clip.code})` },
+    ...(clip.scene ? [{ label: "SCENE", value: clip.scene }] : []),
     { label: "PERSPECTIVE", value: clip.perspective },
     { label: "ACTION TYPE", value: clip.action },
     { label: "OBJECTS DETECTED", value: clip.objects },

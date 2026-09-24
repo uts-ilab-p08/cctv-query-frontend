@@ -18,7 +18,8 @@
   --radius-field: 34px;
 
   /* flat colours only (safe as background-color / text / border) */
-  --color-brand: #7c5cff;
+  /* Per-palette (see --brand below) so the logo follows the Settings colour scheme. */
+  --color-brand: var(--brand);
   --color-brand-light: #c084fc;
   --color-canvas: var(--bg);
   --color-panel-strong: var(--panel-strong);
@@ -75,6 +76,7 @@
   --topbar: linear-gradient(0deg, rgb(14 10 30 / 0.7), rgb(14 10 30 / 0.7));
   --btn-bg: linear-gradient(135deg, #7c5cff, #5b3ff0);
   --brand-grad: linear-gradient(135deg, #7c5cff, #c084fc);
+  --brand: #7c5cff;
 
   /* flat surfaces */
   --panel-strong: rgb(24 19 45 / 0.94);
@@ -85,7 +87,8 @@
   --track: rgb(255 255 255 / 0.1);
   --text: #f2f0fa;
   --text-2: #a9a3c9;
-  --text-3: #7b74a0;
+  /* #7b74a0 was 4.1:1 on --panel-solid (theme-contrast.test.ts). */
+  --text-3: #847ea6;
   --accent: #a78bfa;
   --accent-strong: #c9b8ff;
   --accent-soft: rgb(124 92 255 / 0.18);
@@ -143,6 +146,8 @@
   --topbar: linear-gradient(0deg, rgb(10 13 18 / 0.7), rgb(10 13 18 / 0.7));
   --btn-bg: linear-gradient(135deg, #0466c8, #034d9c);
   --brand-grad: linear-gradient(135deg, #0466c8, #5aa2f0);
+  /* Not the gradient start (#0466c8): that is only 3.4:1 on this background. */
+  --brand: #5aa2f0;
 
   --panel-strong: rgb(19 24 32 / 0.94);
   --panel-solid: #10151d;
@@ -206,6 +211,7 @@
   --topbar: linear-gradient(0deg, rgb(20 17 10 / 0.7), rgb(20 17 10 / 0.7));
   --btn-bg: linear-gradient(135deg, #ffc400, #e0a800);
   --brand-grad: linear-gradient(135deg, #ffc400, #ffd956);
+  --brand: #ffc400;
 
   --panel-strong: rgb(30 25 15 / 0.94);
   --panel-solid: #1c1710;
@@ -244,6 +250,334 @@
   color-scheme: dark;
 }
 
+/* ---------- dark / soft linen ----------
+   Monochrome warm earth: Charcoal Brown ground, Soft Linen text, Dust Grey accent.
+   Ebony and Stone Brown sit under 2:1 on this ground, so they are borders and tints
+   only — never text. Text tiers and panel-solid are derived to keep ≥4.5:1. */
+[data-theme="dark"][data-palette="linen"] {
+  --bg: #3e4532;
+  --glow-1: rgb(106 93 72 / 0.35);
+  --glow-2: rgb(86 95 71 / 0.3);
+  --glow-3: rgb(238 233 225 / 0.06);
+
+  --panel: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.04) 18%,
+    rgb(255 255 255 / 0.035)
+  );
+  --panel-soft: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.028) 20%);
+  --sidebar-bg: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.028) 12%,
+    rgb(255 255 255 / 0.022)
+  );
+  --topbar: linear-gradient(0deg, rgb(62 69 50 / 0.7), rgb(62 69 50 / 0.7));
+  --btn-bg: linear-gradient(135deg, #eee9e1, #e1dcd1);
+  --brand-grad: linear-gradient(135deg, #eee9e1, #e1dcd1);
+  --brand: #eee9e1;
+
+  --panel-strong: rgb(71 78 59 / 0.94);
+  --panel-solid: #474e3b;
+
+  --border: #565f47;
+  --border-strong: #6a5d48;
+  --track: #565f47;
+  --text: #eee9e1;
+  --text-2: #d2ccbf;
+  --text-3: #c3bcad;
+  --accent: #e1dcd1;
+  --accent-strong: #eee9e1;
+  --accent-soft: rgb(225 220 209 / 0.14);
+  --accent-line: rgb(225 220 209 / 0.4);
+  --token-ink: #ffffff;
+  --token-line: rgb(238 233 225 / 0.45);
+  --btn-ink: #3e4532;
+  --btn-solid: #e1dcd1;
+  --ok: #7ac943;
+  --warn: #ffc400;
+  /* Lighter than the other palettes' red: #ff5a4d is under 3.3:1 on this background. */
+  --bad: #ff9d8f;
+  --scrim: rgb(24 27 19 / 0.62);
+  --chat-user-bg: linear-gradient(135deg, rgb(106 93 72 / 0.5), rgb(86 95 71 / 0.4));
+  --nav-ink-active: #eee9e1;
+  --nav-ink: #d2ccbf;
+
+  --video-stage: #343a2a;
+  --video-frame: #2a2f22;
+  --video-bar: #333a29;
+
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
+  --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-lg: 0 28px 70px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-accent: 0 12px 28px rgb(238 233 225 / 0.16);
+  color-scheme: dark;
+}
+
+/* ---------- dark / soft lavender ----------
+   Twilight: Dusky Indigo ground, Creamy White text, Blush Beige accent. Smoky Plum
+   (4.2:1 on panels — too low for accent text) tints glows and the user bubble; Soft
+   Mauve draws the borders. Text tiers and panel-solid are derived to keep ≥4.5:1. */
+[data-theme="dark"][data-palette="lavender"] {
+  --bg: #22223b;
+  --glow-1: rgb(154 140 152 / 0.28);
+  --glow-2: rgb(74 78 105 / 0.35);
+  --glow-3: rgb(201 173 167 / 0.1);
+
+  --panel: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.04) 18%,
+    rgb(255 255 255 / 0.035)
+  );
+  --panel-soft: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.028) 20%);
+  --sidebar-bg: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.028) 12%,
+    rgb(255 255 255 / 0.022)
+  );
+  --topbar: linear-gradient(0deg, rgb(34 34 59 / 0.7), rgb(34 34 59 / 0.7));
+  --btn-bg: linear-gradient(135deg, #f2e9e4, #c9ada7);
+  --brand-grad: linear-gradient(135deg, #9a8c98, #c9ada7);
+  --brand: #c9ada7;
+
+  --panel-strong: rgb(44 45 72 / 0.94);
+  --panel-solid: #2c2d48;
+
+  --border: #4a4e69;
+  --border-strong: #9a8c98;
+  --track: #4a4e69;
+  --text: #f2e9e4;
+  --text-2: #d6cdd0;
+  --text-3: #b3a8b3;
+  --accent: #c9ada7;
+  --accent-strong: #f2e9e4;
+  --accent-soft: rgb(201 173 167 / 0.16);
+  --accent-line: rgb(201 173 167 / 0.42);
+  --token-ink: #ffffff;
+  --token-line: rgb(242 233 228 / 0.45);
+  --btn-ink: #22223b;
+  --btn-solid: #c9ada7;
+  --ok: #7ac943;
+  --warn: #ffc400;
+  /* Lighter than the other palettes' red: #ff5a4d is under 3.3:1 on this background. */
+  --bad: #ff9d8f;
+  --scrim: rgb(14 14 26 / 0.62);
+  --chat-user-bg: linear-gradient(135deg, rgb(154 140 152 / 0.3), rgb(74 78 105 / 0.45));
+  --nav-ink-active: #f2e9e4;
+  --nav-ink: #d6cdd0;
+
+  --video-stage: #1f1f36;
+  --video-frame: #19192b;
+  --video-bar: #1b1b2f;
+
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
+  --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-lg: 0 28px 70px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-accent: 0 12px 28px rgb(201 173 167 / 0.3);
+  color-scheme: dark;
+}
+
+/* ---------- dark / midnight magic ----------
+   Black to electric indigo. All five source colours are near-black: Navy Electric
+   is 1.5:1 on the ground, so the originals drive surfaces, glows and the button
+   (white on #0d00a4 is 13.5:1) while text, links and the logo use a derived
+   electric-indigo tint (#8b83ff, 6.7:1). */
+[data-theme="dark"][data-palette="magic"] {
+  --bg: #02010a;
+  --glow-1: rgb(13 0 164 / 0.45);
+  --glow-2: rgb(34 0 124 / 0.4);
+  --glow-3: rgb(20 1 82 / 0.5);
+
+  --panel: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.04) 18%,
+    rgb(255 255 255 / 0.035)
+  );
+  --panel-soft: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.028) 20%);
+  --sidebar-bg: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.028) 12%,
+    rgb(255 255 255 / 0.022)
+  );
+  --topbar: linear-gradient(0deg, rgb(2 1 10 / 0.7), rgb(2 1 10 / 0.7));
+  --btn-bg: linear-gradient(135deg, #0d00a4, #22007c);
+  --brand-grad: linear-gradient(135deg, #22007c, #0d00a4);
+  --brand: #8b83ff;
+
+  --panel-strong: rgb(4 5 46 / 0.94);
+  --panel-solid: #04052e;
+
+  --border: rgb(255 255 255 / 0.09);
+  --border-strong: rgb(139 131 255 / 0.35);
+  --track: rgb(255 255 255 / 0.1);
+  --text: #ffffff;
+  --text-2: #b7b4d6;
+  --text-3: #8f8bb8;
+  --accent: #8b83ff;
+  --accent-strong: #b9b4ff;
+  --accent-soft: rgb(139 131 255 / 0.16);
+  --accent-line: rgb(139 131 255 / 0.42);
+  --token-ink: #ffffff;
+  --token-line: rgb(185 180 255 / 0.45);
+  --btn-ink: #ffffff;
+  --btn-solid: #22007c;
+  --ok: #7ac943;
+  --warn: #ffc400;
+  --bad: #ff5a4d;
+  --scrim: rgb(2 1 10 / 0.62);
+  --chat-user-bg: linear-gradient(135deg, rgb(13 0 164 / 0.55), rgb(34 0 124 / 0.45));
+  --nav-ink-active: #ffffff;
+  --nav-ink: #b7b4d6;
+
+  --video-stage: #04052e;
+  --video-frame: #02010a;
+  --video-bar: #140152;
+
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
+  --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-lg: 0 28px 70px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-accent: 0 12px 28px rgb(13 0 164 / 0.55);
+  color-scheme: dark;
+}
+
+/* ---------- dark / deep blue sea ----------
+   Ocean: Prussian Blue ground, Space Indigo panels, Tropical Teal accent (8.5:1)
+   rising to Aquamarine. Dusk Blue draws borders only — as a text ground it drops
+   teal to 3.8:1. */
+[data-theme="dark"][data-palette="sea"] {
+  --bg: #0b132b;
+  --glow-1: rgb(91 192 190 / 0.22);
+  --glow-2: rgb(58 80 107 / 0.4);
+  --glow-3: rgb(111 255 233 / 0.1);
+
+  --panel: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.04) 18%,
+    rgb(255 255 255 / 0.035)
+  );
+  --panel-soft: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.028) 20%);
+  --sidebar-bg: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.028) 12%,
+    rgb(255 255 255 / 0.022)
+  );
+  --topbar: linear-gradient(0deg, rgb(11 19 43 / 0.7), rgb(11 19 43 / 0.7));
+  --btn-bg: linear-gradient(135deg, #5bc0be, #6fffe9);
+  --brand-grad: linear-gradient(135deg, #5bc0be, #6fffe9);
+  --brand: #5bc0be;
+
+  --panel-strong: rgb(28 37 65 / 0.94);
+  --panel-solid: #1c2541;
+
+  --border: #3a506b;
+  --border-strong: rgb(91 192 190 / 0.45);
+  --track: #3a506b;
+  --text: #eef6f7;
+  --text-2: #b9c8d3;
+  --text-3: #93a8b8;
+  --accent: #5bc0be;
+  --accent-strong: #6fffe9;
+  --accent-soft: rgb(91 192 190 / 0.16);
+  --accent-line: rgb(91 192 190 / 0.42);
+  --token-ink: #ffffff;
+  --token-line: rgb(111 255 233 / 0.45);
+  --btn-ink: #0b132b;
+  --btn-solid: #6fffe9;
+  --ok: #7ac943;
+  --warn: #ffc400;
+  --bad: #ff5a4d;
+  --scrim: rgb(5 10 24 / 0.62);
+  --chat-user-bg: linear-gradient(135deg, rgb(91 192 190 / 0.22), rgb(58 80 107 / 0.35));
+  --nav-ink-active: #eef6f7;
+  --nav-ink: #b9c8d3;
+
+  --video-stage: #0e1731;
+  --video-frame: #070d1f;
+  --video-bar: #121c38;
+
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
+  --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-lg: 0 28px 70px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-accent: 0 12px 28px rgb(91 192 190 / 0.35);
+  color-scheme: dark;
+}
+
+/* ---------- dark / midnight blues ----------
+   Ink Black ground, Deep Space Blue panels, Charcoal Blue borders, Lavender accent
+   (11:1). Pure black frames the video. The accent sits close to the white text, so
+   highlights read mostly through their soft fill and outline. */
+[data-theme="dark"][data-palette="blues"] {
+  --bg: #0c1821;
+  --glow-1: rgb(50 74 95 / 0.45);
+  --glow-2: rgb(27 42 65 / 0.5);
+  --glow-3: rgb(204 201 220 / 0.08);
+
+  --panel: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.04) 18%,
+    rgb(255 255 255 / 0.035)
+  );
+  --panel-soft: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.028) 20%);
+  --sidebar-bg: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.028) 12%,
+    rgb(255 255 255 / 0.022)
+  );
+  --topbar: linear-gradient(0deg, rgb(12 24 33 / 0.7), rgb(12 24 33 / 0.7));
+  --btn-bg: linear-gradient(135deg, #ccc9dc, #e6e4ef);
+  --brand-grad: linear-gradient(135deg, #324a5f, #ccc9dc);
+  --brand: #ccc9dc;
+
+  --panel-strong: rgb(27 42 65 / 0.94);
+  --panel-solid: #1b2a41;
+
+  --border: #324a5f;
+  --border-strong: rgb(204 201 220 / 0.4);
+  --track: #324a5f;
+  --text: #ffffff;
+  --text-2: #b8b5c8;
+  --text-3: #9a98ae;
+  --accent: #ccc9dc;
+  --accent-strong: #e6e4ef;
+  --accent-soft: rgb(204 201 220 / 0.14);
+  --accent-line: rgb(204 201 220 / 0.4);
+  --token-ink: #ffffff;
+  --token-line: rgb(204 201 220 / 0.45);
+  --btn-ink: #0c1821;
+  --btn-solid: #e6e4ef;
+  --ok: #7ac943;
+  --warn: #ffc400;
+  --bad: #ff5a4d;
+  --scrim: rgb(0 0 0 / 0.62);
+  --chat-user-bg: linear-gradient(135deg, rgb(50 74 95 / 0.55), rgb(27 42 65 / 0.6));
+  --nav-ink-active: #ffffff;
+  --nav-ink: #b8b5c8;
+
+  --video-stage: #07121a;
+  --video-frame: #000000;
+  --video-bar: #111f2b;
+
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-sm: 0 8px 24px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.11);
+  --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-lg: 0 28px 70px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-accent: 0 12px 28px rgb(204 201 220 / 0.2);
+  color-scheme: dark;
+}
+
 /* ---------- light ---------- */
 [data-theme="light"] {
   --bg: #e9e9ec;
@@ -267,6 +601,7 @@
   --topbar: linear-gradient(0deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.72));
   --btn-bg: linear-gradient(0deg, #111114, #111114);
   --brand-grad: linear-gradient(135deg, #5b46f5, #f96a3a);
+  --brand: #5b46f5;
 
   --panel-strong: rgb(255 255 255 / 0.96);
   --panel-solid: #ffffff;
@@ -276,7 +611,8 @@
   --track: rgb(17 17 20 / 0.09);
   --text: #111114;
   --text-2: #55555f;
-  --text-3: #8a8a94;
+  /* #8a8a94 was 2.8:1 on --bg; this clears 4.5:1 on --bg and white (theme-contrast.test.ts). */
+  --text-3: #65656f;
   --accent: #5b46f5;
   --accent-strong: #3a28c9;
   --accent-soft: rgb(91 70 245 / 0.1);
@@ -450,17 +786,6 @@ body {
   /* SPEC §4 — clip thumbnails read as archived footage, never as product imagery. */
   .thumb-filter {
     filter: grayscale(0.55) contrast(1.05) brightness(0.85);
-  }
-
-  /* Product wordmark ("CCTV AI") on Login/Landing — Michroma (single weight: 400),
-     17px, 0.8px tracking. Adapted from handoff-nextjs SPEC.md §3, which specified
-     Barlow Semi Condensed 700 — Michroma has no bold cut, so weight is dropped. */
-  .brand-wordmark {
-    font-family: var(--font-barlow-cond);
-    font-weight: 400;
-    font-size: 17px;
-    letter-spacing: 0.8px;
-    line-height: 1.1;
   }
 }
 

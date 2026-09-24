@@ -168,4 +168,75 @@ describe("QueryField", () => {
     expect(overlay?.className).toContain("z-[2]");
     expect(textarea?.className).toContain("z-[1]");
   });
+
+  it("edits a local draft without touching the shared query when controlled", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "red car" });
+    const onChange = vi.fn();
+    render(<QueryField value="" onChange={onChange} onSubmit={vi.fn()} />);
+
+    const input = screen.getByRole("textbox", { name: "Search the camera network" });
+    expect(input).toHaveValue("");
+
+    await user.type(input, "v");
+
+    expect(onChange).toHaveBeenCalledWith("v");
+    expect(useAppStore.getState().query).toBe("red car");
+  });
+
+  it("uses the opaque floating surface when rendered over a backdrop", () => {
+    render(<QueryField floating onSubmit={vi.fn()} />);
+
+    const field = screen.getByRole("textbox", { name: "Search the camera network" }).parentElement;
+    expect(field?.className).toContain("glass-panel");
+    expect(field?.className).not.toContain("glass-card");
+  });
+
+  it("keeps token glyph widths equal to the textarea so the caret stays aligned", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.type(screen.getByRole("textbox"), "red car");
+
+    // The caret lives in the plain-weight textarea; a heavier weight on the
+    // overlay widens the token and pushes the visible text ahead of the caret.
+    expect(token("red car").className).not.toMatch(
+      /\bfont-(thin|light|normal|medium|semibold|bold|extrabold|black)\b/,
+    );
+  });
+
+  it("offers a clear button only from the third character", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+    const input = screen.getByRole("textbox", { name: "Search the camera network" });
+
+    await user.type(input, "re");
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+
+    await user.type(input, "d");
+    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+  });
+
+  it("empties the field and puts the caret back in it", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+    const input = screen.getByRole("textbox", { name: "Search the camera network" });
+
+    await user.type(input, "red car");
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+
+    expect(useAppStore.getState().query).toBe("");
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+  });
+
+  it("clears the local draft when controlled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<QueryField value="red car" onChange={onChange} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+
+    expect(onChange).toHaveBeenCalledWith("");
+  });
 });

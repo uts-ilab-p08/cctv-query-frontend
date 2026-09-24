@@ -9,11 +9,13 @@
 export type ClipTag = "Person" | "Vehicle" | "Entry" | "Exit" | "Loitering" | "Object Left";
 
 export interface Clip {
-  id: number;
+  /** bronze.events.event_id — stable, backend-assigned. */
+  id: string;
   camera: string;
   code: string;
   perspective: string;
-  /** Wall-clock time of the event, `HH:MM:SS`. */
+  /** Time of the event as shown: wall-clock `HH:MM:SS` for the mock data; for RAG
+   *  results, the offset into the source video (`m:ss`) until wall-clock time exists. */
   ts: string;
   /** Human-readable event date, e.g. `Aug 4`. */
   date: string;
@@ -24,6 +26,18 @@ export interface Clip {
   tags: ClipTag[];
   objects: string;
   action: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  /** Short event label from the RAG; when absent, `action` (the description) is shown. */
+  eventName?: string;
+  /** Site within the facility (`bronze.videos.scene`, e.g. `admin`, from MEVA's file
+   *  names). Mocked for the demo set until /search returns it. */
+  scene?: string;
+  /** Source video id — several moments (clips) can share one video. */
+  videoId?: string;
+  /** Where the moment starts/ends inside `videoUrl`, in seconds. */
+  startSeconds?: number;
+  endSeconds?: number;
 }
 
 export interface Camera {
@@ -33,15 +47,20 @@ export interface Camera {
 
 export interface CameraDirectoryEntry extends Camera {
   eventCount: number;
+  /** Site within the facility (`bronze.videos.scene`, e.g. `admin`). */
+  scene?: string;
 }
 
 export type SearchMode = "nlq" | "classic";
 
 /** Dark-mode accent palette; has no effect while the active theme is light. */
-export type Palette = "violet" | "slate" | "amber";
+export type Palette =
+  "violet" | "slate" | "amber" | "linen" | "lavender" | "magic" | "sea" | "blues";
 
 export interface Filters {
   cameras: string[];
+  /** Sites within the facility (`bronze.videos.scene`). */
+  scenes: string[];
   tags: ClipTag[];
   /** Minimum confidence, 0-100. */
   confidence: number;
@@ -119,13 +138,16 @@ export interface ChatMessage {
   role: ChatRole;
   text: string;
   /** Clip this answer points at, rendered as a "View related clip" action. */
-  relatedId?: number;
+  relatedId?: string;
+  /** Clip ids the answer cites — rendered as "jump to" buttons on Results. */
+  citations?: string[];
+  /** Follow-up questions offered under this answer. */
+  suggestions?: string[];
+  /** Moment this turn was about, when asked with one selected (Results keeps one thread). */
+  focus?: string;
+  /** `pending` while the assistant is answering; `error` when it failed. */
+  status?: "pending" | "error";
 }
 
 /** Chat threads are keyed by clip id, or by the literal `results` scope. */
-export type ChatKey = number | "results";
-
-export interface AssistantAnswer {
-  text: string;
-  relatedId?: number;
-}
+export type ChatKey = string | "results";

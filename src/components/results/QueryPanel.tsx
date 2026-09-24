@@ -1,20 +1,31 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { Play, Plus, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
+import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
+import { ThinkingDots } from "@/components/assistant/ThinkingDots";
+import { MomentCardContent } from "@/components/results/MomentCard";
+import { NewQueryModal } from "@/components/results/NewQueryModal";
 import { cn } from "@/lib/cn";
-import { useAppStore } from "@/store/useAppStore";
-import type { ChatKey } from "@/types";
+import { startersKey, useAppStore } from "@/store/useAppStore";
+import type { ChatMessage } from "@/types";
+
+/** Stable reference so an empty thread does not re-trigger the store selector. */
+const EMPTY_THREAD: ChatMessage[] = [];
+const NO_QUESTIONS: string[] = [];
 
 interface QueryPanelProps {
   query: string;
-  /** `null` when no coincidence is selected — the assistant context is "Top 5 matches". */
-  selectedClipId: number | null;
+  /** `null` when no moment is selected. A selection only narrows the next question — the
+   *  conversation stays one `results` thread either way. */
+  selectedClipId: string | null;
   contextLabel: string;
   onClearSelection: () => void;
-  onJumpToClip: (id: number) => void;
+  onJumpToClip: (id: string) => void;
+  /** Collapsed for the expanded-video view. Hidden rather than unmounted, so the
+   *  draft, the scroll position and the New Query dialog state survive. */
+  hidden?: boolean;
 }
 
 /** Left column of Results: the running query, the assistant thread, and the composer
@@ -26,43 +37,97 @@ export function QueryPanel({
   contextLabel,
   onClearSelection,
   onJumpToClip,
+  hidden = false,
 }: QueryPanelProps) {
   const [draft, setDraft] = useState("");
+  const [newQueryOpen, setNewQueryOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const chatKey: ChatKey = selectedClipId ?? "results";
-  const chat = useAppStore((state) => state.chats[String(chatKey)]) ?? [];
+  const chat = useAppStore((state) => state.chats.results) ?? EMPTY_THREAD;
   const askInResults = useAppStore((state) => state.askInResults);
-  const askAboutClip = useAppStore((state) => state.askAboutClip);
+  const results = useAppStore((state) => state.results);
+
+  const storeQuery = useAppStore((state) => state.query);
+  const loadStarters = useAppStore((state) => state.loadStarters);
+  const starters =
+    useAppStore((state) => state.starters[startersKey("results", selectedClipId, storeQuery)]) ??
+    NO_QUESTIONS;
+
+  // The opening questions for this context come from the RAG (simulated
+  // /assistant/suggestions); fetched once per search + selected moment.
+  useEffect(() => {
+    void loadStarters("results", selectedClipId);
+  }, [loadStarters, selectedClipId, storeQuery]);
+
+  // Suggestions follow the current context. The latest answer's follow-ups apply only
+  // if it was about the same context; otherwise that context's opening questions.
+  const last = chat.at(-1);
+  const asked = new Set(chat.filter((m) => m.role === "user").map((m) => m.text));
+  const answerFollowUps =
+    last?.role === "agent" && !last.status && (last.focus ?? null) === selectedClipId
+      ? last.suggestions
+      : undefined;
+  const suggestions =
+    last?.status === "pending"
+      ? NO_QUESTIONS
+      : answerFollowUps?.length
+        ? answerFollowUps
+        : starters.filter((question) => !asked.has(question));
 
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [chat.length]);
+  }, [chat.length, last?.status]);
 
   const ask = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    if (selectedClipId != null) askAboutClip(selectedClipId, trimmed);
-    else askInResults(trimmed);
+    void askInResults(trimmed, selectedClipId);
     setDraft("");
   };
 
   return (
-    <div className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r">
-      <div className="border-hairline shrink-0 border-b px-4 py-2">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-ink-3 font-mono text-[10px] tracking-[1.2px]">YOUR QUERY</span>
+    <div
+      hidden={hidden}
+      className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r"
+    >
+      <div className="border-hairline shrink-0 border-b px-3.5 py-3">
+        <div
+          role="group"
+          aria-label="Your query"
+          className="border-accent-line bg-panel-solid shadow-glass flex items-center gap-2 rounded-[14px] border py-2 pr-2 pl-3.5"
+        >
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-ink-3 font-mono text-[10px] tracking-[1.2px]">YOUR QUERY</span>
+            <p title={query} className="text-ink truncate text-[14px] leading-[1.35] font-medium">
+              {query}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setNewQueryOpen(true)}
+            className="surface-action shadow-action flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full pr-3.5 pl-2.5 font-sans text-[12px]"
+          >
+            <Plus size={14} strokeWidth={2.2} aria-hidden />
+            New Query
+          </button>
         </div>
-        <p title={query} className="text-ink truncate text-[13px] leading-[1.35]">
-          {query}
-        </p>
       </div>
+
+      <NewQueryModal open={newQueryOpen} onClose={() => setNewQueryOpen(false)} />
 
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         {chat.map((message, index) => {
           const isUser = message.role === "user";
+          // Only the search that opened the thread is saveable — follow-ups are
+          // questions about the results, not queries worth re-running.
+          const isOriginalQuery = isUser && index === 0 && message.text === query;
+          // A question asked with a moment selected carries that moment's card.
+          const focusClip =
+            isUser && message.focus
+              ? results.find((candidate) => candidate.id === message.focus)
+              : undefined;
           return (
             <div
               key={`${message.role}-${index}`}
@@ -77,45 +142,87 @@ export function QueryPanel({
                 </div>
               ) : null}
 
-              <div
-                className={cn(
-                  "max-w-[94%] rounded-[10px] border px-[13px] py-[11px] text-[13px] leading-[1.5]",
-                  isUser
-                    ? "surface-chat-user border-accent-line text-ink"
-                    : "border-hairline bg-panel-solid text-ink-2",
-                )}
-                style={{ textWrap: "pretty" }}
-              >
-                {message.text}
-              </div>
-
-              {message.relatedId != null ? (
-                <button
-                  type="button"
-                  onClick={() => onJumpToClip(message.relatedId as number)}
-                  className="text-accent mt-[5px] text-[12px]"
+              {focusClip ? (
+                <div
+                  role="group"
+                  aria-label="Question about a moment"
+                  className="surface-chat-user border-accent-line flex w-full max-w-[320px] flex-col gap-2 rounded-[10px] border p-1.5"
                 >
-                  View related clip →
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => onJumpToClip(focusClip.id)}
+                    title="Jump to this moment"
+                    className="glass-card-flat flex w-full cursor-pointer items-center gap-2.5 rounded-lg p-1.5 text-left"
+                  >
+                    <MomentCardContent clip={focusClip} />
+                  </button>
+                  <p
+                    className="text-ink px-[7px] pb-1 text-[13px] leading-[1.5]"
+                    style={{ textWrap: "pretty" }}
+                  >
+                    {message.text}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex max-w-[94%] items-start gap-1">
+                  {isOriginalQuery ? (
+                    <SaveQueryButton text={message.text} className="mt-1.5" />
+                  ) : null}
+                  <div
+                    className={cn(
+                      "min-w-0 rounded-[10px] border px-[13px] py-[11px] text-[13px] leading-[1.5]",
+                      isUser
+                        ? "surface-chat-user border-accent-line text-ink"
+                        : "border-hairline bg-panel-solid text-ink-2",
+                      message.status === "error" && "text-flag",
+                    )}
+                    style={{ textWrap: "pretty" }}
+                  >
+                    {message.status === "pending" ? <ThinkingDots /> : message.text}
+                  </div>
+                </div>
+              )}
+
+              {message.citations?.length ? (
+                <div className="mt-1.5 flex max-w-[94%] flex-wrap gap-1.5">
+                  {message.citations.map((id) => {
+                    const clip = results.find((candidate) => candidate.id === id);
+                    if (!clip) return null;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => onJumpToClip(id)}
+                        aria-label={`Jump to ${clip.ts} · ${clip.eventName ?? clip.action}`}
+                        title={clip.eventName ?? clip.action}
+                        className="border-accent-line text-accent-strong bg-accent-soft flex max-w-full cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[11px]"
+                      >
+                        <Play size={10} strokeWidth={2.4} fill="currentColor" aria-hidden />
+                        <span className="font-mono">{clip.ts}</span>
+                        <span className="truncate">· {clip.eventName ?? clip.action}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : null}
             </div>
           );
         })}
 
-        {chat.length === 0 ? (
-          <>
+        {suggestions.length ? (
+          <div className="flex flex-col gap-2">
             <p className="text-ink-3 text-[12px]">Suggested questions</p>
-            {resultsSuggestedQuestions.map((suggestion) => (
+            {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
                 onClick={() => ask(suggestion)}
-                className="border-accent-line bg-panel-soft text-ink-2 rounded-lg border px-3 py-2.5 text-left text-[13px]"
+                className="border-accent-line bg-accent-soft text-ink-2 hover:text-ink cursor-pointer rounded-lg border px-3 py-2.5 text-left text-[13px] transition-colors duration-150"
               >
                 {suggestion}
               </button>
             ))}
-          </>
+          </div>
         ) : null}
       </div>
 

@@ -16,6 +16,7 @@ interface ActiveFilterChipsProps {
 export function ActiveFilterChips({ layout = "centered", className }: ActiveFilterChipsProps) {
   const filters = useAppStore((state) => state.filters);
   const toggleCamera = useAppStore((state) => state.toggleCamera);
+  const toggleScene = useAppStore((state) => state.toggleScene);
   const toggleTag = useAppStore((state) => state.toggleTag);
 
   const chips = getActiveFilterChips(filters);
@@ -35,7 +36,11 @@ export function ActiveFilterChips({ layout = "centered", className }: ActiveFilt
           type="button"
           aria-label={`Remove filter ${chip.label}`}
           onClick={() =>
-            chip.kind === "camera" ? toggleCamera(chip.label) : toggleTag(chip.label as ClipTag)
+            chip.kind === "camera"
+              ? toggleCamera(chip.label)
+              : chip.kind === "scene"
+                ? toggleScene(chip.label)
+                : toggleTag(chip.label as ClipTag)
           }
           className="glass-card-flat text-ink-2 hover:text-ink flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-[5px] font-mono text-xs transition-colors duration-150"
         >

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { QueryField } from "@/components/query/QueryField";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 
 const MODE_COPY = {
@@ -22,12 +24,11 @@ export function QueryComposer() {
   const searchMode = useAppStore((state) => state.searchMode);
   const query = useAppStore((state) => state.query);
   const runSearch = useAppStore((state) => state.runSearch);
-  const openSettings = useAppStore((state) => state.openSettings);
 
   const submit = () => {
     if (!query.trim()) return;
-    runSearch(query);
-    router.push("/results");
+    void runSearch(query);
+    router.push(resultsHref(query));
   };
 
   const copy = MODE_COPY[searchMode];
@@ -38,13 +39,12 @@ export function QueryComposer() {
         Query your camera network
       </h1>
       <p className="text-ink-2 mb-2 text-center text-[15px]">{copy.hint}</p>
-      <button
-        type="button"
-        onClick={openSettings}
-        className="text-accent hover:text-accent-strong mb-9 cursor-pointer text-xs transition-colors duration-150"
+      <Link
+        href="/settings"
+        className="text-accent hover:text-accent-strong mb-9 text-xs no-underline transition-colors duration-150"
       >
         {copy.label} · change in settings
-      </button>
+      </Link>
 
       <QueryField variant="hero" onSubmit={submit} />
     </div>

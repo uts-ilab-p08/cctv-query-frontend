@@ -1,9 +1,10 @@
+import { cameraScenes } from "@/data/cameras";
 import type { Clip } from "@/types";
 
 /** Indexed events for the demo footage window (Aug 4). */
-export const clips: Clip[] = [
+const demoClips: Clip[] = [
   {
-    id: 1,
+    id: "1",
     camera: "G328",
     code: "G328",
     perspective: "Parking Lot, wide north-facing",
@@ -16,7 +17,7 @@ export const clips: Clip[] = [
     action: "Vehicle Arrival",
   },
   {
-    id: 2,
+    id: "2",
     camera: "G328",
     code: "G328",
     perspective: "Parking Lot, wide north-facing",
@@ -29,7 +30,7 @@ export const clips: Clip[] = [
     action: "Vehicle Parked",
   },
   {
-    id: 3,
+    id: "3",
     camera: "G301",
     code: "G301",
     perspective: "Entrance, wide doorway",
@@ -42,7 +43,7 @@ export const clips: Clip[] = [
     action: "Person Entry",
   },
   {
-    id: 4,
+    id: "4",
     camera: "G420",
     code: "G420",
     perspective: "Breezeway, fixed overhead",
@@ -55,7 +56,7 @@ export const clips: Clip[] = [
     action: "Person Transit",
   },
   {
-    id: 5,
+    id: "5",
     camera: "G301",
     code: "G301",
     perspective: "Entrance, wide doorway",
@@ -68,7 +69,7 @@ export const clips: Clip[] = [
     action: "Person Entry",
   },
   {
-    id: 6,
+    id: "6",
     camera: "G424",
     code: "G424",
     perspective: "Stairwell landing, fixed",
@@ -81,7 +82,7 @@ export const clips: Clip[] = [
     action: "Person Transit",
   },
   {
-    id: 7,
+    id: "7",
     camera: "G421",
     code: "G421",
     perspective: "Loading Dock, wide",
@@ -94,7 +95,7 @@ export const clips: Clip[] = [
     action: "Object Left Behind",
   },
   {
-    id: 8,
+    id: "8",
     camera: "G423",
     code: "G423",
     perspective: "Bus Stop / south lot, wide",
@@ -107,7 +108,7 @@ export const clips: Clip[] = [
     action: "Vehicle Arrival",
   },
   {
-    id: 9,
+    id: "9",
     camera: "G506",
     code: "G506",
     perspective: "Rear exit, fixed door",
@@ -120,7 +121,7 @@ export const clips: Clip[] = [
     action: "Person Exit",
   },
   {
-    id: 10,
+    id: "10",
     camera: "G420",
     code: "G420",
     perspective: "Breezeway, fixed overhead",
@@ -133,7 +134,7 @@ export const clips: Clip[] = [
     action: "Loitering",
   },
   {
-    id: 11,
+    id: "11",
     camera: "G299",
     code: "G299",
     perspective: "Courtyard, fixed elevated",
@@ -146,7 +147,7 @@ export const clips: Clip[] = [
     action: "Person Entry",
   },
   {
-    id: 12,
+    id: "12",
     camera: "G301",
     code: "G301",
     perspective: "Entrance, wide doorway",
@@ -159,7 +160,7 @@ export const clips: Clip[] = [
     action: "Person Exit",
   },
   {
-    id: 13,
+    id: "13",
     camera: "G328",
     code: "G328",
     perspective: "Parking Lot, wide north-facing",
@@ -172,7 +173,7 @@ export const clips: Clip[] = [
     action: "Vehicle Departure",
   },
   {
-    id: 14,
+    id: "14",
     camera: "G421",
     code: "G421",
     perspective: "Loading Dock, wide",
@@ -185,7 +186,7 @@ export const clips: Clip[] = [
     action: "Person Entry",
   },
   {
-    id: 15,
+    id: "15",
     camera: "G424",
     code: "G424",
     perspective: "Stairwell landing, fixed",
@@ -198,7 +199,7 @@ export const clips: Clip[] = [
     action: "Loitering",
   },
   {
-    id: 16,
+    id: "16",
     camera: "G506",
     code: "G506",
     perspective: "Rear exit, fixed door",
@@ -211,3 +212,9 @@ export const clips: Clip[] = [
     action: "Person Exit",
   },
 ];
+
+/** Demo clips with their MOCK scene (see `cameraScenes`). */
+export const clips: Clip[] = demoClips.map((clip) => ({
+  ...clip,
+  scene: cameraScenes[clip.camera],
+}));

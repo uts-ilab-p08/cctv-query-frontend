@@ -1,14 +1,34 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { recentQueries } from "@/data/recentQueries";
+import { getRecentQueries } from "@/lib/api/endpoints";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
+import type { RecentQuery } from "@/types";
 
 export function RecentQueries() {
   const router = useRouter();
   const runSearch = useAppStore((state) => state.runSearch);
+  const [recentQueries, setRecentQueries] = useState<RecentQuery[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRecentQueries()
+      .then((queries) => {
+        if (!cancelled) setRecentQueries(queries);
+      })
+      .catch(() => {
+        if (!cancelled) setRecentQueries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (recentQueries.length === 0) return null;
 
   return (
     <section className="mt-14 w-full">
@@ -19,8 +39,8 @@ export function RecentQueries() {
             <button
               type="button"
               onClick={() => {
-                runSearch(query.text);
-                router.push("/results");
+                void runSearch(query.text);
+                router.push(resultsHref(query.text));
               }}
               className="rounded-card glass-card-flat hover:border-hairline-strong flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-left transition-colors duration-150"
             >

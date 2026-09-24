@@ -1,18 +1,21 @@
 "use client";
 
-import { Info, Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Info, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { MouseEvent } from "react";
 
 import { fmtClock, WIN_LEN } from "@/lib/time";
 
 export interface PlayerTick {
-  id: number;
+  id: string;
   left: number;
   active: boolean;
 }
 
 interface PlayerBarProps {
   currentTime: number;
+  /** Scrubber length in seconds — the demo window, or the loaded video's duration. */
+  duration?: number;
+  formatTime?: (sec: number) => string;
   playing: boolean;
   muted: boolean;
   metaOpen: boolean;
@@ -21,6 +24,9 @@ interface PlayerBarProps {
   onToggleMute: () => void;
   onToggleMeta: () => void;
   onSeek: (sec: number) => void;
+  /** True while the chat is collapsed so the video takes the workspace. */
+  videoExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 const iconBtn =
@@ -29,6 +35,8 @@ const iconBtn =
 /** Playback control strip: play/pause, clock, scrubber with per-clip ticks, mute, info, fullscreen. */
 export function PlayerBar({
   currentTime,
+  duration = WIN_LEN,
+  formatTime = fmtClock,
   playing,
   muted,
   metaOpen,
@@ -37,13 +45,15 @@ export function PlayerBar({
   onToggleMute,
   onToggleMeta,
   onSeek,
+  videoExpanded = false,
+  onToggleExpand,
 }: PlayerBarProps) {
-  const pct = (currentTime / WIN_LEN) * 100;
+  const pct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   const seek = (event: MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-    onSeek(Math.round(ratio * WIN_LEN));
+    onSeek(Math.round(ratio * duration));
   };
 
   return (
@@ -61,7 +71,7 @@ export function PlayerBar({
         )}
       </button>
 
-      <span className="shrink-0 font-mono text-[12px] text-white">{fmtClock(currentTime)}</span>
+      <span className="shrink-0 font-mono text-[12px] text-white">{formatTime(currentTime)}</span>
 
       <div onClick={seek} className="relative flex h-6 min-w-0 flex-1 cursor-pointer items-center">
         <div className="absolute right-0 left-0 h-[5px] rounded-[3px] bg-white/[0.16]" />
@@ -110,8 +120,21 @@ export function PlayerBar({
         <Info size={13} strokeWidth={2} aria-hidden />
       </button>
 
-      <button type="button" aria-label="Fullscreen" className={iconBtn}>
-        <Maximize2 size={14} strokeWidth={2} aria-hidden />
+      {/* In-app "fullscreen": collapses the chat column so the video takes the workspace.
+          A toggle with a fixed name + aria-pressed, so assistive tech hears the state. */}
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        aria-label="Expand video"
+        aria-pressed={videoExpanded}
+        title={videoExpanded ? "Show the chat" : "Expand the video (hides the chat)"}
+        className={iconBtn}
+      >
+        {videoExpanded ? (
+          <Minimize2 size={14} strokeWidth={2} aria-hidden />
+        ) : (
+          <Maximize2 size={14} strokeWidth={2} aria-hidden />
+        )}
       </button>
     </div>
   );

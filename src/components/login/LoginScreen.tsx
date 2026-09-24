@@ -1,18 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 
-import { CameraGlyph } from "@/components/brand/BrandMark";
+import { BrandLockup } from "@/components/brand/BrandMark";
+import { createClient } from "@/lib/supabase/client";
 
 interface LoginScreenProps {
   redirectTo?: string;
 }
 
-/**
- * Login: narrative panel (left) + precinct-credentials form (right). No real auth —
- * this only checks that both fields are non-empty, then navigates.
- */
+/** Login: narrative panel (left) + precinct-credentials form (right), backed by Supabase auth. */
 export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -20,29 +19,40 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   const [reveal, setReveal] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email || !password) {
       setError("Enter your badge email and password to continue.");
       return;
     }
     setError("");
+    setPending(true);
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+    setPending(false);
+    if (authError) {
+      setError(authError.message);
+      return;
+    }
     router.push(redirectTo);
+    router.refresh();
   };
 
   return (
     <div className="bg-canvas text-ink flex min-h-screen flex-col lg:flex-row">
-      <div className="bg-video-stage relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 lg:basis-[52%] lg:px-11">
+      <div className="bg-panel-solid border-hairline relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 lg:basis-[52%] lg:px-11">
         <div
           className="pointer-events-none absolute -top-[140px] -left-[100px] h-[460px] w-[460px] rounded-full"
           style={{ background: "radial-gradient(circle, var(--glow-1), transparent 70%)" }}
         />
 
-        <div className="relative flex items-center gap-[11px]">
-          <CameraGlyph size={26} style={{ color: "var(--accent)" }} />
-          <span className="brand-wordmark text-ink font-barlow">CCTV AI</span>
-        </div>
+        <Link href="/" className="relative self-start no-underline">
+          <BrandLockup />
+        </Link>
 
         <div className="relative my-12 max-w-[460px] lg:my-0">
           <p className="text-ink-3 mb-4 font-mono text-[11px] tracking-[1.4px]">
@@ -58,8 +68,8 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
             className="text-ink-2 font-barlow text-[15px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            Natural-language queries across indexed footage from every camera in the precinct — with
-            the timestamp, the feed, and the confidence behind each match.
+            Natural-language queries across indexed footage from every indexed camera — with the
+            timestamp, the feed, and the confidence behind each match.
           </p>
         </div>
 
@@ -153,9 +163,10 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
 
             <button
               type="submit"
-              className="surface-action h-[50px] w-full rounded-[11px] text-[15px] font-semibold"
+              disabled={pending}
+              className="surface-action h-[50px] w-full rounded-[11px] text-[15px] font-semibold disabled:opacity-60"
             >
-              Sign in
+              {pending ? "Signing in…" : "Sign in"}
             </button>
 
             {error ? (
@@ -167,20 +178,6 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                 {error}
               </p>
             ) : null}
-
-            <div className="my-1 flex items-center gap-3">
-              <span className="bg-hairline h-px flex-1" />
-              <span className="text-ink-3 font-mono text-[11px]">OR</span>
-              <span className="bg-hairline h-px flex-1" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => router.push(redirectTo)}
-              className="border-hairline-strong bg-panel text-ink h-12 w-full rounded-[11px] border text-[14px]"
-            >
-              Continue with agency SSO
-            </button>
           </form>
 
           <p

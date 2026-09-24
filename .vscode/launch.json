@@ -11,16 +11,9 @@
       "serverReadyAction": {
         "pattern": "- Local:.+(https?://.+)",
         "uriFormat": "%s",
-        "action": "debugWithChrome"
+        "action": "openExternally"
       },
       "console": "integratedTerminal"
-    },
-    {
-      "name": "Next.js: debug client-side",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3000/dashboard",
-      "webRoot": "${workspaceFolder}"
     },
     {
       "name": "Next.js: attach to running server",

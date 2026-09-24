@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CameraGlyph } from "@/components/brand/BrandMark";
+import { BrandLockup } from "@/components/brand/BrandMark";
 
 const HERO_CHIPS = [
   { camera: "G328", action: "Vehicle arrival", confidence: 96, primary: true },
@@ -28,7 +28,7 @@ const STEPS = [
 
 const FACTS = [
   { label: "Footage scope", value: "Archived only" },
-  { label: "Cameras indexed", value: "8 per precinct" },
+  { label: "Cameras indexed", value: "8" },
   { label: "Access record", value: "Per badge ID" },
   { label: "Retention", value: "Agency policy" },
 ];
@@ -37,10 +37,9 @@ const FACTS = [
 export function LandingPage() {
   return (
     <div className="bg-canvas text-ink font-barlow min-h-screen">
-      <header className="border-hairline bg-video-bar sticky top-0 z-30 flex items-center justify-between gap-4 border-b px-7 py-3.5">
-        <div className="flex min-w-0 items-center gap-[11px]">
-          <CameraGlyph size={24} style={{ color: "var(--accent)" }} />
-          <span className="brand-wordmark whitespace-nowrap">CCTV AI</span>
+      <header className="border-hairline bg-panel-strong sticky top-0 z-30 flex items-center justify-between gap-4 border-b px-7 py-3.5 backdrop-blur-[18px]">
+        <div className="min-w-0">
+          <BrandLockup />
         </div>
         <nav className="flex shrink-0 items-center gap-[22px]">
           <Link href="#how" className="text-ink-2 text-[13px]">
@@ -91,15 +90,15 @@ export function LandingPage() {
               </Link>
               <Link
                 href="#how"
-                className="border-hairline-strong bg-panel text-ink flex h-[50px] items-center rounded-[11px] border px-6 text-[15px]"
+                className="border-hairline-strong bg-panel-solid text-ink flex h-[50px] items-center rounded-[11px] border px-6 text-[15px]"
               >
                 See how it works
               </Link>
             </div>
           </div>
 
-          <div className="bg-video-stage border-hairline shadow-glass-lg min-w-0 overflow-hidden rounded-[14px] border">
-            <div className="border-hairline bg-video-bar flex items-center gap-2.5 border-b px-3.5 py-2.5">
+          <div className="bg-panel-solid border-hairline shadow-glass-lg min-w-0 overflow-hidden rounded-[14px] border">
+            <div className="border-hairline bg-canvas flex items-center gap-2.5 border-b px-3.5 py-2.5">
               <span
                 className="h-[7px] w-[7px] rounded-full"
                 style={{ background: "var(--accent)" }}
@@ -107,7 +106,7 @@ export function LandingPage() {
               <span className="text-ink-3 font-mono text-[11px]">QUERY WORKSPACE</span>
             </div>
             <div className="p-4">
-              <p className="border-hairline bg-panel mb-3 rounded-[10px] border px-3.5 py-3 text-[13px] leading-[1.5]">
+              <p className="surface-chat-user border-accent-line mb-3 rounded-[10px] border px-3.5 py-3 text-[13px] leading-[1.5]">
                 Show anyone who entered after the red car arrived
               </p>
               <div className="mb-3.5 flex gap-[9px]">
@@ -123,7 +122,7 @@ export function LandingPage() {
                 {HERO_CHIPS.map((chip) => (
                   <div
                     key={chip.camera}
-                    className="bg-video-frame min-w-0 flex-1 rounded-lg border px-[9px] py-2"
+                    className="bg-canvas min-w-0 flex-1 rounded-lg border px-[9px] py-2"
                     style={{ borderColor: chip.primary ? "var(--accent-line)" : "var(--border)" }}
                   >
                     <div className="text-ink-3 mb-[3px] font-mono text-[11px]">{chip.camera}</div>
@@ -150,10 +149,7 @@ export function LandingPage() {
           </h2>
           <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] gap-[18px]">
             {STEPS.map((step) => (
-              <div
-                key={step.num}
-                className="border-hairline bg-panel shadow-glass rounded-xl border p-[22px]"
-              >
+              <div key={step.num} className="glass-card-flat rounded-xl p-[22px]">
                 <div className="text-accent-strong mb-3 font-mono text-[12px]">{step.num}</div>
                 <h3 className="mb-2 text-[17px] font-semibold">{step.title}</h3>
                 <p className="text-ink-2 text-[14px] leading-[1.6]" style={{ textWrap: "pretty" }}>
@@ -165,7 +161,12 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="trust" className="border-hairline bg-panel-soft border-t px-7 py-14">
+      <section
+        id="trust"
+        className="border-hairline border-t px-7 py-14"
+        // --panel-soft is a gradient, so it can't be a Tailwind colour utility.
+        style={{ backgroundImage: "var(--panel-soft)" }}
+      >
         <div className="mx-auto grid max-w-[1120px] [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] gap-10">
           <div className="min-w-0">
             <p className="text-ink-3 mb-3.5 font-mono text-[11px] tracking-[1.4px]">GOVERNANCE</p>
@@ -178,11 +179,11 @@ export function LandingPage() {
               badge.
             </p>
           </div>
-          <div className="border-hairline flex min-w-0 flex-col gap-px overflow-hidden rounded-xl border">
+          <div className="border-hairline bg-hairline flex min-w-0 flex-col gap-px overflow-hidden rounded-xl border">
             {FACTS.map((fact) => (
               <div
                 key={fact.label}
-                className="bg-panel flex items-baseline justify-between gap-4 px-[18px] py-[15px]"
+                className="bg-panel-solid flex items-baseline justify-between gap-4 px-[18px] py-[15px]"
               >
                 <span className="text-ink-2 text-[14px]">{fact.label}</span>
                 <span className="text-ink shrink-0 text-right font-mono text-[13px]">

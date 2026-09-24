@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body className="bg-canvas text-ink antialiased">
-        {/* Anti-flash: both theme (dark/light) and palette (violet/slate/amber) must be
+        {/* Anti-flash: both theme (dark/light) and palette (see src/lib/palette.ts) must be
             stamped on <html> before the first paint, so this runs as one script. */}
         <Script id="cctv-theme" strategy="beforeInteractive">
           {`${themeInitScript}${paletteInitScript}`}

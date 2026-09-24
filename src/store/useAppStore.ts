@@ -3,10 +3,12 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
-import { defaultPrecinct } from "@/data/precincts";
-import { answerForClip, answerForResults, summarizeClip, summarizeResults } from "@/lib/assistant";
+import { summarizeClip } from "@/lib/assistant";
+import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
+import { clipToAssistantMoment } from "@/lib/api/normalize";
 import { getAllClips, getClipById } from "@/lib/clips";
-import { emptyFilters, filterClips } from "@/lib/filters";
+import { emptyFilters } from "@/lib/filters";
+import { topMatches } from "@/lib/matches";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 import type {
   ChatKey,
@@ -28,13 +30,11 @@ interface AppState {
   searchMode: SearchMode;
   query: string;
   filters: Filters;
-  precinct: string;
 
   chats: Record<string, ChatMessage[]>;
   chatOpen: boolean;
 
   filtersOpen: boolean;
-  settingsOpen: boolean;
   camerasOpen: boolean;
 
   pipelineJobs: PipelineJob[];
@@ -48,12 +48,12 @@ interface AppState {
   setTheme: (theme: Theme) => void;
   setSearchMode: (mode: SearchMode) => void;
   setQuery: (query: string) => void;
-  setPrecinct: (precinct: string) => void;
 
   setCameras: (cameras: string[]) => void;
   addTag: (tag: ClipTag) => void;
   toggleTag: (tag: ClipTag) => void;
   toggleCamera: (camera: string) => void;
+  toggleScene: (scene: string) => void;
   setConfidence: (value: number) => void;
   setDateFrom: (value: string) => void;
   setDateTo: (value: string) => void;
@@ -62,17 +62,36 @@ interface AppState {
   setChatOpen: (open: boolean) => void;
   openFilters: () => void;
   closeFilters: () => void;
-  openSettings: () => void;
-  closeSettings: () => void;
   openCameras: () => void;
   closeCameras: () => void;
 
   /** Seed the results thread with the query and the assistant's summary. */
-  runSearch: (text: string) => void;
-  askInResults: (question: string) => void;
-  askAboutClip: (clipId: number, question: string) => void;
+  runSearch: (text: string) => Promise<void>;
+  /** Query of the latest `runSearch` — unlike `query`, not touched while typing. Lets
+   *  Results tell whether `?q=` still needs running (refresh) or already ran. */
+  lastSearch: string | null;
+  /** Clips returned by the last `runSearch` call — what Results renders. */
+  results: Clip[];
+  searchPending: boolean;
+  searchError: string | null;
+  /** Ask in the Results thread — about all moments on screen, or about `focusId` when a
+   *  moment is selected. The selection narrows the question; it doesn't start a new chat. */
+  askInResults: (question: string, focusId?: string | null) => Promise<void>;
+  /** Ask the assistant about one moment (that clip's thread). */
+  askAboutClip: (clipId: string, question: string) => Promise<void>;
+  /** Opening questions per thread context (see `startersKey`), from the simulated
+   *  `/assistant/suggestions`. Empty while loading. */
+  starters: Record<string, string[]>;
+  /** Fetch the opening questions for a context once; cached by `startersKey`. */
+  loadStarters: (key: string, focusId: string | null) => Promise<void>;
+  /** Shared by both scopes; `focusId` null means the whole result set. */
+  ask: (key: string, question: string, focusId: string | null) => Promise<void>;
   /** Open a clip thread with the user's query and the model's read of the clip. */
-  seedClipChat: (clipId: number, query: string) => void;
+  seedClipChat: (clipId: string, query: string) => void;
+  /** Clips loaded from the API outside a search (the /clips/[id] page), by id — so the
+   *  assistant can find a clip that is neither in `results` nor in the demo set. */
+  knownClips: Record<string, Clip>;
+  rememberClip: (clip: Clip) => void;
   resetChat: (key: ChatKey) => void;
 
   setUploadCamera: (camera: string) => void;
@@ -86,6 +105,55 @@ interface AppState {
 }
 
 const chatKey = (key: ChatKey): string => String(key);
+
+/** Cache key for a context's opening questions: thread, focused moment, search. */
+export function startersKey(key: string, focusId: string | null, query: string): string {
+  return `${key}|${focusId ?? ""}|${query}`;
+}
+
+/**
+ * What the assistant endpoints receive: the moments on screen (the Results strip;
+ * without a live search, the demo set — unless the focus is a real API clip, which
+ * stands alone rather than being mixed with demo data) and the thread so far.
+ * `null` when the focused moment can't be found.
+ */
+function assistantContext(
+  state: AppState,
+  key: string,
+  focusId: string | null,
+): { moments: Clip[]; history: { role: "user" | "assistant"; text: string }[] } | null {
+  const known = focusId ? state.knownClips[focusId] : undefined;
+  const pool = state.results.length ? state.results : known ? [] : getAllClips();
+  const moments = topMatches(pool);
+  if (focusId && !moments.some((clip) => clip.id === focusId)) {
+    const focus = pool.find((clip) => clip.id === focusId) ?? known ?? getClipById(focusId);
+    if (!focus) return null;
+    moments.push(focus);
+  }
+  const history = (state.chats[key] ?? [])
+    .filter((message) => !message.status)
+    .map((message) => ({
+      role: message.role === "user" ? ("user" as const) : ("assistant" as const),
+      text: message.text,
+    }));
+  return { moments, history };
+}
+
+const THINKING: ChatMessage = { role: "agent", text: "", status: "pending" };
+const ASSISTANT_FAILED = "The assistant couldn't answer that. Try again.";
+
+/** Swap a thread's pending placeholder for the real answer. If the thread was reset
+ *  meanwhile ("+ New"), there is no placeholder and the late answer is dropped. */
+function settlePending(
+  chats: Record<string, ChatMessage[]>,
+  key: string,
+  message: ChatMessage,
+): Record<string, ChatMessage[]> {
+  const thread = chats[key] ?? [];
+  const index = thread.findIndex((item) => item.status === "pending");
+  if (index === -1) return chats;
+  return { ...chats, [key]: thread.map((item, i) => (i === index ? message : item)) };
+}
 
 function pushMessages(
   chats: Record<string, ChatMessage[]>,
@@ -103,13 +171,17 @@ export const useAppStore = create<AppState>()(
       searchMode: "nlq",
       query: "",
       filters: emptyFilters,
-      precinct: defaultPrecinct,
 
       chats: {},
       chatOpen: false, // the assistant is hidden until "Ask more"
 
+      results: [],
+      knownClips: {},
+      lastSearch: null,
+      searchPending: false,
+      searchError: null,
+
       filtersOpen: false,
-      settingsOpen: false,
       camerasOpen: false,
 
       pipelineJobs: initialPipelineJobs,
@@ -126,7 +198,6 @@ export const useAppStore = create<AppState>()(
       },
       setSearchMode: (searchMode) => set({ searchMode }),
       setQuery: (query) => set({ query }),
-      setPrecinct: (precinct) => set({ precinct }),
 
       setCameras: (cameras) => set((s) => ({ filters: { ...s.filters, cameras } })),
       addTag: (tag) =>
@@ -143,6 +214,15 @@ export const useAppStore = create<AppState>()(
             tags: s.filters.tags.includes(tag)
               ? s.filters.tags.filter((item) => item !== tag)
               : [...s.filters.tags, tag],
+          },
+        })),
+      toggleScene: (scene) =>
+        set((s) => ({
+          filters: {
+            ...s.filters,
+            scenes: s.filters.scenes.includes(scene)
+              ? s.filters.scenes.filter((item) => item !== scene)
+              : [...s.filters.scenes, scene],
           },
         })),
       toggleCamera: (camera) =>
@@ -162,62 +242,126 @@ export const useAppStore = create<AppState>()(
       setChatOpen: (chatOpen) => set({ chatOpen }),
       openFilters: () => set({ filtersOpen: true }),
       closeFilters: () => set({ filtersOpen: false }),
-      openSettings: () => set({ settingsOpen: true }),
-      closeSettings: () => set({ settingsOpen: false }),
       openCameras: () => set({ camerasOpen: true }),
       closeCameras: () => set({ camerasOpen: false }),
 
-      runSearch: (text) => {
+      runSearch: async (text) => {
         const trimmed = text.trim();
         if (!trimmed) {
           set({ query: text });
           return;
         }
-        const matches = filterClips(getAllClips(), get().filters);
-        set((s) => ({
-          query: trimmed,
-          chats: {
-            ...s.chats,
-            results: [
-              { role: "user", text: trimmed },
-              { role: "agent", text: summarizeResults(matches, trimmed) },
-            ],
-          },
-        }));
+        set({ query: trimmed, lastSearch: trimmed, searchPending: true, searchError: null });
+        try {
+          const { clips, summary } = await searchClips(trimmed);
+          set((s) => ({
+            results: clips,
+            searchPending: false,
+            chats: {
+              ...s.chats,
+              results: [
+                { role: "user", text: trimmed },
+                { role: "agent", text: summary },
+              ],
+            },
+          }));
+        } catch (error) {
+          set({
+            searchPending: false,
+            searchError: error instanceof Error ? error.message : "Search failed.",
+          });
+        }
       },
 
-      askInResults: (question) => {
-        const trimmed = question.trim();
-        if (!trimmed) return;
-        const matches = filterClips(getAllClips(), get().filters);
-        const answer = answerForResults(matches, trimmed);
-        set((s) => ({
-          chats: pushMessages(s.chats, "results", [
-            { role: "user", text: trimmed },
-            { role: "agent", text: answer.text, relatedId: answer.relatedId },
-          ]),
-        }));
+      starters: {},
+
+      loadStarters: async (key, focusId) => {
+        const state = get();
+        const id = startersKey(key, focusId, state.query);
+        if (id in state.starters) return;
+        const context = assistantContext(state, key, focusId);
+        if (!context) return;
+        // Mark in flight: nothing to show yet, and no duplicate request.
+        set((s) => ({ starters: { ...s.starters, [id]: [] } }));
+        try {
+          const { suggested_questions } = await suggestQuestions({
+            query: state.query,
+            scope: focusId ? "moment" : "results",
+            focus_moment_id: focusId,
+            moments: context.moments.map(clipToAssistantMoment),
+            history: context.history,
+          });
+          set((s) => ({ starters: { ...s.starters, [id]: suggested_questions } }));
+        } catch {
+          // Forget the failed attempt so the next visit to this context retries.
+          set((s) => {
+            const starters = { ...s.starters };
+            delete starters[id];
+            return { starters };
+          });
+        }
       },
 
-      askAboutClip: (clipId, question) => {
+      askInResults: (question, focusId = null) => get().ask("results", question, focusId),
+
+      askAboutClip: (clipId, question) => get().ask(clipId, question, clipId),
+
+      ask: async (key, question, focusId) => {
         const trimmed = question.trim();
-        if (!trimmed) return;
-        const clip: Clip | undefined = getClipById(clipId);
-        if (!clip) return;
-        const answer = answerForClip(getAllClips(), clip, trimmed);
+        const state = get();
+        const thread = state.chats[key] ?? [];
+        // One question at a time per thread, like a real chat.
+        if (!trimmed || thread.some((message) => message.status === "pending")) return;
+
+        const context = assistantContext(state, key, focusId);
+        if (!context) return;
+        const { moments, history } = context;
+
+        const focus = focusId ?? undefined;
         set((s) => ({
-          chats: pushMessages(s.chats, clipId, [
-            { role: "user", text: trimmed },
-            { role: "agent", text: answer.text, relatedId: answer.relatedId },
-          ]),
+          chats: pushMessages(s.chats, key, [{ role: "user", text: trimmed, focus }, THINKING]),
         }));
+
+        try {
+          const response = await askAssistant({
+            query: state.query,
+            question: trimmed,
+            scope: focusId ? "moment" : "results",
+            focus_moment_id: focusId,
+            moments: moments.map(clipToAssistantMoment),
+            history,
+          });
+          // Never trust an id we didn't send.
+          const known = new Set(moments.map((clip) => clip.id));
+          const citations = response.citations
+            .map((citation) => citation.moment_id)
+            .filter((id) => known.has(id));
+          set((s) => ({
+            chats: settlePending(s.chats, key, {
+              role: "agent",
+              text: response.answer,
+              citations,
+              relatedId: citations[0],
+              suggestions: response.suggested_questions,
+              focus,
+            }),
+          }));
+        } catch {
+          set((s) => ({
+            chats: settlePending(s.chats, key, {
+              role: "agent",
+              text: ASSISTANT_FAILED,
+              status: "error",
+            }),
+          }));
+        }
       },
 
       seedClipChat: (clipId, query) =>
         set((s) => {
           const id = chatKey(clipId);
           if (s.chats[id]?.length) return s;
-          const clip = getClipById(clipId);
+          const clip = s.knownClips[id] ?? getClipById(clipId);
           if (!clip) return s;
 
           const seeded: ChatMessage[] = [];
@@ -227,6 +371,8 @@ export const useAppStore = create<AppState>()(
 
           return { chats: { ...s.chats, [id]: seeded } };
         }),
+
+      rememberClip: (clip) => set((s) => ({ knownClips: { ...s.knownClips, [clip.id]: clip } })),
 
       resetChat: (key) => set((s) => ({ chats: { ...s.chats, [chatKey(key)]: [] } })),
 
@@ -278,7 +424,7 @@ export const useAppStore = create<AppState>()(
     {
       name: "cctv-ai:state",
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ searchMode: s.searchMode, precinct: s.precinct }),
+      partialize: (s) => ({ searchMode: s.searchMode }),
     },
   ),
 );

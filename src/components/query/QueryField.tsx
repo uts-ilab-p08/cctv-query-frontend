@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/cn";
@@ -24,8 +24,19 @@ interface MenuState {
 export interface QueryFieldProps {
   /** "hero" on Home/Search, "compact" at the top of Results. */
   variant?: "hero" | "compact";
+  /**
+   * Controlled mode: pass both to edit a local draft (e.g. the New Query dialog)
+   * instead of the shared `query` the rest of the screen is showing.
+   */
+  value?: string;
+  onChange?: (value: string) => void;
+  /** Over a modal backdrop: swap the translucent card for the opaque floating surface. */
+  floating?: boolean;
   onSubmit: () => void;
 }
+
+/** Characters typed before the clear button appears — below this it is noise. */
+const CLEAR_MIN_LENGTH = 3;
 
 /** The phrase map is authored as plain strings; narrow it back to the domain union. */
 const CLIP_TAGS: readonly ClipTag[] = [
@@ -44,15 +55,26 @@ function asClipTag(value: string | undefined): ClipTag | undefined {
 /**
  * The tokenized query field: a highlight overlay (z-2, pointer-events-none except tokens)
  * sits ON TOP of a transparent textarea (z-1) that owns the caret and typing.
- * Detected terms are bold + dashed-underlined in --token-ink and open a dropdown on click.
+ * Detected terms are dashed-underlined in --token-ink and open a dropdown on click. Their
+ * emphasis is a text stroke, NOT font-weight: bold glyphs are wider than the textarea's
+ * regular ones, which would push the visible text ahead of the (textarea-owned) caret.
  */
-export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
+export function QueryField({
+  variant = "hero",
+  value,
+  onChange,
+  floating = false,
+  onSubmit,
+}: QueryFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
 
-  const query = useAppStore((s) => s.query);
-  const setQuery = useAppStore((s) => s.setQuery);
+  const storeQuery = useAppStore((s) => s.query);
+  const setStoreQuery = useAppStore((s) => s.setQuery);
+  const controlled = value !== undefined && onChange !== undefined;
+  const query = controlled ? value : storeQuery;
+  const setQuery = controlled ? onChange : setStoreQuery;
   const classicMode = useAppStore((s) => s.searchMode === "classic");
   const openFilters = useAppStore((s) => s.openFilters);
   const setCameras = useAppStore((s) => s.setCameras);
@@ -60,7 +82,19 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
   const setConfidence = useAppStore((s) => s.setConfidence);
 
   const hero = variant === "hero";
-  const pad = hero ? "py-5 pl-7 pr-[130px]" : "py-4 pl-6 pr-[118px]";
+  // Right padding reserves room for the overlaid buttons. Classic mode adds Filters, so
+  // it reserves more. It is fixed per mode — not per clear-button visibility — so the
+  // text never reflows when the clear button appears.
+  const pad = hero
+    ? cn("py-5 pl-7", classicMode ? "pr-[160px]" : "pr-[130px]")
+    : cn("py-4 pl-6", classicMode ? "pr-[146px]" : "pr-[118px]");
+  const showClear = query.length >= CLEAR_MIN_LENGTH;
+
+  const clear = () => {
+    setQuery("");
+    setMenu(null);
+    inputRef.current?.focus();
+  };
   const text = hero ? "text-base leading-[1.7]" : "text-[15px] leading-[1.6]";
 
   const openMenu = (hit: EntityHit) => (event: MouseEvent<HTMLSpanElement>) => {
@@ -121,7 +155,8 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           setMenu(null);
         }}
         className={cn(
-          "rounded-field glass-card relative z-20 w-full cursor-text",
+          "rounded-field relative z-20 w-full cursor-text",
+          floating ? "glass-panel" : "glass-card",
           !hero && "max-w-[820px]",
         )}
       >
@@ -147,7 +182,7 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
                 <span
                   key={index}
                   onClick={openMenu(segment.hit)}
-                  className="border-token-line text-token-ink pointer-events-auto cursor-pointer border-b-2 border-dashed pb-[3px] font-bold"
+                  className="border-token-line text-token-ink pointer-events-auto cursor-pointer border-b-2 border-dashed pb-[3px] [-webkit-text-stroke:0.45px_currentColor]"
                 >
                   {segment.text}
                 </span>
@@ -205,6 +240,20 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
             hero ? "top-[11px] right-3" : "top-[9px] right-2.5",
           )}
         >
+          {showClear ? (
+            <button
+              type="button"
+              onClick={clear}
+              aria-label="Clear search"
+              title="Clear search"
+              className={cn(
+                "text-ink-3 hover:text-ink hover:bg-accent-soft flex cursor-pointer items-center justify-center rounded-full transition-colors duration-150",
+                hero ? "size-8" : "size-7",
+              )}
+            >
+              <X size={hero ? 17 : 15} strokeWidth={2.2} aria-hidden />
+            </button>
+          ) : null}
           {classicMode ? (
             <button
               type="button"

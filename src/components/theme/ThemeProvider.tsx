@@ -31,6 +31,36 @@ export const PALETTES: ReadonlyArray<{
     hint: "High-contrast warm charcoal. Amber accent.",
     swatch: ["#14110a", "#1c1710", "#ffc400"],
   },
+  {
+    id: "linen",
+    label: "Soft linen",
+    hint: "Warm earth: charcoal brown and ebony. Soft linen accent.",
+    swatch: ["#3e4532", "#565f47", "#6a5d48", "#e1dcd1", "#eee9e1"],
+  },
+  {
+    id: "lavender",
+    label: "Soft lavender",
+    hint: "Twilight: dusky indigo and smoky plum. Blush beige accent.",
+    swatch: ["#22223b", "#4a4e69", "#9a8c98", "#c9ada7", "#f2e9e4"],
+  },
+  {
+    id: "magic",
+    label: "Midnight magic",
+    hint: "Black to electric indigo, with midnight-blue flashes.",
+    swatch: ["#02010a", "#04052e", "#140152", "#22007c", "#0d00a4"],
+  },
+  {
+    id: "sea",
+    label: "Deep blue sea",
+    hint: "Midnight navy and misty blue. Tropical teal accent.",
+    swatch: ["#0b132b", "#1c2541", "#3a506b", "#5bc0be", "#6fffe9"],
+  },
+  {
+    id: "blues",
+    label: "Midnight blues",
+    hint: "Pitch black and stormy navy. Soft lavender accent.",
+    swatch: ["#000000", "#0c1821", "#1b2a41", "#324a5f", "#ccc9dc"],
+  },
 ];
 
 interface PaletteContextValue {

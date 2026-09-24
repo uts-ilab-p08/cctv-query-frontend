@@ -1,13 +1,13 @@
 "use client";
 
-import { confidenceVar } from "@/components/results/confidence";
-import { getThumbUrl } from "@/lib/clips";
+import { X } from "lucide-react";
+
+import { MomentCardContent } from "@/components/results/MomentCard";
 import type { Clip } from "@/types";
 
 interface MatchStripProps {
   matches: Clip[];
-  selectedClipId: number | null;
-  hasSelection: boolean;
+  selectedClipId: string | null;
   onSelect: (clip: Clip) => void;
   onClearSelection: () => void;
 }
@@ -16,68 +16,54 @@ interface MatchStripProps {
 export function MatchStrip({
   matches,
   selectedClipId,
-  hasSelection,
   onSelect,
   onClearSelection,
 }: MatchStripProps) {
   return (
     <div className="border-hairline flex shrink-0 items-stretch gap-3 border-t px-[18px] pt-2 pb-2.5">
-      <div className="flex w-[92px] shrink-0 flex-col justify-center gap-1">
-        <div className="text-ink-3 font-mono text-[10px] leading-[1.25] tracking-[1px]">
-          MATCHING
-          <br />
-          MOMENTS
-          <br />
-          TOP {matches.length}
-        </div>
-        {hasSelection ? (
-          <button
-            type="button"
-            onClick={onClearSelection}
-            className="text-accent text-left text-[10px]"
-          >
-            clear
-          </button>
-        ) : null}
+      {/* Plain label, deliberately not a card, so it never reads as one of the moments. */}
+      <div className="flex w-[184px] shrink-0 flex-col justify-center gap-1.5 pr-1">
+        <h2 className="text-ink font-mono text-[11px] leading-[1.3] font-bold tracking-[1px]">
+          <span className="block">MATCHING MOMENTS</span>{" "}
+          <span className="text-accent-strong">TOP {matches.length}</span>
+        </h2>
+        <p className="text-ink-3 text-[11px] leading-[1.35]">
+          Pick one to play its footage from the match and focus the assistant on that clip.
+        </p>
       </div>
 
-      <div className="flex min-w-0 flex-1 items-start gap-2.5 overflow-x-auto overflow-y-hidden pb-1.5">
+      <div className="flex min-w-0 flex-1 items-stretch gap-2.5 overflow-x-auto overflow-y-hidden pb-1.5">
         {matches.map((match) => {
           const active = match.id === selectedClipId;
+          const title = match.eventName ?? match.action;
           return (
-            <button
-              key={match.id}
-              type="button"
-              onClick={() => onSelect(match)}
-              className="bg-panel w-[140px] shrink-0 overflow-hidden rounded-[10px] border text-left"
-              style={{
-                borderColor: active ? "var(--accent)" : "var(--border)",
-                boxShadow: active ? "var(--shadow-accent)" : "var(--shadow-sm)",
-              }}
-            >
-              <div className="relative h-14 shrink-0">
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${getThumbUrl(match)})`,
-                    filter: "grayscale(0.55) contrast(1.05) brightness(0.82)",
-                  }}
-                />
-                <span className="absolute top-1.5 left-1.5 rounded bg-[rgba(12,15,19,0.80)] px-1.5 py-[2px] font-mono text-[10px] text-white">
-                  {match.camera}
-                </span>
-                <span
-                  className="absolute right-1.5 bottom-1.5 rounded bg-[rgba(12,15,19,0.80)] px-1.5 py-[2px] font-mono text-[10px]"
-                  style={{ color: confidenceVar(match.confidence) }}
+            // Deselect is a sibling of the card button, not a child: nested buttons are invalid
+            // HTML and the click would also re-select the card.
+            <div key={match.id} className="relative flex max-w-[320px] min-w-[228px] flex-1">
+              <button
+                type="button"
+                onClick={() => onSelect(match)}
+                title={title}
+                className="glass-card-flat flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] p-1.5 text-left"
+                style={{
+                  borderColor: active ? "var(--accent)" : "var(--border)",
+                  boxShadow: active ? "var(--shadow-accent)" : "var(--shadow-sm)",
+                }}
+              >
+                <MomentCardContent clip={match} textClassName={active ? "pr-12" : undefined} />
+              </button>
+              {active ? (
+                <button
+                  type="button"
+                  onClick={onClearSelection}
+                  title="Back to all matches"
+                  className="bg-panel-strong/70 text-accent-strong border-accent-line absolute top-1.5 right-1.5 flex cursor-pointer items-center gap-0.5 rounded-full border py-[2px] pr-2 pl-1.5 text-[10px] shadow-[0_2px_8px_rgba(0,0,0,0.35)] backdrop-blur-[8px]"
                 >
-                  {match.confidence}%
-                </span>
-              </div>
-              <div className="px-2 py-[5px]">
-                <div className="text-ink truncate text-[12px] font-semibold">{match.action}</div>
-                <div className="text-ink-3 font-mono text-[10px] leading-[1.3]">{match.ts}</div>
-              </div>
-            </button>
+                  <X size={10} strokeWidth={2.4} aria-hidden />
+                  Deselect
+                </button>
+              ) : null}
+            </div>
           );
         })}
       </div>

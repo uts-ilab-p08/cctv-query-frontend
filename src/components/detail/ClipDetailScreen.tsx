@@ -1,14 +1,13 @@
 "use client";
 
 import { MessageSquare } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { QueryAssistant } from "@/components/assistant/QueryAssistant";
 import { ClipMetaPanel } from "@/components/detail/ClipMetaPanel";
 import { RelatedClips } from "@/components/detail/RelatedClips";
 import { VideoPlayer } from "@/components/detail/VideoPlayer";
-import { clipSuggestedQuestions } from "@/data/suggestedQuestions";
-import { getRelatedClips } from "@/lib/clips";
+import { getRelatedClips } from "@/lib/api/endpoints";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 import type { Clip } from "@/types";
@@ -20,15 +19,33 @@ interface ClipDetailScreenProps {
 export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
   const query = useAppStore((state) => state.query);
   const seedClipChat = useAppStore((state) => state.seedClipChat);
+  const rememberClip = useAppStore((state) => state.rememberClip);
   const chatOpen = useAppStore((state) => state.chatOpen);
   const setChatOpen = useAppStore((state) => state.setChatOpen);
 
-  const related = getRelatedClips(clip);
+  const [related, setRelated] = useState<Clip[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRelatedClips(clip.id)
+      .then((clips) => {
+        if (!cancelled) setRelated(clips);
+      })
+      .catch(() => {
+        if (!cancelled) setRelated([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [clip.id]);
 
   // Open the thread with the investigator's query and the model's read of this clip.
+  // The clip comes from the API, so register it first: the assistant looks clips up
+  // by id and would otherwise only find the demo set.
   useEffect(() => {
+    rememberClip(clip);
     seedClipChat(clip.id, query);
-  }, [clip.id, query, seedClipChat]);
+  }, [clip, query, rememberClip, seedClipChat]);
 
   return (
     <div
@@ -55,7 +72,7 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
         </button>
       )}
 
-      <QueryAssistant chatKey={clip.id} suggestedQuestions={clipSuggestedQuestions} />
+      <QueryAssistant chatKey={clip.id} />
     </div>
   );
 }

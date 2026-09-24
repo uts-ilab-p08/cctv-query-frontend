@@ -2,6 +2,7 @@ import type { Clip, Filters } from "@/types";
 
 export const emptyFilters: Filters = {
   cameras: [],
+  scenes: [],
   tags: [],
   confidence: 0,
   dateFrom: "",
@@ -16,6 +17,10 @@ export function filterClips(clips: Clip[], filters: Filters): Clip[] {
   return clips
     .filter((clip) => filters.cameras.length === 0 || filters.cameras.includes(clip.camera))
     .filter(
+      (clip) =>
+        filters.scenes.length === 0 || (clip.scene != null && filters.scenes.includes(clip.scene)),
+    )
+    .filter(
       (clip) => filters.tags.length === 0 || filters.tags.some((tag) => clip.tags.includes(tag)),
     )
     .filter((clip) => clip.confidence >= filters.confidence)
@@ -25,7 +30,7 @@ export function filterClips(clips: Clip[], filters: Filters): Clip[] {
 export interface FilterChip {
   key: string;
   label: string;
-  kind: "camera" | "tag";
+  kind: "camera" | "scene" | "tag";
 }
 
 /** Removable chips summarising what is currently constraining the results. */
@@ -36,10 +41,15 @@ export function getActiveFilterChips(filters: Filters): FilterChip[] {
       label: camera,
       kind: "camera",
     })),
+    ...filters.scenes.map((scene): FilterChip => ({
+      key: `scene:${scene}`,
+      label: scene,
+      kind: "scene",
+    })),
     ...filters.tags.map((tag): FilterChip => ({ key: `tag:${tag}`, label: tag, kind: "tag" })),
   ];
 }
 
 export function hasActiveFilters(filters: Filters): boolean {
-  return filters.cameras.length > 0 || filters.tags.length > 0;
+  return filters.cameras.length > 0 || filters.scenes.length > 0 || filters.tags.length > 0;
 }

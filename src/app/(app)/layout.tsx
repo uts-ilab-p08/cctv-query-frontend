@@ -4,7 +4,6 @@ import { AmbientBackdrop } from "@/components/layout/AmbientBackdrop";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CamerasModal } from "@/components/modals/CamerasModal";
-import { SettingsModal } from "@/components/modals/SettingsModal";
 import { FiltersModal } from "@/components/results/FiltersModal";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -22,7 +21,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </div>
 
       <FiltersModal />
-      <SettingsModal />
       <CamerasModal />
     </div>
   );
