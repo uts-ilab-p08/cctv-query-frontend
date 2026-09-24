@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { SeekRequest } from "@/components/results/MatchVideo";
@@ -34,6 +35,8 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
+  /** In-app fullscreen: the chat column collapses and the video fills the workspace. */
+  const [videoExpanded, setVideoExpanded] = useState(false);
   const [duration, setDuration] = useState(0);
   const [seekRequest, setSeekRequest] = useState<SeekRequest | null>(null);
   /** Bumped on every match pick so re-picking the same match re-cues it. */
@@ -158,13 +161,27 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   return (
     <div className="font-barlow flex h-[calc(100vh-64px)] min-h-0 flex-col overflow-hidden">
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
+        {videoExpanded ? (
+          // The chat is only collapsed, never gone: this stays where it was, one click away.
+          <button
+            type="button"
+            onClick={() => setVideoExpanded(false)}
+            aria-label="Show chat"
+            title="Show the chat"
+            className="border-hairline-strong bg-panel-solid shadow-glass-lg text-ink hover:text-accent absolute top-1/2 left-3 z-20 flex -translate-y-1/2 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2.5 text-[13px] transition-colors duration-150"
+          >
+            <MessageSquare size={17} strokeWidth={2} aria-hidden />
+            Chat
+          </button>
+        ) : null}
         <QueryPanel
           query={query || "All indexed events"}
           selectedClipId={selectedClipId}
           contextLabel={selected ? `${selected.camera} · ${selected.ts}` : "Top 5 matches"}
           onClearSelection={() => setSelectedClipId(null)}
           onJumpToClip={jumpToClip}
+          hidden={videoExpanded}
         />
 
         <div className="bg-video-frame flex min-h-0 min-w-[280px] flex-1 basis-[440px] flex-col overflow-hidden">
@@ -187,6 +204,8 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
             onToggleMute={() => setMuted((m) => !m)}
             onToggleMeta={() => setMetaOpen((m) => !m)}
             onSeek={seekTo}
+            videoExpanded={videoExpanded}
+            onToggleExpand={() => setVideoExpanded((expanded) => !expanded)}
           />
         </div>
       </div>

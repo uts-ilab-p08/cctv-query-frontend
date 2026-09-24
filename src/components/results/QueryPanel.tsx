@@ -23,6 +23,9 @@ interface QueryPanelProps {
   contextLabel: string;
   onClearSelection: () => void;
   onJumpToClip: (id: string) => void;
+  /** Collapsed for the expanded-video view. Hidden rather than unmounted, so the
+   *  draft, the scroll position and the New Query dialog state survive. */
+  hidden?: boolean;
 }
 
 /** Left column of Results: the running query, the assistant thread, and the composer
@@ -34,6 +37,7 @@ export function QueryPanel({
   contextLabel,
   onClearSelection,
   onJumpToClip,
+  hidden = false,
 }: QueryPanelProps) {
   const [draft, setDraft] = useState("");
   const [newQueryOpen, setNewQueryOpen] = useState(false);
@@ -70,7 +74,10 @@ export function QueryPanel({
   };
 
   return (
-    <div className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r">
+    <div
+      hidden={hidden}
+      className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r"
+    >
       <div className="border-hairline shrink-0 border-b px-3.5 py-3">
         <div
           role="group"

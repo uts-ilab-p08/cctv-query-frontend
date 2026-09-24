@@ -218,6 +218,45 @@ describe("Results", () => {
     expect(screen.queryByRole("button", { name: "Deselect" })).not.toBeInTheDocument();
   });
 
+  it("expands the video by collapsing the chat, then brings the chat back as it was", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    await user.type(screen.getByPlaceholderText("Ask a follow-up question…"), "half-typed");
+    const toggle = screen.getByRole("button", { name: "Expand video" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("group", { name: "Your query" })).not.toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(screen.getByRole("group", { name: "Your query" })).toBeVisible();
+    // Hidden, not unmounted: the draft survives.
+    expect(screen.getByPlaceholderText("Ask a follow-up question…")).toHaveValue("half-typed");
+  });
+
+  it("offers a floating chat button while collapsed, which restores the chat", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    expect(screen.queryByRole("button", { name: "Show chat" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Expand video" }));
+
+    await user.click(screen.getByRole("button", { name: "Show chat" }));
+
+    expect(screen.getByRole("group", { name: "Your query" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Show chat" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand video" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
   it("selecting a match updates the CONTEXT chip", async () => {
     const user = userEvent.setup();
     await act(() => useAppStore.getState().runSearch("red car"));

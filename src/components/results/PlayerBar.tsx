@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Info, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { MouseEvent } from "react";
 
 import { fmtClock, WIN_LEN } from "@/lib/time";
@@ -24,6 +24,9 @@ interface PlayerBarProps {
   onToggleMute: () => void;
   onToggleMeta: () => void;
   onSeek: (sec: number) => void;
+  /** True while the chat is collapsed so the video takes the workspace. */
+  videoExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 const iconBtn =
@@ -42,6 +45,8 @@ export function PlayerBar({
   onToggleMute,
   onToggleMeta,
   onSeek,
+  videoExpanded = false,
+  onToggleExpand,
 }: PlayerBarProps) {
   const pct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
@@ -115,8 +120,21 @@ export function PlayerBar({
         <Info size={13} strokeWidth={2} aria-hidden />
       </button>
 
-      <button type="button" aria-label="Fullscreen" className={iconBtn}>
-        <Maximize2 size={14} strokeWidth={2} aria-hidden />
+      {/* In-app "fullscreen": collapses the chat column so the video takes the workspace.
+          A toggle with a fixed name + aria-pressed, so assistive tech hears the state. */}
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        aria-label="Expand video"
+        aria-pressed={videoExpanded}
+        title={videoExpanded ? "Show the chat" : "Expand the video (hides the chat)"}
+        className={iconBtn}
+      >
+        {videoExpanded ? (
+          <Minimize2 size={14} strokeWidth={2} aria-hidden />
+        ) : (
+          <Maximize2 size={14} strokeWidth={2} aria-hidden />
+        )}
       </button>
     </div>
   );

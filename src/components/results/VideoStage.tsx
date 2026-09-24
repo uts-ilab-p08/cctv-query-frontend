@@ -28,6 +28,8 @@ interface VideoStageProps {
   /** Object tracks for the moment, drawn over the footage. */
   tracks?: TracksResponse | null;
   onTogglePlay: () => void;
+  videoExpanded?: boolean;
+  onToggleExpand?: () => void;
   onToggleMute: () => void;
   onToggleMeta: () => void;
   onSeek: (sec: number) => void;
@@ -53,6 +55,8 @@ export function VideoStage({
   onDuration,
   onStop,
   tracks,
+  videoExpanded,
+  onToggleExpand,
   onTogglePlay,
   onToggleMute,
   onToggleMeta,
@@ -140,6 +144,8 @@ export function VideoStage({
         onToggleMute={onToggleMute}
         onToggleMeta={onToggleMeta}
         onSeek={onSeek}
+        videoExpanded={videoExpanded}
+        onToggleExpand={onToggleExpand}
       />
     </div>
   );
