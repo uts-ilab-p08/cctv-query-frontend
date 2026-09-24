@@ -3,6 +3,7 @@
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
@@ -63,6 +64,9 @@ export function QueryPanel({
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         {chat.map((message, index) => {
           const isUser = message.role === "user";
+          // Only the search that opened the thread is saveable — follow-ups are
+          // questions about the results, not queries worth re-running.
+          const isOriginalQuery = isUser && index === 0 && message.text === query;
           return (
             <div
               key={`${message.role}-${index}`}
@@ -77,16 +81,21 @@ export function QueryPanel({
                 </div>
               ) : null}
 
-              <div
-                className={cn(
-                  "max-w-[94%] rounded-[10px] border px-[13px] py-[11px] text-[13px] leading-[1.5]",
-                  isUser
-                    ? "surface-chat-user border-accent-line text-ink"
-                    : "border-hairline bg-panel-solid text-ink-2",
-                )}
-                style={{ textWrap: "pretty" }}
-              >
-                {message.text}
+              <div className="flex max-w-[94%] items-start gap-1">
+                {isOriginalQuery ? (
+                  <SaveQueryButton text={message.text} className="mt-1.5" />
+                ) : null}
+                <div
+                  className={cn(
+                    "min-w-0 rounded-[10px] border px-[13px] py-[11px] text-[13px] leading-[1.5]",
+                    isUser
+                      ? "surface-chat-user border-accent-line text-ink"
+                      : "border-hairline bg-panel-solid text-ink-2",
+                  )}
+                  style={{ textWrap: "pretty" }}
+                >
+                  {message.text}
+                </div>
               </div>
 
               {message.relatedId != null ? (

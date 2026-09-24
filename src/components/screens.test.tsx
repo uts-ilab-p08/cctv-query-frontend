@@ -18,6 +18,8 @@ import { SettingsModal } from "@/components/modals/SettingsModal";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
+import { deleteSavedQuery, getSavedQueries, saveQuery } from "@/lib/api/endpoints";
+import { ApiError } from "@/lib/api/client";
 import { getAllClips } from "@/lib/clips";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -53,6 +55,7 @@ vi.mock("@/lib/api/endpoints", () => ({
   }),
   getRecentQueries: vi.fn(async () => recentQueries),
   getSavedQueries: vi.fn(async () => savedQueries),
+  deleteSavedQuery: vi.fn(async () => undefined),
   saveQuery: vi.fn(async (text: string) => ({
     id: "test-saved",
     text,
@@ -64,9 +67,12 @@ vi.mock("@/lib/api/endpoints", () => ({
 beforeEach(() => {
   resetStore();
   pushMock.mockClear();
+  vi.mocked(saveQuery).mockClear();
+  vi.mocked(deleteSavedQuery).mockClear();
 });
 
 describe("Dashboard", () => {
+
   it("renders the composer and its recent queries", async () => {
     render(
       <>
@@ -140,6 +146,42 @@ describe("Results", () => {
 
     expect(screen.getByText(`${topMatch.camera} · ${topMatch.ts}`)).toBeInTheDocument();
   });
+
+  it("saves the original query from the bookmark beside its bubble", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Save query" }));
+
+    expect(saveQuery).toHaveBeenCalledExactlyOnceWith("red car");
+    const saved = await screen.findByRole("button", { name: "Query saved" });
+    expect(saved).toBeDisabled();
+  });
+
+  it("offers the bookmark only on the original query, not on follow-ups", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    await user.type(screen.getByPlaceholderText("Ask a follow-up question…"), "how many?{Enter}");
+
+    expect(screen.getAllByRole("button", { name: "Save query" })).toHaveLength(1);
+  });
+
+  it("lets the investigator retry when saving fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveQuery).mockRejectedValueOnce(new Error("boom"));
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Save query" }));
+
+    const retry = await screen.findByRole("button", { name: "Save failed — retry" });
+    await user.click(retry);
+    expect(saveQuery).toHaveBeenCalledTimes(2);
+    expect(await screen.findByRole("button", { name: "Query saved" })).toBeDisabled();
+  });
 });
 
 describe("Clip detail", () => {
@@ -177,6 +219,18 @@ describe("Clip detail", () => {
     const assistant = screen.getByRole("complementary", { name: "Query Assistant" });
     expect(within(assistant).getByText("red car")).toBeInTheDocument();
   });
+
+  it("saves the original query from the assistant thread", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "red car", chatOpen: true });
+    render(<ClipDetailScreen clip={clip} />);
+
+    const assistant = screen.getByRole("complementary", { name: "Query Assistant" });
+    await user.click(within(assistant).getByRole("button", { name: "Save query" }));
+
+    expect(saveQuery).toHaveBeenCalledExactlyOnceWith("red car");
+    expect(await within(assistant).findByRole("button", { name: "Query saved" })).toBeDisabled();
+  });
 });
 
 describe("Saved queries", () => {
@@ -191,6 +245,84 @@ describe("Saved queries", () => {
 
     expect(pushMock).toHaveBeenCalledWith("/results");
     expect(useAppStore.getState().query).toMatch(/red car/);
+  });
+
+  const firstRow = async () => (await screen.findAllByRole("listitem"))[0];
+
+  it("deletes a saved query after confirming", async () => {
+    const user = userEvent.setup();
+    render(<SavedQueriesScreen />);
+    const row = await firstRow();
+
+    await user.click(within(row).getByRole("button", { name: `Delete "${savedQueries[0].text}"` }));
+    expect(deleteSavedQuery).not.toHaveBeenCalled();
+    await user.click(within(row).getByRole("button", { name: "Confirm delete" }));
+
+    expect(deleteSavedQuery).toHaveBeenCalledWith(savedQueries[0].id);
+    await vi.waitFor(() =>
+      expect(screen.queryByText(savedQueries[0].text)).not.toBeInTheDocument(),
+    );
+    expect(screen.getAllByRole("listitem")).toHaveLength(savedQueries.length - 1);
+  });
+
+  it("keeps the query when the confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<SavedQueriesScreen />);
+    const row = await firstRow();
+
+    await user.click(within(row).getByRole("button", { name: /^Delete "/ }));
+    await user.click(within(row).getByRole("button", { name: "Cancel" }));
+
+    expect(deleteSavedQuery).not.toHaveBeenCalled();
+    expect(screen.getByText(savedQueries[0].text)).toBeInTheDocument();
+  });
+
+  it("treats an already-gone query (404) as deleted", async () => {
+    const user = userEvent.setup();
+    vi.mocked(deleteSavedQuery).mockRejectedValueOnce(new ApiError(404, "Not found"));
+    render(<SavedQueriesScreen />);
+    const row = await firstRow();
+
+    await user.click(within(row).getByRole("button", { name: /^Delete "/ }));
+    await user.click(within(row).getByRole("button", { name: "Confirm delete" }));
+
+    await vi.waitFor(() =>
+      expect(screen.queryByText(savedQueries[0].text)).not.toBeInTheDocument(),
+    );
+  });
+
+  it("says deleting isn't available while the backend lacks the endpoint", async () => {
+    const user = userEvent.setup();
+    vi.mocked(deleteSavedQuery).mockRejectedValueOnce(new ApiError(405, "Method Not Allowed"));
+    render(<SavedQueriesScreen />);
+    const row = await firstRow();
+
+    await user.click(within(row).getByRole("button", { name: /^Delete "/ }));
+    await user.click(within(row).getByRole("button", { name: "Confirm delete" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/isn't available yet/);
+    expect(screen.getByText(savedQueries[0].text)).toBeInTheDocument();
+  });
+
+  it("shows an empty state when nothing has been saved", async () => {
+    vi.mocked(getSavedQueries).mockResolvedValueOnce([]);
+    render(<SavedQueriesScreen />);
+
+    expect(await screen.findByText(/No saved queries yet/)).toBeInTheDocument();
+  });
+
+  it("surfaces a load failure and recovers on retry", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getSavedQueries).mockRejectedValueOnce(new Error("Invalid or expired token"));
+    render(<SavedQueriesScreen />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid or expired token");
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findAllByRole("button", { name: "Run again" })).toHaveLength(
+      savedQueries.length,
+    );
   });
 });
 

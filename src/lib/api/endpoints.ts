@@ -69,10 +69,16 @@ export async function getRecentQueries(): Promise<RecentQuery[]> {
   return response.queries ?? [];
 }
 
-/** NOTE: same untyped-response caveat as `getRelatedClips` — assumes `{ queries: [...] }`. */
+/**
+ * NOTE: same untyped-response caveat as `getRelatedClips`. Accepts both
+ * `{ queries: [...] }` and a bare array until the real envelope is confirmed.
+ */
 export async function getSavedQueries(): Promise<SavedQuery[]> {
-  const response = await apiFetch<{ queries?: ApiSavedQuery[] }>("/api/v1/queries/saved");
-  return (response.queries ?? []).map(apiSavedQueryToSavedQuery);
+  const response = await apiFetch<{ queries?: ApiSavedQuery[] } | ApiSavedQuery[]>(
+    "/api/v1/queries/saved",
+  );
+  const rows = Array.isArray(response) ? response : (response.queries ?? []);
+  return rows.map(apiSavedQueryToSavedQuery);
 }
 
 export async function saveQuery(text: string): Promise<SavedQuery> {
@@ -81,4 +87,14 @@ export async function saveQuery(text: string): Promise<SavedQuery> {
     body: JSON.stringify({ text }),
   });
   return apiSavedQueryToSavedQuery(saved);
+}
+
+/**
+ * PROPOSED `DELETE /api/v1/queries/saved/{id}` — NOT on the backend yet (the live
+ * OpenAPI only has GET/POST on /queries/saved; see BACKEND_API_SPEC.md §5). Until it
+ * ships the backend answers 405, which the Saved Queries screen reports as
+ * "not available yet". Expected: 204 on success, 404 if already gone.
+ */
+export async function deleteSavedQuery(id: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/queries/saved/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

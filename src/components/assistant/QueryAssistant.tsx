@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { BrandMark } from "@/components/brand/BrandMark";
 import { ChatMessage } from "@/components/assistant/ChatMessage";
+import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
 import { SuggestedQuestions } from "@/components/assistant/SuggestedQuestions";
 import { useAppStore } from "@/store/useAppStore";
 import type { ChatKey, ChatMessage as ChatMessageData } from "@/types";
@@ -33,6 +34,7 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
   const askInResults = useAppStore((state) => state.askInResults);
   const askAboutClip = useAppStore((state) => state.askAboutClip);
   const resetChat = useAppStore((state) => state.resetChat);
+  const query = useAppStore((state) => state.query);
 
   const ask = (question: string) => {
     if (!question.trim()) return;
@@ -77,9 +79,22 @@ export function QueryAssistant({ chatKey, suggestedQuestions }: QueryAssistantPr
         {messages.length === 0 ? (
           <SuggestedQuestions questions={suggestedQuestions} onAsk={ask} />
         ) : null}
-        {messages.map((message, index) => (
-          <ChatMessage key={`${message.role}-${index}`} message={message} />
-        ))}
+        {messages.map((message, index) => {
+          // Only the search that seeded the thread is saveable, not follow-ups.
+          const isOriginalQuery =
+            message.role === "user" && index === 0 && message.text === query.trim();
+          return (
+            <ChatMessage
+              key={`${message.role}-${index}`}
+              message={message}
+              action={
+                isOriginalQuery ? (
+                  <SaveQueryButton text={message.text} className="mt-1" />
+                ) : undefined
+              }
+            />
+          );
+        })}
       </div>
 
       <form

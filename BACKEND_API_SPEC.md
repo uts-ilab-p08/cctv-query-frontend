@@ -193,7 +193,7 @@ Source: `src/components/saved/SavedQueriesScreen.tsx`.
 
 ### `GET /api/v1/queries/saved`
 
-Implemented as specified. Response envelope also untyped in the schema — same `{ queries: [...] }` assumption.
+Implemented as specified. Response envelope also untyped in the schema — `getSavedQueries()` accepts both `{ queries: [...] }` and a bare array, and treats anything else as empty. `savedOn` is typed as a plain string: if it arrives as an ISO timestamp, the frontend formats it as `Sep 24`; otherwise it's shown as-is. The screen has loading, empty, and error states, and the error state has a retry button; errors are no longer shown as an empty list.
 
 ### `POST /api/v1/queries/saved`
 
@@ -206,7 +206,26 @@ Implemented. Backend's own docs confirm the design decided earlier in this proje
 
 **Response `201`:** `SavedQueryOut` — `{ id, text, savedOn, hits }`.
 
-Frontend function `saveQuery()` exists in `src/lib/api/endpoints.ts` but **no UI trigger calls it yet** — same gap noted in the original spec. The endpoint contract is ready; a "Save query" button still needs to be added to Home or Results.
+Frontend trigger: `SaveQueryButton` (`src/components/assistant/SaveQueryButton.tsx`) — a bookmark icon beside the original query bubble in both the Results thread (`QueryPanel`) and the Clip Detail assistant (`QueryAssistant`). Follow-up questions don't get one. The button disables itself once saved; the Saved Queries screen re-fetches on mount, so the new row shows up there on the next visit.
+
+### `DELETE /api/v1/queries/saved/{id}` — **PROPOSED, not implemented by the backend**
+
+Checked against the live `/openapi.json` on 2026-09-24: `/api/v1/queries/saved` only exposes `GET` and `POST`. The frontend already has a delete button on every saved query (`deleteSavedQuery()` in `src/lib/api/endpoints.ts`). Until the backend adds this endpoint, it answers `405`, and the screen shows *"Deleting saved queries isn't available yet"*.
+
+**Request:** no body. `{id}` is the `SavedQueryOut.id` from `GET /queries/saved`, URL-encoded.
+
+**Responses:**
+
+| Status | When | Frontend behaviour |
+|---|---|---|
+| `204 No Content` | Deleted. | Row removed. |
+| `404 Not Found` | No saved query with that id **for this user**. That includes a query owned by someone else: return 404, not 403, so the endpoint doesn't reveal other users' ids. | Treated as already deleted, so the row is removed. This makes a retry or a double-click harmless. |
+| `401` / `403` | Bad or missing token, as with every other endpoint. | Error shown and the row kept. |
+
+**Requirements:**
+- **Scope to the caller.** Delete only when the row belongs to the user identified by the bearer token.
+- **Hard delete is fine.** Saved queries are user bookmarks, not evidence, and there's no undo in the UI. If the audit log must record deletions, log the event; don't soft-delete the row.
+- **Leave recent queries alone.** Deleting a saved query must not touch `/queries/recent`, which comes from search history.
 
 ---
 
@@ -223,7 +242,8 @@ Frontend function `saveQuery()` exists in `src/lib/api/endpoints.ts` but **no UI
 - `/search` needs to return backend-normalized `Clip[]` (with real `camera`/`perspective`/`date`) instead of raw `RagResultItem[]` — the frontend cannot reconstruct camera/perspective/date from what's currently returned.
 - Three endpoints' response envelopes (`/clips/{id}/related`, `/cameras`, `/queries/recent`, `/queries/saved`) are untyped `object` in the OpenAPI schema — confirm the real key names once an authenticated call is possible, instead of relying on the frontend's `{ clips | cameras | queries: [...] }` assumption.
 - Conversational assistant endpoints don't exist yet — chat stays mocked.
-- No "Save query" UI trigger yet, even though the endpoint is ready.
+- Saved state on the bookmark is component-local: after navigating away and back, the icon resets to "unsaved" and a second click creates a duplicate row. Fix on the backend (unique `(user, text)`) or by checking `GET /queries/saved` on mount.
+- `DELETE /queries/saved/{id}` is proposed in §5. The UI is ready, but the backend doesn't implement it yet.
 - Supabase auth isn't wired in, so nothing beyond `/health` can actually be called successfully yet — this was expected going in, not a regression from this pass.
 
 ## 8. Out of Scope (for this pass)

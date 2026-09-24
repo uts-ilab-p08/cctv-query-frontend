@@ -88,6 +88,17 @@ export function apiCameraToCameraDirectoryEntry(
   return camera;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
+const SAVED_ON_FORMAT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+/**
+ * `savedOn` is a plain `string` in the OpenAPI schema — unconfirmed whether the
+ * backend sends a display label ("Aug 4") or a timestamp. ISO values are
+ * formatted to match the label style; anything else is shown as-is.
+ */
 export function apiSavedQueryToSavedQuery(query: ApiSavedQuery): SavedQuery {
-  return query;
+  const date = ISO_DATE.test(query.savedOn) ? new Date(query.savedOn) : null;
+  const savedOn =
+    date && !Number.isNaN(date.getTime()) ? SAVED_ON_FORMAT.format(date) : query.savedOn;
+  return { ...query, savedOn };
 }

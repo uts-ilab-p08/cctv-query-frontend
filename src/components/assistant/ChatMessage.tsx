@@ -1,29 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 import type { ChatMessage as ChatMessageData } from "@/types";
 
 interface ChatMessageProps {
   message: ChatMessageData;
+  /** Rendered beside the bubble, on the side facing the thread (e.g. a save bookmark). */
+  action?: ReactNode;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, action }: ChatMessageProps) {
   const isUser = message.role === "user";
 
   return (
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
-      <p
-        className={cn(
-          "rounded-chip max-w-[88%] border px-3 py-2.5 text-[13px] leading-[1.4]",
-          isUser
-            ? "surface-chat-user border-accent-line text-ink"
-            : "border-hairline bg-panel-solid text-ink-2",
-        )}
-      >
-        {message.text}
-      </p>
+      <div className="flex max-w-[88%] items-start gap-1">
+        {action}
+        <p
+          className={cn(
+            "rounded-chip min-w-0 border px-3 py-2.5 text-[13px] leading-[1.4]",
+            isUser
+              ? "surface-chat-user border-accent-line text-ink"
+              : "border-hairline bg-panel-solid text-ink-2",
+          )}
+        >
+          {message.text}
+        </p>
+      </div>
 
       {message.relatedId ? (
         <Link
