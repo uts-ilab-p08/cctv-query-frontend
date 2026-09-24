@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 
-import { CameraGlyph } from "@/components/brand/BrandMark";
+import { BrandLockup } from "@/components/brand/BrandMark";
 import { createClient } from "@/lib/supabase/client";
 
 interface LoginScreenProps {
@@ -49,10 +50,9 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
           style={{ background: "radial-gradient(circle, var(--glow-1), transparent 70%)" }}
         />
 
-        <div className="relative flex items-center gap-[11px]">
-          <CameraGlyph size={26} style={{ color: "var(--accent)" }} />
-          <span className="brand-wordmark text-ink font-barlow">CCTV AI</span>
-        </div>
+        <Link href="/" className="relative self-start no-underline">
+          <BrandLockup />
+        </Link>
 
         <div className="relative my-12 max-w-[460px] lg:my-0">
           <p className="text-ink-3 mb-4 font-mono text-[11px] tracking-[1.4px]">

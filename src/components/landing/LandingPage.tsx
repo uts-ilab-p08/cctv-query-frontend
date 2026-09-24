@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CameraGlyph } from "@/components/brand/BrandMark";
+import { BrandLockup } from "@/components/brand/BrandMark";
 
 const HERO_CHIPS = [
   { camera: "G328", action: "Vehicle arrival", confidence: 96, primary: true },
@@ -38,9 +38,8 @@ export function LandingPage() {
   return (
     <div className="bg-canvas text-ink font-barlow min-h-screen">
       <header className="border-hairline bg-video-bar sticky top-0 z-30 flex items-center justify-between gap-4 border-b px-7 py-3.5">
-        <div className="flex min-w-0 items-center gap-[11px]">
-          <CameraGlyph size={24} style={{ color: "var(--accent)" }} />
-          <span className="brand-wordmark whitespace-nowrap">CCTV AI</span>
+        <div className="min-w-0">
+          <BrandLockup />
         </div>
         <nav className="flex shrink-0 items-center gap-[22px]">
           <Link href="#how" className="text-ink-2 text-[13px]">

@@ -13,6 +13,8 @@ import { PipelineScreen } from "@/components/pipeline/PipelineScreen";
 import { ReportsScreen } from "@/components/reports/ReportsScreen";
 import { ResultsScreen } from "@/components/results/ResultsScreen";
 import { SavedQueriesScreen } from "@/components/saved/SavedQueriesScreen";
+import { LandingPage } from "@/components/landing/LandingPage";
+import { LoginScreen } from "@/components/login/LoginScreen";
 import { CamerasModal } from "@/components/modals/CamerasModal";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { recentQueries } from "@/data/recentQueries";
@@ -84,6 +86,29 @@ beforeEach(() => {
   vi.mocked(askAssistant).mockClear();
   vi.mocked(deleteSavedQuery).mockClear();
   vi.mocked(searchClips).mockClear();
+});
+
+describe("Landing", () => {
+  it("uses the same brand lockup as the app shell", () => {
+    render(<LandingPage />);
+
+    const header = screen.getByRole("banner");
+    expect(within(header).getByLabelText("CCTV AI Assistant")).toBeInTheDocument();
+  });
+});
+
+describe("Login", () => {
+  it("uses the same brand lockup as the app shell", () => {
+    render(<LoginScreen />);
+
+    expect(screen.getByLabelText("CCTV AI Assistant")).toBeInTheDocument();
+  });
+
+  it("links the logo back to the landing page", () => {
+    render(<LoginScreen />);
+
+    expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toHaveAttribute("href", "/");
+  });
 });
 
 describe("Dashboard", () => {
