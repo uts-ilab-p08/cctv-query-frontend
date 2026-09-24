@@ -18,7 +18,6 @@ export function resetStore(): void {
     searchPending: false,
     searchError: null,
     filtersOpen: false,
-    settingsOpen: false,
     camerasOpen: false,
     pipelineJobs: pristine.pipelineJobs,
     nextJobId: pristine.nextJobId,

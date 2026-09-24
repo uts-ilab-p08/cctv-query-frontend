@@ -14,7 +14,7 @@ import { ReportsScreen } from "@/components/reports/ReportsScreen";
 import { ResultsScreen } from "@/components/results/ResultsScreen";
 import { SavedQueriesScreen } from "@/components/saved/SavedQueriesScreen";
 import { CamerasModal } from "@/components/modals/CamerasModal";
-import { SettingsModal } from "@/components/modals/SettingsModal";
+import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
 import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
@@ -87,6 +87,14 @@ beforeEach(() => {
 });
 
 describe("Dashboard", () => {
+  it("links the search-mode hint to the settings page", () => {
+    render(<QueryComposer />);
+
+    expect(screen.getByRole("link", { name: /change in settings/ })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+  });
 
   it("renders the composer and its recent queries", async () => {
     render(
@@ -864,10 +872,19 @@ describe("Modals", () => {
     expect(useAppStore.getState().camerasOpen).toBe(false);
   });
 
+  it("is a page with its own sections, not a dialog", () => {
+    render(<SettingsScreen />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
+    for (const section of ["Search mode", "Precinct", "Appearance"]) {
+      expect(screen.getByRole("heading", { level: 2, name: section })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("switches the search mode from settings", async () => {
     const user = userEvent.setup();
-    useAppStore.setState({ settingsOpen: true });
-    render(<SettingsModal />);
+    render(<SettingsScreen />);
 
     await user.click(screen.getByRole("radio", { name: /Classic filters/ }));
 

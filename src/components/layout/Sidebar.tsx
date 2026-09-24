@@ -30,6 +30,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/saved", label: "Saved Queries", icon: Bookmark, match: ["/saved"] },
   { href: "/reports", label: "Reports", icon: AlignLeft, match: ["/reports"] },
   { href: "/pipeline", label: "Annotation Pipeline", icon: Layers, match: ["/pipeline"] },
+  { href: "/settings", label: "Settings", icon: Settings, match: ["/settings"] },
 ];
 
 /** SPEC §1 — a pill row holding a 32px circle, with the label outside the circle. */
@@ -48,7 +49,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const precinct = useAppStore((state) => state.precinct);
-  const openSettings = useAppStore((state) => state.openSettings);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,17 +92,6 @@ export function Sidebar() {
             </Link>
           );
         })}
-
-        <button
-          type="button"
-          onClick={openSettings}
-          className={cn(ROW, LABEL_RESTING, "cursor-pointer text-left")}
-        >
-          <span className={cn(CIRCLE, "glass-card-flat")}>
-            <Settings size={17} strokeWidth={2} aria-hidden />
-          </span>
-          Settings
-        </button>
       </nav>
 
       <div className="flex-1" />

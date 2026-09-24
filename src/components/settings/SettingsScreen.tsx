@@ -1,11 +1,14 @@
 "use client";
 
-import { Modal } from "@/components/ui/Modal";
 import { PALETTES, usePalette } from "@/components/theme/ThemeProvider";
 import { precincts } from "@/data/precincts";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 import type { SearchMode } from "@/types";
+
+const SECTION = "rounded-card glass-card-flat mb-4 p-5";
+const HEADING = "text-ink mb-1 text-[15px] font-semibold";
+const HINT = "text-ink-2 mb-3.5 text-xs";
 
 interface ModeOption {
   value: SearchMode;
@@ -28,9 +31,8 @@ const modeOptions: ModeOption[] = [
   },
 ];
 
-export function SettingsModal() {
-  const settingsOpen = useAppStore((state) => state.settingsOpen);
-  const closeSettings = useAppStore((state) => state.closeSettings);
+/** Settings as its own page (was a modal): search mode, precinct and appearance. */
+export function SettingsScreen() {
   const searchMode = useAppStore((state) => state.searchMode);
   const setSearchMode = useAppStore((state) => state.setSearchMode);
   const selectedPrecinct = useAppStore((state) => state.precinct);
@@ -38,51 +40,56 @@ export function SettingsModal() {
   const theme = useAppStore((state) => state.theme);
   const { palette, setPalette } = usePalette();
 
-  const close = closeSettings;
   const paletteApplies = theme === "dark";
 
   return (
-    <Modal
-      open={settingsOpen}
-      onClose={close}
-      title="Search settings"
-      description="Choose how you search the camera network."
-      width={440}
-    >
-      <div role="radiogroup" aria-label="Search mode" className="flex flex-col gap-2.5">
-        {modeOptions.map((option) => {
-          const active = searchMode === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => setSearchMode(option.value)}
-              className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-md border p-3.5 text-left transition-colors duration-150",
-                active ? "border-accent-line bg-accent-soft" : "border-hairline bg-transparent",
-              )}
-            >
-              <span
-                aria-hidden
-                className="border-accent-line mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
-              >
-                {active ? <span className="bg-accent size-2 rounded-full" /> : null}
-              </span>
-              <span>
-                <span className="mb-[3px] block text-sm font-semibold">{option.title}</span>
-                <span className="text-ink-2 block text-xs">{option.description}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="mx-auto w-full max-w-[760px] px-8 pt-12 pb-15">
+      <h1 className="mb-1.5 text-2xl font-bold">Settings</h1>
+      <p className="text-ink-2 mb-7 text-sm">
+        How you search the camera network, and how it looks.
+      </p>
 
-      <div className="border-hairline mt-[22px] border-t pt-[18px]">
-        <p className="text-ink-2 mb-2.5 text-xs">
-          Precinct — which camera network you&apos;re querying.
-        </p>
+      <section aria-labelledby="settings-mode" className={SECTION}>
+        <h2 id="settings-mode" className={HEADING}>
+          Search mode
+        </h2>
+        <p className={HINT}>Choose how you search the camera network.</p>
+        <div role="radiogroup" aria-label="Search mode" className="flex flex-col gap-2.5">
+          {modeOptions.map((option) => {
+            const active = searchMode === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setSearchMode(option.value)}
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-md border p-3.5 text-left transition-colors duration-150",
+                  active ? "border-accent-line bg-accent-soft" : "border-hairline bg-transparent",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className="border-accent-line mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+                >
+                  {active ? <span className="bg-accent size-2 rounded-full" /> : null}
+                </span>
+                <span>
+                  <span className="mb-[3px] block text-sm font-semibold">{option.title}</span>
+                  <span className="text-ink-2 block text-xs">{option.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section aria-labelledby="settings-precinct" className={SECTION}>
+        <h2 id="settings-precinct" className={HEADING}>
+          Precinct
+        </h2>
+        <p className={HINT}>Which camera network you&apos;re querying.</p>
         <div role="radiogroup" aria-label="Precinct" className="flex flex-wrap gap-2">
           {precincts.map((precinct) => {
             const active = precinct === selectedPrecinct;
@@ -105,12 +112,13 @@ export function SettingsModal() {
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <div className="border-hairline mt-[22px] border-t pt-[18px]">
-        <p className="text-ink-2 mb-2.5 text-xs">
-          Appearance — accent palette used while the theme is dark.
-        </p>
+      <section aria-labelledby="settings-appearance" className={SECTION}>
+        <h2 id="settings-appearance" className={HEADING}>
+          Appearance
+        </h2>
+        <p className={HINT}>Accent palette used while the theme is dark.</p>
 
         {paletteApplies ? (
           <div role="radiogroup" aria-label="Palette" className="grid gap-2.5 sm:grid-cols-3">
@@ -150,7 +158,7 @@ export function SettingsModal() {
             top bar to choose one.
           </p>
         )}
-      </div>
-    </Modal>
+      </section>
+    </div>
   );
 }

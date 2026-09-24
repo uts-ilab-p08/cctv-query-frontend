@@ -38,7 +38,6 @@ interface AppState {
   chatOpen: boolean;
 
   filtersOpen: boolean;
-  settingsOpen: boolean;
   camerasOpen: boolean;
 
   pipelineJobs: PipelineJob[];
@@ -66,8 +65,6 @@ interface AppState {
   setChatOpen: (open: boolean) => void;
   openFilters: () => void;
   closeFilters: () => void;
-  openSettings: () => void;
-  closeSettings: () => void;
   openCameras: () => void;
   closeCameras: () => void;
 
@@ -146,7 +143,6 @@ export const useAppStore = create<AppState>()(
       searchError: null,
 
       filtersOpen: false,
-      settingsOpen: false,
       camerasOpen: false,
 
       pipelineJobs: initialPipelineJobs,
@@ -199,8 +195,6 @@ export const useAppStore = create<AppState>()(
       setChatOpen: (chatOpen) => set({ chatOpen }),
       openFilters: () => set({ filtersOpen: true }),
       closeFilters: () => set({ filtersOpen: false }),
-      openSettings: () => set({ settingsOpen: true }),
-      closeSettings: () => set({ settingsOpen: false }),
       openCameras: () => set({ camerasOpen: true }),
       closeCameras: () => set({ camerasOpen: false }),
 
