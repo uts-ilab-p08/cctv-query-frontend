@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/cn";
@@ -34,6 +34,9 @@ export interface QueryFieldProps {
   floating?: boolean;
   onSubmit: () => void;
 }
+
+/** Characters typed before the clear button appears — below this it is noise. */
+const CLEAR_MIN_LENGTH = 3;
 
 /** The phrase map is authored as plain strings; narrow it back to the domain union. */
 const CLIP_TAGS: readonly ClipTag[] = [
@@ -79,7 +82,19 @@ export function QueryField({
   const setConfidence = useAppStore((s) => s.setConfidence);
 
   const hero = variant === "hero";
-  const pad = hero ? "py-5 pl-7 pr-[130px]" : "py-4 pl-6 pr-[118px]";
+  // Right padding reserves room for the overlaid buttons. Classic mode adds Filters, so
+  // it reserves more. It is fixed per mode — not per clear-button visibility — so the
+  // text never reflows when the clear button appears.
+  const pad = hero
+    ? cn("py-5 pl-7", classicMode ? "pr-[160px]" : "pr-[130px]")
+    : cn("py-4 pl-6", classicMode ? "pr-[146px]" : "pr-[118px]");
+  const showClear = query.length >= CLEAR_MIN_LENGTH;
+
+  const clear = () => {
+    setQuery("");
+    setMenu(null);
+    inputRef.current?.focus();
+  };
   const text = hero ? "text-base leading-[1.7]" : "text-[15px] leading-[1.6]";
 
   const openMenu = (hit: EntityHit) => (event: MouseEvent<HTMLSpanElement>) => {
@@ -225,6 +240,20 @@ export function QueryField({
             hero ? "top-[11px] right-3" : "top-[9px] right-2.5",
           )}
         >
+          {showClear ? (
+            <button
+              type="button"
+              onClick={clear}
+              aria-label="Clear search"
+              title="Clear search"
+              className={cn(
+                "text-ink-3 hover:text-ink hover:bg-accent-soft flex cursor-pointer items-center justify-center rounded-full transition-colors duration-150",
+                hero ? "size-8" : "size-7",
+              )}
+            >
+              <X size={hero ? 17 : 15} strokeWidth={2.2} aria-hidden />
+            </button>
+          ) : null}
           {classicMode ? (
             <button
               type="button"

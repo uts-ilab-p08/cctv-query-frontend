@@ -204,4 +204,39 @@ describe("QueryField", () => {
       /\bfont-(thin|light|normal|medium|semibold|bold|extrabold|black)\b/,
     );
   });
+
+  it("offers a clear button only from the third character", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+    const input = screen.getByRole("textbox", { name: "Search the camera network" });
+
+    await user.type(input, "re");
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+
+    await user.type(input, "d");
+    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+  });
+
+  it("empties the field and puts the caret back in it", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+    const input = screen.getByRole("textbox", { name: "Search the camera network" });
+
+    await user.type(input, "red car");
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+
+    expect(useAppStore.getState().query).toBe("");
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+  });
+
+  it("clears the local draft when controlled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<QueryField value="red car" onChange={onChange} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+
+    expect(onChange).toHaveBeenCalledWith("");
+  });
 });
