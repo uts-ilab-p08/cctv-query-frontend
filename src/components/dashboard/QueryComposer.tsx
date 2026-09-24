@@ -26,7 +26,7 @@ export function QueryComposer() {
 
   const submit = () => {
     if (!query.trim()) return;
-    runSearch(query);
+    void runSearch(query);
     router.push("/results");
   };
 

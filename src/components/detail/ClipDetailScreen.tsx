@@ -1,14 +1,14 @@
 "use client";
 
 import { MessageSquare } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { QueryAssistant } from "@/components/assistant/QueryAssistant";
 import { ClipMetaPanel } from "@/components/detail/ClipMetaPanel";
 import { RelatedClips } from "@/components/detail/RelatedClips";
 import { VideoPlayer } from "@/components/detail/VideoPlayer";
 import { clipSuggestedQuestions } from "@/data/suggestedQuestions";
-import { getRelatedClips } from "@/lib/clips";
+import { getRelatedClips } from "@/lib/api/endpoints";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 import type { Clip } from "@/types";
@@ -23,7 +23,21 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
   const chatOpen = useAppStore((state) => state.chatOpen);
   const setChatOpen = useAppStore((state) => state.setChatOpen);
 
-  const related = getRelatedClips(clip);
+  const [related, setRelated] = useState<Clip[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRelatedClips(clip.id)
+      .then((clips) => {
+        if (!cancelled) setRelated(clips);
+      })
+      .catch(() => {
+        if (!cancelled) setRelated([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [clip.id]);
 
   // Open the thread with the investigator's query and the model's read of this clip.
   useEffect(() => {

@@ -11,10 +11,10 @@ import type { ChatKey } from "@/types";
 interface QueryPanelProps {
   query: string;
   /** `null` when no coincidence is selected — the assistant context is "Top 5 matches". */
-  selectedClipId: number | null;
+  selectedClipId: string | null;
   contextLabel: string;
   onClearSelection: () => void;
-  onJumpToClip: (id: number) => void;
+  onJumpToClip: (id: string) => void;
 }
 
 /** Left column of Results: the running query, the assistant thread, and the composer
@@ -92,7 +92,7 @@ export function QueryPanel({
               {message.relatedId != null ? (
                 <button
                   type="button"
-                  onClick={() => onJumpToClip(message.relatedId as number)}
+                  onClick={() => onJumpToClip(message.relatedId as string)}
                   className="text-accent mt-[5px] text-[12px]"
                 >
                   View related clip →

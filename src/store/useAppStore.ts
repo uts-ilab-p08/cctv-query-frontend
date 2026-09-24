@@ -4,7 +4,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
 import { defaultPrecinct } from "@/data/precincts";
-import { answerForClip, answerForResults, summarizeClip, summarizeResults } from "@/lib/assistant";
+import { answerForClip, answerForResults, summarizeClip } from "@/lib/assistant";
+import { searchClips } from "@/lib/api/endpoints";
 import { getAllClips, getClipById } from "@/lib/clips";
 import { emptyFilters, filterClips } from "@/lib/filters";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
@@ -68,11 +69,15 @@ interface AppState {
   closeCameras: () => void;
 
   /** Seed the results thread with the query and the assistant's summary. */
-  runSearch: (text: string) => void;
+  runSearch: (text: string) => Promise<void>;
+  /** Clips returned by the last `runSearch` call — what Results renders. */
+  results: Clip[];
+  searchPending: boolean;
+  searchError: string | null;
   askInResults: (question: string) => void;
-  askAboutClip: (clipId: number, question: string) => void;
+  askAboutClip: (clipId: string, question: string) => void;
   /** Open a clip thread with the user's query and the model's read of the clip. */
-  seedClipChat: (clipId: number, query: string) => void;
+  seedClipChat: (clipId: string, query: string) => void;
   resetChat: (key: ChatKey) => void;
 
   setUploadCamera: (camera: string) => void;
@@ -107,6 +112,10 @@ export const useAppStore = create<AppState>()(
 
       chats: {},
       chatOpen: false, // the assistant is hidden until "Ask more"
+
+      results: [],
+      searchPending: false,
+      searchError: null,
 
       filtersOpen: false,
       settingsOpen: false,
@@ -167,23 +176,32 @@ export const useAppStore = create<AppState>()(
       openCameras: () => set({ camerasOpen: true }),
       closeCameras: () => set({ camerasOpen: false }),
 
-      runSearch: (text) => {
+      runSearch: async (text) => {
         const trimmed = text.trim();
         if (!trimmed) {
           set({ query: text });
           return;
         }
-        const matches = filterClips(getAllClips(), get().filters);
-        set((s) => ({
-          query: trimmed,
-          chats: {
-            ...s.chats,
-            results: [
-              { role: "user", text: trimmed },
-              { role: "agent", text: summarizeResults(matches, trimmed) },
-            ],
-          },
-        }));
+        set({ query: trimmed, searchPending: true, searchError: null });
+        try {
+          const { clips, summary } = await searchClips(trimmed);
+          set((s) => ({
+            results: clips,
+            searchPending: false,
+            chats: {
+              ...s.chats,
+              results: [
+                { role: "user", text: trimmed },
+                { role: "agent", text: summary },
+              ],
+            },
+          }));
+        } catch (error) {
+          set({
+            searchPending: false,
+            searchError: error instanceof Error ? error.message : "Search failed.",
+          });
+        }
       },
 
       askInResults: (question) => {

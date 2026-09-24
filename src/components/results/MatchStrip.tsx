@@ -6,7 +6,7 @@ import type { Clip } from "@/types";
 
 interface MatchStripProps {
   matches: Clip[];
-  selectedClipId: number | null;
+  selectedClipId: string | null;
   hasSelection: boolean;
   onSelect: (clip: Clip) => void;
   onClearSelection: () => void;

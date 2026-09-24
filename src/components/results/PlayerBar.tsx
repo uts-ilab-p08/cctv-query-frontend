@@ -6,7 +6,7 @@ import type { MouseEvent } from "react";
 import { fmtClock, WIN_LEN } from "@/lib/time";
 
 export interface PlayerTick {
-  id: number;
+  id: string;
   left: number;
   active: boolean;
 }

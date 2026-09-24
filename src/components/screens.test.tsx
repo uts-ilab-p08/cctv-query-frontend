@@ -15,9 +15,51 @@ import { ResultsScreen } from "@/components/results/ResultsScreen";
 import { SavedQueriesScreen } from "@/components/saved/SavedQueriesScreen";
 import { CamerasModal } from "@/components/modals/CamerasModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
+import { recentQueries } from "@/data/recentQueries";
+import { savedQueries } from "@/data/savedQueries";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { getAllClips } from "@/lib/clips";
 import { useAppStore } from "@/store/useAppStore";
+
+/**
+ * Screen tests exercise the mocked data path only — no network. `searchClips`
+ * mirrors the local deterministic assistant so existing assertions (which
+ * were written against the mock clip set) keep working; other endpoints
+ * return the same static fixtures the mocked screens used before the API
+ * integration.
+ */
+vi.mock("@/lib/api/endpoints", () => ({
+  searchClips: vi.fn(async (query: string) => {
+    const { filterClips } = await import("@/lib/filters");
+    const { summarizeResults } = await import("@/lib/assistant");
+    const { getAllClips: getMockClips } = await import("@/lib/clips");
+    const { emptyFilters } = await import("@/lib/filters");
+    const clips = filterClips(getMockClips(), emptyFilters);
+    return { clips, summary: summarizeResults(clips, query) };
+  }),
+  getClipById: vi.fn(async (id: string) => {
+    const { getClipById: getMockClipById } = await import("@/lib/clips");
+    return getMockClipById(id);
+  }),
+  getRelatedClips: vi.fn(async (id: string) => {
+    const { getClipById: getMockClipById, getRelatedClips: getMockRelated } =
+      await import("@/lib/clips");
+    const clip = getMockClipById(id);
+    return clip ? getMockRelated(clip) : [];
+  }),
+  getCameras: vi.fn(async () => {
+    const { getCameraDirectory } = await import("@/lib/clips");
+    return getCameraDirectory();
+  }),
+  getRecentQueries: vi.fn(async () => recentQueries),
+  getSavedQueries: vi.fn(async () => savedQueries),
+  saveQuery: vi.fn(async (text: string) => ({
+    id: "test-saved",
+    text,
+    savedOn: "just now",
+    hits: 0,
+  })),
+}));
 
 beforeEach(() => {
   resetStore();
@@ -25,7 +67,7 @@ beforeEach(() => {
 });
 
 describe("Dashboard", () => {
-  it("renders the composer and its recent queries", () => {
+  it("renders the composer and its recent queries", async () => {
     render(
       <>
         <QueryComposer />
@@ -35,7 +77,7 @@ describe("Dashboard", () => {
 
     expect(screen.getByRole("heading", { name: "Query your camera network" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Search the camera network/ })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
   });
 
   it("underlines detected terms inline as the investigator types", async () => {
@@ -75,7 +117,8 @@ describe("Dashboard", () => {
 });
 
 describe("Results", () => {
-  it("renders the query panel, video stage and matching-moments strip", () => {
+  it("renders the query panel, video stage and matching-moments strip", async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
     render(<ResultsScreen />);
 
     expect(screen.getByText("YOUR QUERY")).toBeInTheDocument();
@@ -85,6 +128,7 @@ describe("Results", () => {
 
   it("selecting a match updates the CONTEXT chip", async () => {
     const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
     render(<ResultsScreen />);
 
     const clips = getAllClips();
@@ -142,7 +186,8 @@ describe("Saved queries", () => {
 
     expect(screen.getByRole("heading", { name: "Saved Queries" })).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: "Run again" })[0]);
+    const runAgainButtons = await screen.findAllByRole("button", { name: "Run again" });
+    await user.click(runAgainButtons[0]);
 
     expect(pushMock).toHaveBeenCalledWith("/results");
     expect(useAppStore.getState().query).toMatch(/red car/);

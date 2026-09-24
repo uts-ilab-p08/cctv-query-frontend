@@ -1,13 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import { savedQueries } from "@/data/savedQueries";
+import { getSavedQueries } from "@/lib/api/endpoints";
 import { useAppStore } from "@/store/useAppStore";
+import type { SavedQuery } from "@/types";
 
 export function SavedQueriesScreen() {
   const router = useRouter();
   const runSearch = useAppStore((state) => state.runSearch);
+  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSavedQueries()
+      .then((queries) => {
+        if (!cancelled) setSavedQueries(queries);
+      })
+      .catch(() => {
+        if (!cancelled) setSavedQueries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-[760px] px-8 pt-12 pb-15">
@@ -29,7 +46,7 @@ export function SavedQueriesScreen() {
             <button
               type="button"
               onClick={() => {
-                runSearch(query.text);
+                void runSearch(query.text);
                 router.push("/results");
               }}
               className="surface-action shadow-action h-9 shrink-0 cursor-pointer rounded-full px-4 font-sans text-[13px]"

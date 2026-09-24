@@ -11,13 +11,13 @@ export function getAllClips(): Clip[] {
   return clips;
 }
 
-export function getClipById(id: number): Clip | undefined {
+export function getClipById(id: string): Clip | undefined {
   return clips.find((clip) => clip.id === id);
 }
 
-/** Placeholder still frame; a real backend would return a signed thumbnail URL. */
+/** Falls back to a placeholder still frame when the backend doesn't provide one yet. */
 export function getThumbUrl(clip: Clip): string {
-  return `https://picsum.photos/seed/cctv-${clip.code}-${clip.id}/640/400`;
+  return clip.thumbnailUrl ?? `https://picsum.photos/seed/cctv-${clip.code}-${clip.id}/640/400`;
 }
 
 export type ConfidenceLevel = "high" | "mid" | "low";

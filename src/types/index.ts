@@ -9,7 +9,8 @@
 export type ClipTag = "Person" | "Vehicle" | "Entry" | "Exit" | "Loitering" | "Object Left";
 
 export interface Clip {
-  id: number;
+  /** bronze.events.event_id — stable, backend-assigned. */
+  id: string;
   camera: string;
   code: string;
   perspective: string;
@@ -24,6 +25,8 @@ export interface Clip {
   tags: ClipTag[];
   objects: string;
   action: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
 }
 
 export interface Camera {
@@ -119,13 +122,13 @@ export interface ChatMessage {
   role: ChatRole;
   text: string;
   /** Clip this answer points at, rendered as a "View related clip" action. */
-  relatedId?: number;
+  relatedId?: string;
 }
 
 /** Chat threads are keyed by clip id, or by the literal `results` scope. */
-export type ChatKey = number | "results";
+export type ChatKey = string | "results";
 
 export interface AssistantAnswer {
   text: string;
-  relatedId?: number;
+  relatedId?: string;
 }

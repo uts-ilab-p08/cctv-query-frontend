@@ -1,15 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { Modal } from "@/components/ui/Modal";
-import { getCameraDirectory } from "@/lib/clips";
+import { getCameras } from "@/lib/api/endpoints";
 import { useAppStore } from "@/store/useAppStore";
+import type { CameraDirectoryEntry } from "@/types";
 
 export function CamerasModal() {
   const camerasOpen = useAppStore((state) => state.camerasOpen);
   const closeCameras = useAppStore((state) => state.closeCameras);
   const precinct = useAppStore((state) => state.precinct);
 
-  const directory = getCameraDirectory();
+  const [directory, setDirectory] = useState<CameraDirectoryEntry[]>([]);
+
+  useEffect(() => {
+    if (!camerasOpen) return;
+    let cancelled = false;
+    getCameras()
+      .then((cameras) => {
+        if (!cancelled) setDirectory(cameras);
+      })
+      .catch(() => {
+        if (!cancelled) setDirectory([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [camerasOpen]);
 
   return (
     <Modal

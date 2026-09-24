@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { MatchStrip } from "@/components/results/MatchStrip";
 import { QueryPanel } from "@/components/results/QueryPanel";
 import { VideoStage } from "@/components/results/VideoStage";
-import { getAllClips } from "@/lib/clips";
 import { clipPos, WIN_LEN } from "@/lib/time";
 import { useAppStore } from "@/store/useAppStore";
 import type { Clip } from "@/types";
@@ -17,9 +16,11 @@ import type { Clip } from "@/types";
  */
 export function ResultsScreen() {
   const query = useAppStore((state) => state.query);
-  const clips = useMemo(() => getAllClips(), []);
+  const clips = useAppStore((state) => state.results);
+  const searchPending = useAppStore((state) => state.searchPending);
+  const searchError = useAppStore((state) => state.searchError);
 
-  const [selectedClipId, setSelectedClipId] = useState<number | null>(null);
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [activeCamera, setActiveCamera] = useState(clips[0]?.camera ?? "");
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -64,7 +65,7 @@ export function ResultsScreen() {
   }, []);
 
   const jumpToClip = useCallback(
-    (id: number) => {
+    (id: string) => {
       const clip = clips.find((candidate) => candidate.id === id);
       if (clip) selectMatch(clip);
     },
@@ -83,10 +84,26 @@ export function ResultsScreen() {
     [clips, activeCamera, selectedClipId],
   );
 
+  if (searchPending) {
+    return (
+      <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
+        Searching indexed footage…
+      </div>
+    );
+  }
+
+  if (searchError) {
+    return (
+      <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
+        {searchError}
+      </div>
+    );
+  }
+
   if (!activeClip) {
     return (
       <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
-        No indexed clips available.
+        No matching clips found.
       </div>
     );
   }
