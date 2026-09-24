@@ -169,6 +169,29 @@ describe("QueryField", () => {
     expect(textarea?.className).toContain("z-[1]");
   });
 
+  it("edits a local draft without touching the shared query when controlled", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "red car" });
+    const onChange = vi.fn();
+    render(<QueryField value="" onChange={onChange} onSubmit={vi.fn()} />);
+
+    const input = screen.getByRole("textbox", { name: "Search the camera network" });
+    expect(input).toHaveValue("");
+
+    await user.type(input, "v");
+
+    expect(onChange).toHaveBeenCalledWith("v");
+    expect(useAppStore.getState().query).toBe("red car");
+  });
+
+  it("uses the opaque floating surface when rendered over a backdrop", () => {
+    render(<QueryField floating onSubmit={vi.fn()} />);
+
+    const field = screen.getByRole("textbox", { name: "Search the camera network" }).parentElement;
+    expect(field?.className).toContain("glass-panel");
+    expect(field?.className).not.toContain("glass-card");
+  });
+
   it("keeps token glyph widths equal to the textarea so the caret stays aligned", async () => {
     const user = userEvent.setup();
     render(<QueryField onSubmit={vi.fn()} />);

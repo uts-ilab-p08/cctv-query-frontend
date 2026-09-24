@@ -17,6 +17,11 @@ interface ModalProps {
   footer?: ReactNode;
   /** Dialog width in pixels; capped at 90vw. */
   width?: number;
+  /**
+   * "bare" floats `children` alone over a light, blurred backdrop — no panel, no
+   * header (the title stays for screen readers). Escape / backdrop click close it.
+   */
+  variant?: "panel" | "bare";
 }
 
 export function Modal({
@@ -27,6 +32,7 @@ export function Modal({
   children,
   footer,
   width = 520,
+  variant = "panel",
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -79,13 +85,18 @@ export function Modal({
 
   if (!open) return null;
 
+  const bare = variant === "bare";
+
   return (
     <div
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      className="bg-scrim fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-[4px]"
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center p-4",
+        bare ? "bg-scrim/40 backdrop-blur-[6px]" : "bg-scrim backdrop-blur-[4px]",
+      )}
     >
       <div
         ref={dialogRef}
@@ -95,25 +106,35 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         style={{ width }}
         className={cn(
-          "rounded-card glass-panel max-h-[80vh] w-full max-w-[90vw] overflow-y-auto p-[26px]",
+          "w-full max-w-[90vw]",
+          !bare && "rounded-card glass-panel max-h-[80vh] overflow-y-auto p-[26px]",
         )}
       >
-        <div className={cn("flex items-center justify-between", description ? "mb-1.5" : "mb-5")}>
-          <h2 id={titleId} className="text-[17px] font-semibold">
+        {bare ? (
+          <h2 id={titleId} className="sr-only">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="text-ink-2 hover:text-ink cursor-pointer rounded-lg p-1 transition-colors duration-150"
-          >
-            <X size={18} aria-hidden />
-          </button>
-        </div>
+        ) : (
+          <div className={cn("flex items-center justify-between", description ? "mb-1.5" : "mb-5")}>
+            <h2 id={titleId} className="text-[17px] font-semibold">
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close dialog"
+              className="text-ink-2 hover:text-ink cursor-pointer rounded-lg p-1 transition-colors duration-150"
+            >
+              <X size={18} aria-hidden />
+            </button>
+          </div>
+        )}
 
         {description ? (
-          <p id={descriptionId} className="text-ink-2 mb-[18px] text-xs">
+          <p
+            id={descriptionId}
+            className={cn("text-ink-2 text-xs", bare ? "sr-only" : "mb-[18px]")}
+          >
             {description}
           </p>
         ) : null}

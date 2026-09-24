@@ -185,6 +185,70 @@ describe("Results", () => {
   });
 });
 
+describe("Results — new query", () => {
+  beforeEach(async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+  });
+
+  const queryBox = () => screen.getByRole("group", { name: "Your query" });
+
+  it("shows the running query inside a field with a New Query action", () => {
+    render(<ResultsScreen />);
+
+    expect(within(queryBox()).getByText("red car")).toBeInTheDocument();
+    expect(within(queryBox()).getByRole("button", { name: "New Query" })).toBeInTheDocument();
+  });
+
+  it("opens the search field in a floating dialog, focused and empty", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+
+    const dialog = screen.getByRole("dialog", { name: "New query" });
+    const input = within(dialog).getByRole("textbox", { name: "Search the camera network" });
+    expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
+  });
+
+  it("does not rewrite the current query while the draft is typed or cancelled", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    await user.keyboard("loitering");
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(useAppStore.getState().query).toBe("red car");
+    expect(within(queryBox()).getByText("red car")).toBeInTheDocument();
+  });
+
+  it("runs the new search on Enter and closes the dialog", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    await user.keyboard("loitering at night{Enter}");
+
+    expect(searchClips).toHaveBeenLastCalledWith("loitering at night");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await within(queryBox()).findByText("loitering at night")).toBeInTheDocument();
+  });
+
+  it("drops a clip selection from the previous search", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    const topMatch = [...getAllClips()].sort((a, b) => b.confidence - a.confidence)[0];
+    await user.click(screen.getByText(topMatch.ts).closest("button")!);
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    await user.keyboard("loitering{Enter}");
+
+    expect(await screen.findByText("Top 5 matches")).toBeInTheDocument();
+  });
+});
+
 describe("Results with real footage", () => {
   const moment = (overrides: Partial<Clip>): Clip => ({
     id: "",

@@ -24,6 +24,14 @@ interface MenuState {
 export interface QueryFieldProps {
   /** "hero" on Home/Search, "compact" at the top of Results. */
   variant?: "hero" | "compact";
+  /**
+   * Controlled mode: pass both to edit a local draft (e.g. the New Query dialog)
+   * instead of the shared `query` the rest of the screen is showing.
+   */
+  value?: string;
+  onChange?: (value: string) => void;
+  /** Over a modal backdrop: swap the translucent card for the opaque floating surface. */
+  floating?: boolean;
   onSubmit: () => void;
 }
 
@@ -48,13 +56,22 @@ function asClipTag(value: string | undefined): ClipTag | undefined {
  * emphasis is a text stroke, NOT font-weight: bold glyphs are wider than the textarea's
  * regular ones, which would push the visible text ahead of the (textarea-owned) caret.
  */
-export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
+export function QueryField({
+  variant = "hero",
+  value,
+  onChange,
+  floating = false,
+  onSubmit,
+}: QueryFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
 
-  const query = useAppStore((s) => s.query);
-  const setQuery = useAppStore((s) => s.setQuery);
+  const storeQuery = useAppStore((s) => s.query);
+  const setStoreQuery = useAppStore((s) => s.setQuery);
+  const controlled = value !== undefined && onChange !== undefined;
+  const query = controlled ? value : storeQuery;
+  const setQuery = controlled ? onChange : setStoreQuery;
   const classicMode = useAppStore((s) => s.searchMode === "classic");
   const openFilters = useAppStore((s) => s.openFilters);
   const setCameras = useAppStore((s) => s.setCameras);
@@ -123,7 +140,8 @@ export function QueryField({ variant = "hero", onSubmit }: QueryFieldProps) {
           setMenu(null);
         }}
         className={cn(
-          "rounded-field glass-card relative z-20 w-full cursor-text",
+          "rounded-field relative z-20 w-full cursor-text",
+          floating ? "glass-panel" : "glass-card",
           !hero && "max-w-[820px]",
         )}
       >

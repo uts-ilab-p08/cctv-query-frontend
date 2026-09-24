@@ -61,6 +61,13 @@ export function ResultsScreen() {
     selected ?? (firstMatch?.videoUrl ? firstMatch : nearestOnFeed);
   const videoMode = !!activeClip?.videoUrl;
 
+  // A new search replaces the result set: a selection from the old one would
+  // otherwise keep the assistant on a clip thread that no longer exists.
+  useEffect(() => {
+    setSelectedClipId(null);
+    setPlaying(false);
+  }, [clips]);
+
   useEffect(() => {
     // Real video drives its own clock through `onTimeUpdate`.
     if (!playing || videoMode) return;

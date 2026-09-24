@@ -1,9 +1,10 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
+import { NewQueryModal } from "@/components/results/NewQueryModal";
 import { resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
@@ -29,6 +30,7 @@ export function QueryPanel({
   onJumpToClip,
 }: QueryPanelProps) {
   const [draft, setDraft] = useState("");
+  const [newQueryOpen, setNewQueryOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,14 +54,30 @@ export function QueryPanel({
 
   return (
     <div className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r">
-      <div className="border-hairline shrink-0 border-b px-4 py-2">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-ink-3 font-mono text-[10px] tracking-[1.2px]">YOUR QUERY</span>
+      <div className="border-hairline shrink-0 border-b px-3.5 py-3">
+        <div
+          role="group"
+          aria-label="Your query"
+          className="border-accent-line bg-panel-solid shadow-glass flex items-center gap-2 rounded-[14px] border py-2 pr-2 pl-3.5"
+        >
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-ink-3 font-mono text-[10px] tracking-[1.2px]">YOUR QUERY</span>
+            <p title={query} className="text-ink truncate text-[14px] leading-[1.35] font-medium">
+              {query}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setNewQueryOpen(true)}
+            className="surface-action shadow-action flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full pr-3.5 pl-2.5 font-sans text-[12px]"
+          >
+            <Plus size={14} strokeWidth={2.2} aria-hidden />
+            New Query
+          </button>
         </div>
-        <p title={query} className="text-ink truncate text-[13px] leading-[1.35]">
-          {query}
-        </p>
       </div>
+
+      <NewQueryModal open={newQueryOpen} onClose={() => setNewQueryOpen(false)} />
 
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         {chat.map((message, index) => {
