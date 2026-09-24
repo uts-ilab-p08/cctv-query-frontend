@@ -44,7 +44,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
 
   return (
     <div className="bg-canvas text-ink flex min-h-screen flex-col lg:flex-row">
-      <div className="bg-video-stage relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 lg:basis-[52%] lg:px-11">
+      <div className="bg-panel-solid border-hairline relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 lg:basis-[52%] lg:px-11">
         <div
           className="pointer-events-none absolute -top-[140px] -left-[100px] h-[460px] w-[460px] rounded-full"
           style={{ background: "radial-gradient(circle, var(--glow-1), transparent 70%)" }}

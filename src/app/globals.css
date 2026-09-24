@@ -87,7 +87,8 @@
   --track: rgb(255 255 255 / 0.1);
   --text: #f2f0fa;
   --text-2: #a9a3c9;
-  --text-3: #7b74a0;
+  /* #7b74a0 was 4.1:1 on --panel-solid (theme-contrast.test.ts). */
+  --text-3: #847ea6;
   --accent: #a78bfa;
   --accent-strong: #c9b8ff;
   --accent-soft: rgb(124 92 255 / 0.18);
@@ -610,7 +611,8 @@
   --track: rgb(17 17 20 / 0.09);
   --text: #111114;
   --text-2: #55555f;
-  --text-3: #8a8a94;
+  /* #8a8a94 was 2.8:1 on --bg; this clears 4.5:1 on --bg and white (theme-contrast.test.ts). */
+  --text-3: #65656f;
   --accent: #5b46f5;
   --accent-strong: #3a28c9;
   --accent-soft: rgb(91 70 245 / 0.1);
