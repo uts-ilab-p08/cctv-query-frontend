@@ -37,6 +37,13 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toBeInTheDocument();
   });
 
+  it("shows the signed-in user without a precinct", async () => {
+    render(<Sidebar />);
+
+    expect(await screen.findByText("l.ortiz@precinct.gov")).toBeInTheDocument();
+    expect(screen.queryByText(/^Precinct/)).not.toBeInTheDocument();
+  });
+
   it("expands back", async () => {
     const user = userEvent.setup();
     render(<Sidebar />);

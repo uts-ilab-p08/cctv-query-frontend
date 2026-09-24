@@ -1,6 +1,6 @@
 import type { ClipTag } from "@/types";
 
-/** Camera codes indexed for the active precinct, in directory order. */
+/** Camera codes indexed in the demo dataset, in directory order. */
 export const cameraNames = [
   "G299",
   "G301",

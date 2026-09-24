@@ -9,7 +9,6 @@ export function resetStore(): void {
     query: "",
     searchMode: "nlq",
     filters: emptyFilters,
-    precinct: pristine.precinct,
     chats: {},
     chatOpen: false,
     theme: "dark",

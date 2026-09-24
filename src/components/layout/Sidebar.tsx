@@ -18,7 +18,6 @@ import { useEffect, useState } from "react";
 import { BrandLockup, BrandMark } from "@/components/brand/BrandMark";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
-import { useAppStore } from "@/store/useAppStore";
 
 interface NavItem {
   href: string;
@@ -60,7 +59,6 @@ const COLLAPSED_STORAGE_KEY = "cctvai.sidebar";
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const precinct = useAppStore((state) => state.precinct);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   // Starts expanded to match the server render; the stored choice applies after mount.
   const [collapsed, setCollapsed] = useState(false);
@@ -171,10 +169,7 @@ export function Sidebar() {
 
       <div className="border-hairline flex flex-col gap-0.5 border-t pt-3.5">
         {collapsed ? null : (
-          <>
-            <p className="text-ink-2 font-mono text-[11px]">{precinct}</p>
-            <p className="text-ink-3 truncate font-mono text-[11px]">{userEmail ?? "—"}</p>
-          </>
+          <p className="text-ink-3 truncate font-mono text-[11px]">{userEmail ?? "—"}</p>
         )}
         <button
           type="button"

@@ -10,7 +10,6 @@ import type { CameraDirectoryEntry } from "@/types";
 export function CamerasModal() {
   const camerasOpen = useAppStore((state) => state.camerasOpen);
   const closeCameras = useAppStore((state) => state.closeCameras);
-  const precinct = useAppStore((state) => state.precinct);
 
   const [directory, setDirectory] = useState<CameraDirectoryEntry[]>([]);
 
@@ -34,7 +33,7 @@ export function CamerasModal() {
       open={camerasOpen}
       onClose={closeCameras}
       title="Indexed Cameras"
-      description={`${precinct} · archived footage sources, not a live feed.`}
+      description="Archived footage sources, not a live feed."
       width={480}
     >
       <ul className="border-hairline rounded-chip flex flex-col overflow-hidden border">

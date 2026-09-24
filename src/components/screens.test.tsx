@@ -914,6 +914,7 @@ describe("Modals", () => {
     render(<CamerasModal />);
 
     expect(screen.getByRole("dialog", { name: "Indexed Cameras" })).toBeInTheDocument();
+    expect(screen.queryByText(/precinct/i)).not.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 
@@ -955,9 +956,11 @@ describe("Modals", () => {
     render(<SettingsScreen />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
-    for (const section of ["Search mode", "Precinct", "Appearance"]) {
+    for (const section of ["Search mode", "Appearance"]) {
       expect(screen.getByRole("heading", { level: 2, name: section })).toBeInTheDocument();
     }
+    // MEVA is a single facility: there is no precinct to pick.
+    expect(screen.queryByRole("radiogroup", { name: "Precinct" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

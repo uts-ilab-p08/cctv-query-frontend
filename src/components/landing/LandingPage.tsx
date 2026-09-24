@@ -28,7 +28,7 @@ const STEPS = [
 
 const FACTS = [
   { label: "Footage scope", value: "Archived only" },
-  { label: "Cameras indexed", value: "8 per precinct" },
+  { label: "Cameras indexed", value: "8" },
   { label: "Access record", value: "Per badge ID" },
   { label: "Retention", value: "Agency policy" },
 ];

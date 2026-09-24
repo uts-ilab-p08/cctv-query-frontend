@@ -1,7 +1,6 @@
 "use client";
 
 import { PALETTES, usePalette } from "@/components/theme/ThemeProvider";
-import { precincts } from "@/data/precincts";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 import type { SearchMode } from "@/types";
@@ -31,12 +30,10 @@ const modeOptions: ModeOption[] = [
   },
 ];
 
-/** Settings as its own page (was a modal): search mode, precinct and appearance. */
+/** Settings as its own page (was a modal): search mode and appearance. */
 export function SettingsScreen() {
   const searchMode = useAppStore((state) => state.searchMode);
   const setSearchMode = useAppStore((state) => state.setSearchMode);
-  const selectedPrecinct = useAppStore((state) => state.precinct);
-  const setPrecinct = useAppStore((state) => state.setPrecinct);
   const theme = useAppStore((state) => state.theme);
   const { palette, setPalette } = usePalette();
 
@@ -79,35 +76,6 @@ export function SettingsScreen() {
                   <span className="mb-[3px] block text-sm font-semibold">{option.title}</span>
                   <span className="text-ink-2 block text-xs">{option.description}</span>
                 </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section aria-labelledby="settings-precinct" className={SECTION}>
-        <h2 id="settings-precinct" className={HEADING}>
-          Precinct
-        </h2>
-        <p className={HINT}>Which camera network you&apos;re querying.</p>
-        <div role="radiogroup" aria-label="Precinct" className="flex flex-wrap gap-2">
-          {precincts.map((precinct) => {
-            const active = precinct === selectedPrecinct;
-            return (
-              <button
-                key={precinct}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setPrecinct(precinct)}
-                className={cn(
-                  "cursor-pointer rounded-md border px-3.5 py-2 font-sans text-[13px] transition-colors duration-150",
-                  active
-                    ? "border-accent-line bg-accent-soft text-accent"
-                    : "text-ink-2 hover:text-ink glass-card-flat",
-                )}
-              >
-                {precinct}
               </button>
             );
           })}

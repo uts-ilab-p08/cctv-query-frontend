@@ -3,7 +3,6 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
-import { defaultPrecinct } from "@/data/precincts";
 import { clipSuggestedQuestions, resultsSuggestedQuestions } from "@/data/suggestedQuestions";
 import { summarizeClip } from "@/lib/assistant";
 import { askAssistant, searchClips } from "@/lib/api/endpoints";
@@ -32,7 +31,6 @@ interface AppState {
   searchMode: SearchMode;
   query: string;
   filters: Filters;
-  precinct: string;
 
   chats: Record<string, ChatMessage[]>;
   chatOpen: boolean;
@@ -51,7 +49,6 @@ interface AppState {
   setTheme: (theme: Theme) => void;
   setSearchMode: (mode: SearchMode) => void;
   setQuery: (query: string) => void;
-  setPrecinct: (precinct: string) => void;
 
   setCameras: (cameras: string[]) => void;
   addTag: (tag: ClipTag) => void;
@@ -136,7 +133,6 @@ export const useAppStore = create<AppState>()(
       searchMode: "nlq",
       query: "",
       filters: emptyFilters,
-      precinct: defaultPrecinct,
 
       chats: {},
       chatOpen: false, // the assistant is hidden until "Ask more"
@@ -164,7 +160,6 @@ export const useAppStore = create<AppState>()(
       },
       setSearchMode: (searchMode) => set({ searchMode }),
       setQuery: (query) => set({ query }),
-      setPrecinct: (precinct) => set({ precinct }),
 
       setCameras: (cameras) => set((s) => ({ filters: { ...s.filters, cameras } })),
       addTag: (tag) =>
@@ -372,7 +367,7 @@ export const useAppStore = create<AppState>()(
     {
       name: "cctv-ai:state",
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ searchMode: s.searchMode, precinct: s.precinct }),
+      partialize: (s) => ({ searchMode: s.searchMode }),
     },
   ),
 );

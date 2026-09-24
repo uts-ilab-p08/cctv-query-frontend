@@ -68,8 +68,8 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
             className="text-ink-2 font-barlow text-[15px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            Natural-language queries across indexed footage from every camera in the precinct — with
-            the timestamp, the feed, and the confidence behind each match.
+            Natural-language queries across indexed footage from every indexed camera — with the
+            timestamp, the feed, and the confidence behind each match.
           </p>
         </div>
 
