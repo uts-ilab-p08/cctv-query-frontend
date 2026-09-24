@@ -65,6 +65,7 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
     action: item.caption,
     thumbnailUrl: undefined,
     videoUrl: item.video_url ?? undefined,
+    eventName: item.event_name?.trim() || undefined,
     videoId: item.video_id,
     startSeconds: item.start_seconds,
     endSeconds: item.end_seconds,

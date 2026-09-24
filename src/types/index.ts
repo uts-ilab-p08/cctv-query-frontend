@@ -28,6 +28,8 @@ export interface Clip {
   action: string;
   thumbnailUrl?: string;
   videoUrl?: string;
+  /** Short event label from the RAG; when absent, `action` (the description) is shown. */
+  eventName?: string;
   /** Source video id — several moments (clips) can share one video. */
   videoId?: string;
   /** Where the moment starts/ends inside `videoUrl`, in seconds. */

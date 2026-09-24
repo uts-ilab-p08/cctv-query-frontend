@@ -28,6 +28,16 @@ describe("ragResultItemToClip", () => {
     expect(first.id).not.toBe(second.id);
   });
 
+  it("uses the event name when the RAG provides one", () => {
+    expect(ragResultItemToClip({ ...item, event_name: "Vehicle arrival" }, 0).eventName).toBe(
+      "Vehicle arrival",
+    );
+  });
+
+  it("leaves the event name empty so the caption is shown instead", () => {
+    expect(ragResultItemToClip(item, 0).eventName).toBeUndefined();
+  });
+
   it("shows the moment's offset into its video, as returned by the endpoint", () => {
     expect(ragResultItemToClip({ ...item, start_seconds: 12 }, 0).ts).toBe("0:12");
     expect(ragResultItemToClip({ ...item, start_seconds: 125.6 }, 0).ts).toBe("2:05");

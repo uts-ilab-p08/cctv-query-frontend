@@ -133,6 +133,36 @@ describe("Results", () => {
     expect(screen.getByText("Top 5 matches")).toBeInTheDocument();
   });
 
+  it("labels the matching-moments strip and explains what picking one does", async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    const heading = screen.getByRole("heading", { name: /MATCHING MOMENTS/ });
+    expect(heading).toHaveTextContent(/TOP \d+/);
+    expect(heading.className).toContain("font-bold");
+    expect(screen.getByText(/play its footage/i)).toBeInTheDocument();
+  });
+
+  it("clears a selection from inside the selected moment", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    expect(screen.queryByRole("button", { name: "Deselect" })).not.toBeInTheDocument();
+
+    const topMatch = [...getAllClips()].sort((a, b) => b.confidence - a.confidence)[0];
+    const card = screen.getByText(topMatch.ts).closest("button")!;
+    await user.click(card);
+
+    const clear = within(card.parentElement!).getByRole("button", { name: "Deselect" });
+    expect(screen.getAllByRole("button", { name: "Deselect" })).toHaveLength(1);
+
+    await user.click(clear);
+
+    expect(screen.getByText("Top 5 matches")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deselect" })).not.toBeInTheDocument();
+  });
+
   it("selecting a match updates the CONTEXT chip", async () => {
     const user = userEvent.setup();
     await act(() => useAppStore.getState().runSearch("red car"));
@@ -312,6 +342,26 @@ describe("Results with real footage", () => {
     expect(video.getAttribute("src")).toBe("https://cdn.test/a.mp4");
     await loadMetadata(video);
     expect(video.currentTime).toBe(12);
+  });
+
+  it("lays each moment out as title, camera, then time — with only the score on the thumbnail", () => {
+    useAppStore.setState({
+      results: [
+        { ...clipA, eventName: "Vehicle arrival", camera: "G328", ts: "14:02:10" },
+        clipB,
+        clipC,
+      ],
+    });
+    render(<ResultsScreen />);
+
+    const named = screen.getByRole("button", { name: /Vehicle arrival/ });
+    expect(within(named).queryByText("Moment A")).not.toBeInTheDocument();
+    expect(within(named).getAllByText("G328")).toHaveLength(1);
+    expect(within(named).getAllByText("14:02:10")).toHaveLength(1);
+    expect(within(named).getByText("90%")).toBeInTheDocument();
+
+    // No event name: the description stands in as the title.
+    expect(screen.getByRole("button", { name: /Moment B/ })).toBeInTheDocument();
   });
 
   it("keeps the assistant on the query thread until a match is picked", () => {

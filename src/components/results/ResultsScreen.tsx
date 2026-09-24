@@ -184,7 +184,6 @@ export function ResultsScreen() {
       <MatchStrip
         matches={matches}
         selectedClipId={selectedClipId}
-        hasSelection={!!selected}
         onSelect={selectMatch}
         onClearSelection={() => setSelectedClipId(null)}
       />

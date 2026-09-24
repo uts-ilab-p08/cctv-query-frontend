@@ -136,6 +136,7 @@ Since the backend returns raw `RagResultItem[]` and not `Clip[]`, the frontend n
 | `confidence` | `Math.round(score * 100)` | Straight unit conversion |
 | `ts` | `start_seconds`, formatted as `m:ss` (or `h:mm:ss`) | Shown as-is: it's the **offset into the source video**, not a wall-clock time. The earlier version added it to the demo window's fake 13:55:00 clock, so a moment at 12s showed as 13:55:12. Switch to wall-clock time once the RAG returns a timestamp. |
 | `objects`, `action` | both set to `caption` | The RAG gives one free-text field, not separate object/action breakdowns like the mock data has |
+| `eventName` | `event_name` (optional) | **Not in the documented `RagResultItem` contract.** The frontend reads it if present and uses it as the match-card title; when it's missing or empty, the card shows the `caption`. Confirm with the RAG team whether this field exists and what it's called. |
 | `camera`, `code`, `perspective` | hardcoded `"Unknown"` | **Not present anywhere in `RagResultItem`.** This is the biggest gap — Results/MatchStrip render "Unknown" for every camera-related field until the backend enriches this response |
 | `tags` | keyword-matched against `caption` | Best-effort regex (`car/vehicle` → Vehicle, `enter/arriv` → Entry, etc. — see `TAG_KEYWORDS` in `normalize.ts`). Not authoritative; can miss or misclassify |
 | `date`, `order` | `""` / array index | No date info in the payload at all; `order` is just result position, not a real chronological ordering |

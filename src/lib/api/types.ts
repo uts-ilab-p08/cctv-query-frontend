@@ -12,6 +12,8 @@ export interface RagResultItem {
   end_seconds: number;
   caption: string;
   score: number;
+  /** Short event label. Not in the documented contract yet — optional until the RAG confirms it. */
+  event_name?: string | null;
 }
 
 export interface RagQueryResult {
