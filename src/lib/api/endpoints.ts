@@ -18,6 +18,17 @@ import type {
   RagQueryResult,
 } from "./types";
 
+/**
+ * Rows of a list endpoint whose response is an untyped `object` in the OpenAPI
+ * schema (no Pydantic response_model), so the envelope is unconfirmed. Accepts
+ * the documented `{ [key]: [...] }` and a bare array; anything else is empty.
+ */
+function listFrom<T>(response: unknown, key: string): T[] {
+  if (Array.isArray(response)) return response as T[];
+  const rows = (response as Record<string, unknown> | null)?.[key];
+  return Array.isArray(rows) ? (rows as T[]) : [];
+}
+
 export interface SearchResult {
   clips: Clip[];
   summary: string;
@@ -44,44 +55,33 @@ export async function getClipById(id: string, authToken?: string | null): Promis
   return apiClipToClip(clip);
 }
 
-/**
- * NOTE: the OpenAPI schema declares this endpoint's response as an untyped
- * `object` (FastAPI didn't attach a Pydantic response_model), so the exact
- * envelope shape is unconfirmed — this assumes `{ clips: [...] }` per the
- * original frontend spec. Verify against a real authenticated response
- * once Supabase auth is wired in, and adjust if the backend returns a bare
- * array or a different key instead.
- */
+/** Untyped response in the OpenAPI schema — see `listFrom`. */
 export async function getRelatedClips(id: string, limit = 4): Promise<Clip[]> {
   const params = new URLSearchParams({ limit: String(limit) });
-  const response = await apiFetch<{ clips?: ApiClip[] }>(
+  const response = await apiFetch<unknown>(
     `/api/v1/clips/${encodeURIComponent(id)}/related?${params.toString()}`,
   );
-  return (response.clips ?? []).map(apiClipToClip);
+  return listFrom<ApiClip>(response, "clips").map(apiClipToClip);
 }
 
-/** NOTE: same untyped-response caveat as `getRelatedClips` — assumes `{ cameras: [...] }`. */
+/** Untyped response in the OpenAPI schema — see `listFrom`. */
 export async function getCameras(): Promise<CameraDirectoryEntry[]> {
-  const response = await apiFetch<{ cameras?: ApiCameraDirectoryEntry[] }>("/api/v1/cameras");
-  return (response.cameras ?? []).map(apiCameraToCameraDirectoryEntry);
-}
-
-/** NOTE: same untyped-response caveat as `getRelatedClips` — assumes `{ queries: [...] }`. */
-export async function getRecentQueries(): Promise<RecentQuery[]> {
-  const response = await apiFetch<{ queries?: ApiRecentQuery[] }>("/api/v1/queries/recent");
-  return response.queries ?? [];
-}
-
-/**
- * NOTE: same untyped-response caveat as `getRelatedClips`. Accepts both
- * `{ queries: [...] }` and a bare array until the real envelope is confirmed.
- */
-export async function getSavedQueries(): Promise<SavedQuery[]> {
-  const response = await apiFetch<{ queries?: ApiSavedQuery[] } | ApiSavedQuery[]>(
-    "/api/v1/queries/saved",
+  const response = await apiFetch<unknown>("/api/v1/cameras");
+  return listFrom<ApiCameraDirectoryEntry>(response, "cameras").map(
+    apiCameraToCameraDirectoryEntry,
   );
-  const rows = Array.isArray(response) ? response : (response.queries ?? []);
-  return rows.map(apiSavedQueryToSavedQuery);
+}
+
+/** Untyped response in the OpenAPI schema — see `listFrom`. */
+export async function getRecentQueries(): Promise<RecentQuery[]> {
+  const response = await apiFetch<unknown>("/api/v1/queries/recent");
+  return listFrom<ApiRecentQuery>(response, "queries");
+}
+
+/** Untyped response in the OpenAPI schema — see `listFrom`. */
+export async function getSavedQueries(): Promise<SavedQuery[]> {
+  const response = await apiFetch<unknown>("/api/v1/queries/saved");
+  return listFrom<ApiSavedQuery>(response, "queries").map(apiSavedQueryToSavedQuery);
 }
 
 export async function saveQuery(text: string): Promise<SavedQuery> {
