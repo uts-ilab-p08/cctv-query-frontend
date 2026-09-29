@@ -6,7 +6,7 @@ import { MatchVideo, type SeekRequest } from "@/components/results/MatchVideo";
 import type { TracksResponse } from "@/lib/api/types";
 import { MetadataOverlay } from "@/components/results/MetadataOverlay";
 import { PlayerBar, type PlayerTick } from "@/components/results/PlayerBar";
-import { getThumbUrl } from "@/lib/clips";
+import { Thumbnail } from "@/components/ui/Thumbnail";
 import { fmtClock, fmtElapsed } from "@/lib/time";
 import type { Clip } from "@/types";
 
@@ -80,18 +80,12 @@ export function VideoStage({
               onTimeUpdate={onTimeUpdate}
               onDuration={onDuration}
               onStop={onStop}
+              poster={clip.thumbnailUrl}
               tracks={tracks}
             />
           ) : (
-            /* Still frame for clips without footage (the mock dataset). */
-            <div
-              className="absolute inset-0 bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url(${getThumbUrl(clip)})`,
-                backgroundSize: "contain",
-                filter: "grayscale(0.58) contrast(1.06) brightness(0.72)",
-              }}
-            />
+            /* Still frame for clips without footage. */
+            <Thumbnail src={clip.thumbnailUrl} imgClassName="thumb-filter object-contain" />
           )}
 
           <div className="absolute top-3 left-3 flex items-center gap-2">

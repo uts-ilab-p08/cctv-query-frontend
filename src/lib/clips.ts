@@ -15,11 +15,6 @@ export function getClipById(id: string): Clip | undefined {
   return clips.find((clip) => clip.id === id);
 }
 
-/** Falls back to a placeholder still frame when the backend doesn't provide one yet. */
-export function getThumbUrl(clip: Clip): string {
-  return clip.thumbnailUrl ?? `https://picsum.photos/seed/cctv-${clip.code}-${clip.id}/640/400`;
-}
-
 export type ConfidenceLevel = "high" | "mid" | "low";
 
 export function getConfidenceLevel(confidence: number): ConfidenceLevel {

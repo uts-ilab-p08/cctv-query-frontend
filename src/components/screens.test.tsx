@@ -321,6 +321,13 @@ describe("Results", () => {
     expect(within(panel).getByText("admin")).toBeInTheDocument();
   });
 
+  it("never loads a stand-in image from an outside site", async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+    const { container } = render(<ResultsScreen />);
+
+    expect(container.innerHTML).not.toContain("picsum.photos");
+  });
+
   it("selecting a match updates the CONTEXT chip", async () => {
     const user = userEvent.setup();
     await act(() => useAppStore.getState().runSearch("red car"));

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { getThumbUrl } from "@/lib/clips";
+import { Thumbnail } from "@/components/ui/Thumbnail";
 import type { Clip } from "@/types";
 
 interface RelatedClipsProps {
@@ -19,11 +19,9 @@ export function RelatedClips({ clips }: RelatedClipsProps) {
               href={`/clips/${clip.id}`}
               className="rounded-chip glass-card-flat hover:border-hairline-strong block w-40 overflow-hidden no-underline transition-colors duration-150"
             >
-              <span
-                aria-hidden
-                className="thumb-filter block h-[88px] bg-cover bg-center"
-                style={{ backgroundImage: `url(${getThumbUrl(clip)})` }}
-              />
+              <div className="relative h-[88px]">
+                <Thumbnail src={clip.thumbnailUrl} imgClassName="thumb-filter" />
+              </div>
               <span className="block px-2.5 py-2">
                 <span className="text-ink block text-xs font-semibold">{clip.action}</span>
                 <span className="text-ink-3 block font-mono text-[11px]">{clip.ts}</span>

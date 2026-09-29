@@ -1,6 +1,6 @@
 import { confidenceVar } from "@/components/results/confidence";
 import { cn } from "@/lib/cn";
-import { getThumbUrl } from "@/lib/clips";
+import { Thumbnail } from "@/components/ui/Thumbnail";
 import type { Clip } from "@/types";
 
 interface MomentCardContentProps {
@@ -15,13 +15,7 @@ export function MomentCardContent({ clip, textClassName }: MomentCardContentProp
   return (
     <>
       <div className="relative h-[60px] w-[92px] shrink-0 overflow-hidden rounded-md">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${getThumbUrl(clip)})`,
-            filter: "grayscale(0.55) contrast(1.05) brightness(0.82)",
-          }}
-        />
+        <Thumbnail src={clip.thumbnailUrl} imgClassName="thumb-filter" />
         <span
           className="absolute right-1 bottom-1 rounded bg-[rgba(12,15,19,0.80)] px-1.5 py-[2px] font-mono text-[10px]"
           style={{ color: confidenceVar(clip.confidence) }}

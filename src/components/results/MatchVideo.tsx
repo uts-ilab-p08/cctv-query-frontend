@@ -23,6 +23,8 @@ interface MatchVideoProps {
   onTimeUpdate: (sec: number) => void;
   onDuration: (sec: number) => void;
   onStop: () => void;
+  /** Shown until the first frame is ready (the moment's thumbnail). */
+  poster?: string;
   /** Object tracks to highlight over the footage, when available. */
   tracks?: TracksResponse | null;
 }
@@ -43,6 +45,7 @@ export function MatchVideo({
   onTimeUpdate,
   onDuration,
   onStop,
+  poster,
   tracks,
 }: MatchVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -90,6 +93,7 @@ export function MatchVideo({
       <video
         ref={videoRef}
         src={src}
+        poster={poster}
         aria-label="Match footage"
         muted={muted}
         playsInline
