@@ -1,7 +1,7 @@
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
 import { apiFetch } from "./client";
-import { mockAskAssistant, mockSuggestQuestions } from "./mocks/assistant";
+import { mockSuggestQuestions } from "./mocks/assistant";
 import { mockGetTracks } from "./mocks/tracks";
 import {
   apiCameraToCameraDirectoryEntry,
@@ -97,17 +97,16 @@ export async function saveQuery(text: string): Promise<SavedQuery> {
 }
 
 /**
- * PROPOSED `POST /api/v1/assistant/ask` — SIMULATED until the backend ships it
- * (contract: `AssistantAskRequest` / `AssistantAskResponse` in ./types.ts).
- * To switch to the real endpoint, replace the body with:
- *
- *   return apiFetch<AssistantAskResponse>("/api/v1/assistant/ask", {
- *     method: "POST",
- *     body: JSON.stringify(request),
- *   });
+ * `POST /api/v1/assistant/ask` — the RAG answers a question about the moments on
+ * screen. Stateless: every call carries the whole context (query, scope, focus,
+ * moments, history); see `AssistantAskRequest` in ./types.ts. `scope: "moment"`
+ * needs a `focus_moment_id` that is among `moments`, or the backend answers 422.
  */
 export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
-  return mockAskAssistant(request);
+  return apiFetch<AssistantAskResponse>("/api/v1/assistant/ask", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 }
 
 /**
