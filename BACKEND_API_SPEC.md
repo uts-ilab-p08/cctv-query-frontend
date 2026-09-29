@@ -24,7 +24,7 @@ What the frontend consumes today, what it still needs, and every place the RAG s
 | `GET /api/v1/queries/saved`            | ✅ Live                                                  | Saved Queries screen                                                                            | No                                    |
 | `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3)            | Bookmark on the original query in the chat                                                      | No                                    |
 | `DELETE /api/v1/queries/saved/{id}`    | ✅ Live (§3.1)                                           | Delete button, with a confirmation step, on Saved Queries                                       | No                                    |
-| `POST /api/v1/assistant/ask`           | 🔵 Live in the backend · frontend still simulated (§3.2) | Results chat and Clip Detail assistant (**simulated** in the frontend today)                    | **Yes**                               |
+| `POST /api/v1/assistant/ask`           | ✅ Live (§3.2)                                           | Results chat and Clip Detail assistant                                                          | **Yes**                               |
 | `POST /api/v1/assistant/suggestions`   | 🔵 Live in the backend · frontend still simulated (§3.4) | Opening suggested questions in the Results chat and Clip Detail assistant (**simulated** today) | **Yes**                               |
 | `GET /api/v1/videos/{video_id}/tracks` | 🔵 Live in the backend · frontend still simulated (§3.3) | Box around the detected object on the Results player (**simulated** today, labelled SIMULATED)  | No (database)                         |
 
@@ -108,7 +108,7 @@ The frontend saves from a bookmark beside the original query bubble in the Resul
 
 ## 3. Endpoints added for this frontend
 
-As of 2026-09-29, all four are live in the backend. §3.1 is wired in the frontend; §3.2–§3.4 still run on the frontend simulations until they are wired, one at a time.
+As of 2026-09-29, all four are live in the backend. §3.1 and §3.2 are wired in the frontend; §3.3 and §3.4 still run on the frontend simulations until they are wired.
 
 ### 3.1 `DELETE /api/v1/queries/saved/{id}`
 
@@ -128,7 +128,7 @@ As of 2026-09-29, all four are live in the backend. §3.1 is wired in the fronte
 
 ### 3.2 `POST /api/v1/assistant/ask` — conversational assistant (**RAG**)
 
-**This is the main missing piece.** The Results chat and the Clip Detail assistant already run against this exact contract. The frontend uses a **simulation** that answers from the request alone (`src/lib/api/mocks/assistant.ts`), so the UI behaves as it will with the real service. To switch over, replace the body of `askAssistant()` in `src/lib/api/endpoints.ts` with the `apiFetch` call already written in its comment. Types: `src/lib/api/types.ts`.
+**Live and wired (2026-09-29).** The Results chat and the Clip Detail assistant call it through `askAssistant()` in `src/lib/api/endpoints.ts`. It is stateless: every call carries the whole context. Types: `src/lib/api/types.ts`. The old simulation (`answerQuestion` in `src/lib/api/mocks/assistant.ts`) now only backs the screen tests.
 
 **Request**
 
@@ -308,7 +308,7 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
 | 2   | `GET /search`                 | Normalized moment metadata joined from `bronze.events`/`bronze.videos`: event id, event name, camera, scene, wall-clock time, thumbnail, tags (§4.1)                                                                                                                       | 🔴 Missing                                         |
 | 3   | `GET /search`                 | Metadata filters: cameras, scenes, event types, confidence, dates (§4.1)                                                                                                                                                                                                   | 🔴 Missing                                         |
 | 4   | `GET /search` side effects    | Write a recent-query row; bump `hits` on a matching saved query                                                                                                                                                                                                            | Documented by the backend, unverified              |
-| 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | 🔵 Live in the backend; frontend still simulated   |
+| 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | ✅ Live and wired                                  |
 | 6   | `POST /assistant/suggestions` | Opening suggested questions for the context (after a search, a selected moment, Clip Detail), limited to what the data can answer (§3.4)                                                                                                                                   | 🔵 Live in the backend; frontend still simulated   |
 | 7   | `POST /assistant/ask`         | Cross-camera reasoning: same vehicle or person across cameras, "before/after this", "near this scene". Within one video, `bronze.objects` and `bronze.geometries` (bounding boxes, `spatial_position`) support it; across cameras the schema has no re-identification link | 🟡 Proposed; needs re-identification and time data |
 | 8   | Clip Detail opening message   | Summary of one moment against the original search (via #5)                                                                                                                                                                                                                 | 🟡 Proposed; built locally today                   |
@@ -355,11 +355,11 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
   - `endpoints.ts`: one function per endpoint.
   - `types.ts`: wire types, including the proposed contracts.
   - `normalize.ts`: RAG → `Clip` stopgap.
-  - `mocks/assistant.ts`: the `/assistant/ask` and `/assistant/suggestions` simulations.
+  - `mocks/assistant.ts`: the `/assistant/suggestions` simulation, plus the `/assistant/ask` one the screen tests use.
   - `mocks/tracks.ts`: the `/videos/{video_id}/tracks` simulation.
 - **Stopgaps to delete** once the backend covers them:
   - `ragResultItemToClip` (§4.1).
-  - The assistant simulations (§3.2, §3.4).
+  - The suggestions simulation (§3.4).
   - The tracks simulation (§3.3).
   - The mock scene per demo camera (`cameraScenes` in `src/data/cameras.ts`). The UI already shows `scene` on match cards, the player, chunk metadata, clip detail, the camera directory (grouped by scene) and the Filters dialog (§4.1).
   - `summarizeClip` (§3.2).
