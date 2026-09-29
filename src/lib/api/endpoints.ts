@@ -81,11 +81,13 @@ export async function getCameras(): Promise<CameraDirectoryEntry[]> {
 }
 
 /**
- * The newest `limit` recent queries. The endpoint takes no `limit` yet (spec §2),
- * so the rows are sorted newest first here — when every `ts` is an ISO date — and cut.
+ * The newest `limit` recent queries, via `?limit=`. Rows are still sorted newest
+ * first — when every `ts` is ISO — and cut here, so the list stays right even
+ * against a backend deployment that doesn't honour `limit` yet.
  */
 export async function getRecentQueries(limit = 3): Promise<RecentQuery[]> {
-  const response = await apiFetch<unknown>("/api/v1/queries/recent");
+  const params = new URLSearchParams({ limit: String(limit) });
+  const response = await apiFetch<unknown>(`/api/v1/queries/recent?${params}`);
   const rows = listFrom<ApiRecentQuery>(response, "queries");
   const times = rows.map((row) => parseIsoTime(row.ts));
   const sorted = times.every((t) => t !== null)

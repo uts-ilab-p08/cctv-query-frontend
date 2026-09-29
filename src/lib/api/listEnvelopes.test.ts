@@ -60,7 +60,7 @@ describe.each([
 describe("getRecentQueries", () => {
   beforeEach(() => vi.mocked(apiFetch).mockReset());
 
-  it("returns the newest three, since the endpoint has no limit param yet", async () => {
+  it("asks the backend for three and still keeps only the newest three", async () => {
     const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
     vi.mocked(apiFetch).mockResolvedValueOnce({
       queries: [
@@ -73,6 +73,7 @@ describe("getRecentQueries", () => {
 
     const queries = await getRecentQueries();
 
+    expect(apiFetch).toHaveBeenCalledWith("/api/v1/queries/recent?limit=3");
     expect(queries.map((q) => q.id)).toEqual(["newest", "new", "mid"]);
   });
 });
