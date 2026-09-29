@@ -12,7 +12,6 @@ const BREADCRUMBS: ReadonlyArray<{ prefix: string; label: string }> = [
   { prefix: "/results", label: "Results" },
   { prefix: "/clips", label: "Clip Detail" },
   { prefix: "/saved", label: "Saved Queries" },
-  { prefix: "/reports", label: "Reports" },
   { prefix: "/pipeline", label: "Annotation Pipeline" },
   { prefix: "/settings", label: "Settings" },
 ];

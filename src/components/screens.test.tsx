@@ -10,7 +10,6 @@ import { ClipDetailScreen } from "@/components/detail/ClipDetailScreen";
 import { QueryComposer } from "@/components/dashboard/QueryComposer";
 import { RecentQueries } from "@/components/dashboard/RecentQueries";
 import { PipelineScreen } from "@/components/pipeline/PipelineScreen";
-import { ReportsScreen } from "@/components/reports/ReportsScreen";
 import { ResultsScreen } from "@/components/results/ResultsScreen";
 import { SavedQueriesScreen } from "@/components/saved/SavedQueriesScreen";
 import { LandingPage } from "@/components/landing/LandingPage";
@@ -909,17 +908,6 @@ describe("Saved queries", () => {
     expect(await screen.findAllByRole("button", { name: "Run again" })).toHaveLength(
       savedQueries.length,
     );
-  });
-});
-
-describe("Reports", () => {
-  it("renders the stat cards and the report list", () => {
-    render(<ReportsScreen />);
-
-    expect(screen.getByRole("heading", { name: "Reports" })).toBeInTheDocument();
-    expect(screen.getByText("ACTIVE CAMERAS")).toBeInTheDocument();
-    expect(screen.getByText("8 / 8")).toBeInTheDocument();
-    expect(screen.getByText("Weekly Activity Summary")).toBeInTheDocument();
   });
 });
 

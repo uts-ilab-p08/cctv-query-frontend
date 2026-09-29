@@ -108,14 +108,6 @@ export interface RecentQuery {
   cameras: number;
 }
 
-export interface Report {
-  id: string;
-  title: string;
-  range: string;
-  cameras: number;
-  generatedOn: string;
-}
-
 export interface StatCardData {
   label: string;
   value: string | number;
