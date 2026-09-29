@@ -13,20 +13,20 @@ What the frontend consumes today, what it still needs, and every place the RAG s
 
 ## 1. Status at a glance
 
-| Endpoint                               | Status                                                   | Used by (frontend)                                                                             | Calls the RAG                         |
-| -------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `GET /health`                          | ✅ Live                                                  | Not used. Monitoring only, no screen needs it.                                                 | No                                    |
-| `GET /api/v1/search`                   | ✅ Live · **changes requested** (§4.1)                   | Search from Home, New Query, Recent/Saved "run again", and a Results refresh via `?q=`         | **Yes**: pass-through                 |
-| `GET /api/v1/clips/{id}`               | ✅ Live                                                  | Clip Detail page (server-rendered)                                                             | No                                    |
-| `GET /api/v1/clips/{id}/related`       | ✅ Live                                                  | Clip Detail, "Related clips"                                                                   | No                                    |
-| `GET /api/v1/cameras`                  | ✅ Live                                                  | Cameras directory modal                                                                        | No                                    |
-| `GET /api/v1/queries/recent`           | ✅ Live                                                  | Home, "Recent queries"                                                                         | Written as a side effect of `/search` |
-| `GET /api/v1/queries/saved`            | ✅ Live                                                  | Saved Queries screen                                                                           | No                                    |
-| `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3)            | Bookmark on the original query in the chat                                                     | No                                    |
-| `DELETE /api/v1/queries/saved/{id}`    | ✅ Live (§3.1)                                           | Delete button, with a confirmation step, on Saved Queries                                      | No                                    |
-| `POST /api/v1/assistant/ask`           | ✅ Live (§3.2)                                           | Results chat and Clip Detail assistant                                                         | **Yes**                               |
-| `POST /api/v1/assistant/suggestions`   | ✅ Live (§3.4)                                           | Opening suggested questions in the Results chat and Clip Detail assistant                      | Rule-based today (see §3.4)           |
-| `GET /api/v1/videos/{video_id}/tracks` | 🔵 Live in the backend · frontend still simulated (§3.3) | Box around the detected object on the Results player (**simulated** today, labelled SIMULATED) | No (database)                         |
+| Endpoint                               | Status                                        | Used by (frontend)                                                                     | Calls the RAG                         |
+| -------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------- |
+| `GET /health`                          | ✅ Live                                       | Not used. Monitoring only, no screen needs it.                                         | No                                    |
+| `GET /api/v1/search`                   | ✅ Live · **changes requested** (§4.1)        | Search from Home, New Query, Recent/Saved "run again", and a Results refresh via `?q=` | **Yes**: pass-through                 |
+| `GET /api/v1/clips/{id}`               | ✅ Live                                       | Clip Detail page (server-rendered)                                                     | No                                    |
+| `GET /api/v1/clips/{id}/related`       | ✅ Live                                       | Clip Detail, "Related clips"                                                           | No                                    |
+| `GET /api/v1/cameras`                  | ✅ Live                                       | Cameras directory modal                                                                | No                                    |
+| `GET /api/v1/queries/recent`           | ✅ Live                                       | Home, "Recent queries"                                                                 | Written as a side effect of `/search` |
+| `GET /api/v1/queries/saved`            | ✅ Live                                       | Saved Queries screen                                                                   | No                                    |
+| `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3) | Bookmark on the original query in the chat                                             | No                                    |
+| `DELETE /api/v1/queries/saved/{id}`    | ✅ Live (§3.1)                                | Delete button, with a confirmation step, on Saved Queries                              | No                                    |
+| `POST /api/v1/assistant/ask`           | ✅ Live (§3.2)                                | Results chat and Clip Detail assistant                                                 | **Yes**                               |
+| `POST /api/v1/assistant/suggestions`   | ✅ Live (§3.4)                                | Opening suggested questions in the Results chat and Clip Detail assistant              | Rule-based today (see §3.4)           |
+| `GET /api/v1/videos/{video_id}/tracks` | ✅ Live (§3.3)                                | Box around the detected object on the Results player                                   | No (database)                         |
 
 ---
 
@@ -108,7 +108,7 @@ The frontend saves from a bookmark beside the original query bubble in the Resul
 
 ## 3. Endpoints added for this frontend
 
-As of 2026-09-29, all four are live in the backend. §3.1, §3.2 and §3.4 are wired in the frontend; §3.3 still runs on its frontend simulation until it is wired.
+As of 2026-09-29, all four are live in the backend. All four are wired in the frontend; the simulations remain only behind the screen tests.
 
 ### 3.1 `DELETE /api/v1/queries/saved/{id}`
 
@@ -176,7 +176,9 @@ AssistantMoment = {
 
 ### 3.3 `GET /api/v1/videos/{video_id}/tracks` — highlight objects on the player
 
-Draws a box around what the search found while the footage plays. **The data already exists**: `bronze.event_objects` links an event to its objects, and `bronze.geometries` has one bounding box per object per frame. The frontend is ready: `getTracks()` in `src/lib/api/endpoints.ts` feeds `DetectionOverlay`. Today it runs on a **simulation** (`src/lib/api/mocks/tracks.ts`), and every simulated box is labelled **SIMULATED**, because its path is invented and doesn't follow anything in the footage.
+**Live and wired (2026-09-29).** Draws a box around what the search found while the footage plays. `getTracks()` in `src/lib/api/endpoints.ts` feeds `DetectionOverlay` for the moment on the player. Real responses carry no `simulated` flag, so the boxes no longer say SIMULATED. The data comes from `bronze.event_objects` → `bronze.objects` → `bronze.geometries`.
+
+**Please confirm:** the frontend draws `x`, `y` as the box's **top-left corner**, as specified below. If the backend sends the centre instead, every box will be offset by half its size.
 
 **Request**
 
@@ -358,10 +360,9 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
   - `types.ts`: wire types, including the proposed contracts.
   - `normalize.ts`: RAG → `Clip` stopgap.
   - `mocks/assistant.ts`: test-only simulations of `/assistant/ask` and `/assistant/suggestions`, used by the screen tests.
-  - `mocks/tracks.ts`: the `/videos/{video_id}/tracks` simulation.
+  - `mocks/tracks.ts`: test-only simulation of `/videos/{video_id}/tracks`, used by the screen tests.
 - **Stopgaps to delete** once the backend covers them:
   - `ragResultItemToClip` (§4.1).
-  - The tracks simulation (§3.3).
   - The mock scene per demo camera (`cameraScenes` in `src/data/cameras.ts`). The UI already shows `scene` on match cards, the player, chunk metadata, clip detail, the camera directory (grouped by scene) and the Filters dialog (§4.1).
   - `summarizeClip` (§3.2).
   - `listFrom`'s bare-array fallback (§4.2, now resolved).
