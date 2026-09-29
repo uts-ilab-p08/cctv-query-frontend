@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiFetch } from "./client";
-import { askAssistant } from "./endpoints";
+import { askAssistant, suggestQuestions } from "./endpoints";
 import type { AssistantAskRequest } from "./types";
 
 vi.mock("./client", () => ({ apiFetch: vi.fn() }));
@@ -46,5 +46,27 @@ describe("askAssistant (live POST /api/v1/assistant/ask)", () => {
   it("lets a backend error reach the caller, which shows it in the thread", async () => {
     vi.mocked(apiFetch).mockRejectedValueOnce(new Error("503"));
     await expect(askAssistant(request)).rejects.toThrow("503");
+  });
+});
+
+describe("suggestQuestions (live POST /api/v1/assistant/suggestions)", () => {
+  beforeEach(() => vi.mocked(apiFetch).mockReset());
+
+  it("posts the context without a question and returns the suggestions", async () => {
+    const context = {
+      query: request.query,
+      scope: request.scope,
+      focus_moment_id: request.focus_moment_id,
+      moments: request.moments,
+      history: request.history,
+    };
+    const response = { suggested_questions: ["Which camera has the most matches?"] };
+    vi.mocked(apiFetch).mockResolvedValueOnce(response);
+
+    await expect(suggestQuestions(context)).resolves.toEqual(response);
+    expect(apiFetch).toHaveBeenCalledWith("/api/v1/assistant/suggestions", {
+      method: "POST",
+      body: JSON.stringify(context),
+    });
   });
 });

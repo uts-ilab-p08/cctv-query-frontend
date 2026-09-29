@@ -1,7 +1,6 @@
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
 import { apiFetch } from "./client";
-import { mockSuggestQuestions } from "./mocks/assistant";
 import { mockGetTracks } from "./mocks/tracks";
 import {
   apiCameraToCameraDirectoryEntry,
@@ -110,19 +109,18 @@ export async function askAssistant(request: AssistantAskRequest): Promise<Assist
 }
 
 /**
- * PROPOSED `POST /api/v1/assistant/suggestions` — SIMULATED until the backend ships
- * it (spec: BACKEND_API_SPEC.md §3.4). The opening questions for a thread context;
- * follow-ups after an answer come with `askAssistant`. To switch, replace the body:
- *
- *   return apiFetch<AssistantSuggestionsResponse>("/api/v1/assistant/suggestions", {
- *     method: "POST",
- *     body: JSON.stringify(request),
- *   });
+ * `POST /api/v1/assistant/suggestions` — the opening questions for a thread context
+ * (after a search, a selected moment, Clip Detail). Same context as `askAssistant`,
+ * minus the question. The backend builds them from rules, not an LLM call.
+ * Follow-ups after an answer come with `askAssistant`.
  */
 export async function suggestQuestions(
   request: AssistantSuggestionsRequest,
 ): Promise<AssistantSuggestionsResponse> {
-  return mockSuggestQuestions(request);
+  return apiFetch<AssistantSuggestionsResponse>("/api/v1/assistant/suggestions", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 }
 
 /**
