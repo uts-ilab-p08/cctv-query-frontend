@@ -3,7 +3,7 @@
 What the frontend consumes today, what it still needs, and every place the RAG service is involved.
 
 **Scope:** Home (`/dashboard`), Results (`/results`), Clip Detail (`/clips/[id]`), Saved Queries (`/saved`) and the Cameras directory.
-**Out of scope for now:** Reports and the Video Annotation Pipeline.
+**Out of scope for now:** the Video Annotation Pipeline. Reports was removed from the frontend.
 
 - **Base URL:** `NEXT_PUBLIC_API_BASE_URL`. Dev is `https://surveillance-backend-nodd.onrender.com`; a local backend is `http://localhost:8000`. Live docs are at `/docs`.
 - **Auth:** every endpoint except `/health` requires `Authorization: Bearer <Supabase access token>`. The live backend returns `403 {"detail":"Not authenticated"}` without a token and `401 {"detail":"Invalid or expired token"}` for a bad one. The frontend attaches the token in `src/lib/api/client.ts`: the browser session on the client, and a server-resolved token for the `/clips/[id]` server component.
@@ -13,20 +13,20 @@ What the frontend consumes today, what it still needs, and every place the RAG s
 
 ## 1. Status at a glance
 
-| Endpoint                               | Status                                                            | Used by (frontend)                                                                     | Calls the RAG                         |
-| -------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------- |
-| `GET /health`                          | ✅ Live                                                           | Not used. Monitoring only, no screen needs it.                                         | No                                    |
-| `GET /api/v1/search`                   | ✅ Live · `timestamp`, `thumbnail_url` and filters pending (§4.1) | Search from Home, New Query, Recent/Saved "run again", and a Results refresh via `?q=` | **Yes**: pass-through                 |
-| `GET /api/v1/clips/{id}`               | ✅ Live                                                           | Clip Detail page (server-rendered)                                                     | No                                    |
-| `GET /api/v1/clips/{id}/related`       | ✅ Live                                                           | Clip Detail, "Related clips"                                                           | No                                    |
-| `GET /api/v1/cameras`                  | ✅ Live                                                           | Cameras directory modal                                                                | No                                    |
-| `GET /api/v1/queries/recent`           | ✅ Live                                                           | Home, "Recent queries"                                                                 | Written as a side effect of `/search` |
-| `GET /api/v1/queries/saved`            | ✅ Live                                                           | Saved Queries screen                                                                   | No                                    |
-| `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3)                     | Bookmark on the original query in the chat                                             | No                                    |
-| `DELETE /api/v1/queries/saved/{id}`    | ✅ Live (§3.1)                                                    | Delete button, with a confirmation step, on Saved Queries                              | No                                    |
-| `POST /api/v1/assistant/ask`           | ✅ Live (§3.2)                                                    | Results chat and Clip Detail assistant                                                 | **Yes**                               |
-| `POST /api/v1/assistant/suggestions`   | ✅ Live (§3.4)                                                    | Opening suggested questions in the Results chat and Clip Detail assistant              | Rule-based today (see §3.4)           |
-| `GET /api/v1/videos/{video_id}/tracks` | ✅ Live (§3.3)                                                    | Box around the detected object on the Results player                                   | No (database)                         |
+| Endpoint                               | Status                                               | Used by (frontend)                                                                     | Calls the RAG                         |
+| -------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------- |
+| `GET /health`                          | ✅ Live                                              | Not used. Monitoring only, no screen needs it.                                         | No                                    |
+| `GET /api/v1/search`                   | ✅ Live · `thumbnail_url` and filters pending (§4.1) | Search from Home, New Query, Recent/Saved "run again", and a Results refresh via `?q=` | **Yes**: pass-through                 |
+| `GET /api/v1/clips/{id}`               | ✅ Live                                              | Clip Detail page (server-rendered)                                                     | No                                    |
+| `GET /api/v1/clips/{id}/related`       | ✅ Live                                              | Clip Detail, "Related clips"                                                           | No                                    |
+| `GET /api/v1/cameras`                  | ✅ Live                                              | Cameras directory modal                                                                | No                                    |
+| `GET /api/v1/queries/recent`           | ✅ Live                                              | Home, "Recent queries"                                                                 | Written as a side effect of `/search` |
+| `GET /api/v1/queries/saved`            | ✅ Live                                              | Saved Queries screen                                                                   | No                                    |
+| `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3)        | Bookmark on the original query in the chat                                             | No                                    |
+| `DELETE /api/v1/queries/saved/{id}`    | ✅ Live (§3.1)                                       | Delete button, with a confirmation step, on Saved Queries                              | No                                    |
+| `POST /api/v1/assistant/ask`           | ✅ Live (§3.2)                                       | Results chat and Clip Detail assistant                                                 | **Yes**                               |
+| `POST /api/v1/assistant/suggestions`   | ✅ Live (§3.4)                                       | Opening suggested questions in the Results chat and Clip Detail assistant              | Rule-based today (see §3.4)           |
+| `GET /api/v1/videos/{video_id}/tracks` | ✅ Live (§3.3)                                       | Box around the detected object on the Results player                                   | No (database)                         |
 
 ---
 
@@ -61,7 +61,6 @@ RagResultItem = {
   description: string | null;  // bronze.events.description
   camera: string | null;       // e.g. "G331"
   scene: string | null;        // e.g. "bus"
-  timestamp: string | null;    // ISO 8601 wall-clock start — null so far
   thumbnail_url: string | null; // null so far
   tags: string[] | null;       // ClipTag values, e.g. ["Person"]
 }
@@ -69,20 +68,19 @@ RagResultItem = {
 
 **How the frontend uses it** (`ragResultItemToClip` in `src/lib/api/normalize.ts`):
 
-| Frontend field                           | From                                                                        | Notes                                                                                                         |
-| ---------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `id`                                     | `event_id`, else `video_id:start_seconds`                                   | If two results share an event, the second gets `:start_seconds` appended so ids stay unique (`searchClips`).  |
-| `eventId`                                | `event_id`                                                                  | Sent as `event_id` to `/videos/{id}/tracks` (only that event's objects). It is also the id for `/clips/{id}`. |
-| `videoUrl`, `startSeconds`, `endSeconds` | `video_url`, `start_seconds`, `end_seconds`                                 | The player loads the video and seeks to the moment.                                                           |
-| title / action                           | `event_name`, else `caption`                                                | —                                                                                                             |
-| `description`, `caption`                 | `description`, `caption`                                                    | Description is shown in the chunk metadata. The caption is what the assistant endpoints receive.              |
-| `camera`, `code`                         | `camera`                                                                    | Falls back to "Unknown" only if missing.                                                                      |
-| `scene`                                  | `scene`                                                                     | Shown with the camera, on the player, in metadata and in the directory.                                       |
-| `tags`, objects                          | `tags` (unknown values dropped)                                             | Falls back to keyword-matching the caption when `tags` is missing.                                            |
-| `ts`, `date`                             | `timestamp`, read as wall-clock **at the camera** (no time-zone conversion) | While it is `null`, the time shown is the offset into the video (`2:49`).                                     |
-| thumbnail                                | `thumbnail_url`                                                             | While it is `null`, a placeholder image is shown.                                                             |
-| `perspective`                            | —                                                                           | Not returned; hidden in the UI rather than shown as "Unknown".                                                |
-| `confidence`                             | `round(score × 100)`                                                        | —                                                                                                             |
+| Frontend field                           | From                                        | Notes                                                                                                                   |
+| ---------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `id`                                     | `event_id`, else `video_id:start_seconds`   | If two results share an event, the second gets `:start_seconds` appended so ids stay unique (`searchClips`).            |
+| `eventId`                                | `event_id`                                  | Sent as `event_id` to `/videos/{id}/tracks` (only that event's objects). It is also the id for `/clips/{id}`.           |
+| `videoUrl`, `startSeconds`, `endSeconds` | `video_url`, `start_seconds`, `end_seconds` | The player loads the video and seeks to the moment.                                                                     |
+| title / action                           | `event_name`, else `caption`                | —                                                                                                                       |
+| `description`, `caption`                 | `description`, `caption`                    | Description is shown in the chunk metadata. The caption is what the assistant endpoints receive.                        |
+| `camera`, `code`                         | `camera`                                    | Falls back to "Unknown" only if missing.                                                                                |
+| `scene`                                  | `scene`                                     | Shown with the camera, on the player, in metadata and in the directory.                                                 |
+| `tags`, objects                          | `tags` (unknown values dropped)             | Falls back to keyword-matching the caption when `tags` is missing.                                                      |
+| `ts`, `date`                             | `start_seconds`                             | `ts` is the offset into the video (`2:49`), and `date` is empty. There is no wall-clock time: it isn't in the database. |
+| thumbnail                                | `thumbnail_url`                             | While it is `null`, a placeholder image is shown.                                                                       |
+| `confidence`                             | `round(score × 100)`                        | —                                                                                                                       |
 
 **Side effects (per the backend's own docs):** the call writes a recent-query row and bumps `hits` on a saved query with the same text. Neither has been verified against a live authenticated call.
 
@@ -98,7 +96,7 @@ Query `limit` (1–20, default 4). The relatedness heuristic is owned by the bac
 
 ### `GET /api/v1/cameras`
 
-No params. **Response:** `CamerasResponse` `{ cameras: { code, perspective, eventCount }[] }`. Fetched when the Cameras modal opens. **Please add `scene`** (`bronze.videos.scene`, see §4.1), so the directory can group cameras by site. `eventCount` can come from counting `bronze.events` per `videos.camera_id`.
+No params. **Response:** `CamerasResponse` `{ cameras: { code, eventCount, scene }[] }`. Fetched when the Cameras modal opens. **Please add `scene`** (`bronze.videos.scene`, see §4.1), so the directory can group cameras by site. `eventCount` can come from counting `bronze.events` per `videos.camera_id`.
 
 ### `GET /api/v1/queries/recent`
 
@@ -178,7 +176,7 @@ AssistantMoment = {
 - **Answer from the context.** Use `moments`, `history`, and (for `scope: "moment"`) the focused moment. The frontend sends the moments on screen, so the endpoint can stay stateless. The alternative is a `search_id` returned by `/search`, which keeps requests small but makes the backend store every result set. Pick one and tell us.
 - **Cite only ids you received.** The frontend drops unknown `moment_id`s.
 - **Handle both scopes.** With `scope: "results"`, answer about the whole result set, e.g. _"Which camera has the most matches?"_ or _"Narrow this to vehicle events only"_. With `scope: "moment"`, answer about the focused moment, e.g. _"Did anyone leave the building before this?"_, _"Show this vehicle's full path across cameras"_, _"Who else was near this location around this time?"_, _"Jump to the next flagged event on this camera"_.
-  - Several of these need data the frontend doesn't have: cameras, wall-clock time, and cross-camera re-identification of the same vehicle or person. They are backend/RAG work. The simulation says so in its answers instead of inventing results.
+  - Some of these need data that doesn't exist: there is no wall-clock time in the database, and no link that re-identifies the same vehicle or person across cameras. They are backend/RAG work. The simulation says so in its answers instead of inventing results.
 - **Return follow-ups** suited to the scope in `suggested_questions`. These appear under each answer; the questions shown **before** anything is asked come from §3.4.
 - **Errors:** any non-2xx shows _"The assistant couldn't answer that. Try again."_ in the thread. Expect one request at a time per thread; the UI blocks a second question while one is pending.
 
@@ -276,7 +274,7 @@ order by o.object_id, g.timestamp_seconds;
 **What the RAG has to do**
 
 - **Suggest questions it can answer** from the moments and the scope. With `scope: "moment"`, suggest questions about the focused moment, e.g. its path across cameras for a vehicle, or who else was nearby.
-- **Only suggest what the data supports.** Don't offer to compare cameras when there's one camera, to filter vehicles when there are none, or anything that needs wall-clock time or re-identification until those exist (§4.1, §5).
+- **Only suggest what the data supports.** Don't offer to compare cameras when there's one camera, to filter vehicles when there are none, or anything that needs wall-clock time (not in the database) or cross-camera re-identification (§5).
 - **Skip questions already in `history`.**
 - **Optional optimization:** `/search` could return `suggested_questions` next to `answer`, which saves this call right after a search. The endpoint is still needed for moment selection and Clip Detail.
 
@@ -286,23 +284,21 @@ order by o.object_id, g.timestamp_seconds;
 
 ### 4.1 `/search` should return normalized moments (**RAG**) — mostly done
 
-**Status (2026-09-29):** `event_id`, `event_name`, `description`, `camera`, `scene` and `tags` are returned and used. Still pending: `timestamp` and `thumbnail_url` (both come back `null`), `code`/`perspective` (not returned), and the filter params below.
+**Status (2026-09-29):** `event_id`, `event_name`, `description`, `camera`, `scene` and `tags` are returned and used. Still pending: `thumbnail_url` (comes back `null`) and the filter params below. `timestamp` and `perspective` are **dropped**: they aren't in the database, and the frontend no longer uses them.
 
 The frontend can't fill these gaps itself, but **almost all of this data already exists in the `bronze` schema**. The RAG returns `video_id` + `start_seconds`; the backend has to join each result with `bronze.events` and `bronze.videos` before responding. Add to each result:
 
-| Field                               | Source in the database                                                                                                                                                                            | Why the frontend needs it                                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `event_id`                          | `bronze.events.event_id` — match on `video_id` and the event whose `[start_seconds, end_seconds]` contains the RAG's `start_seconds`; or have the RAG index events and return `event_id` directly | To open `/clips/{event_id}` from a result. Today no result can open the Clip Detail page, because `video_id` isn't an event id. |
-| `event_name`                        | `bronze.events.event_name`                                                                                                                                                                        | Card title. The frontend already reads it when present, and falls back to `caption`.                                            |
-| `description`                       | `bronze.events.description`                                                                                                                                                                       | A fuller text than the RAG `caption`, for the assistant and the detail page.                                                    |
-| `camera`                            | `bronze.videos.camera_id`                                                                                                                                                                         | Every card, chip and assistant answer shows "Unknown" today.                                                                    |
-| `scene`                             | `bronze.videos.scene`, which holds the MEVA site (the `admin` in `….admin.G329.r13.avi`); please confirm                                                                                          | Shown with the camera ("G329 · admin") and usable as a filter. This replaces the precinct idea (§7).                            |
-| `code`, `perspective`               | Not in the schema; possibly `bronze.videos.source_metadata`                                                                                                                                       | Used by the Clip model (§6). If they don't exist, say so and the frontend drops them.                                           |
-| `timestamp` (ISO 8601, with offset) | `bronze.videos.capture_start_local + events.start_seconds`, in `capture_time_zone`                                                                                                                | Moments show their offset into the video (`0:12`). "What's the most recent match?" can't be answered without wall-clock time.   |
-| `thumbnail_url`                     | No column: extract the frame at `start_seconds` (e.g. ffmpeg) and store it next to the video                                                                                                      | Match cards show a placeholder image.                                                                                           |
-| `tags` (the `ClipTag` enum)         | Object labels via `bronze.event_objects` → `bronze.objects.label_details`, and/or MEVA activity types (`bronze.ground_truth.activity_type`, `bronze.matched_pairs.meva_reference`)                | The frontend guesses tags from the caption today.                                                                               |
+| Field                       | Source in the database                                                                                                                                                                            | Why the frontend needs it                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `event_id`                  | `bronze.events.event_id` — match on `video_id` and the event whose `[start_seconds, end_seconds]` contains the RAG's `start_seconds`; or have the RAG index events and return `event_id` directly | To open `/clips/{event_id}` from a result. Today no result can open the Clip Detail page, because `video_id` isn't an event id. |
+| `event_name`                | `bronze.events.event_name`                                                                                                                                                                        | Card title. The frontend already reads it when present, and falls back to `caption`.                                            |
+| `description`               | `bronze.events.description`                                                                                                                                                                       | A fuller text than the RAG `caption`, for the assistant and the detail page.                                                    |
+| `camera`                    | `bronze.videos.camera_id`                                                                                                                                                                         | Every card, chip and assistant answer shows "Unknown" today.                                                                    |
+| `scene`                     | `bronze.videos.scene`, which holds the MEVA site (the `admin` in `….admin.G329.r13.avi`); please confirm                                                                                          | Shown with the camera ("G329 · admin") and usable as a filter. This replaces the precinct idea (§7).                            |
+| `thumbnail_url`             | No column: extract the frame at `start_seconds` (e.g. ffmpeg) and store it next to the video                                                                                                      | Match cards show a placeholder image.                                                                                           |
+| `tags` (the `ClipTag` enum) | Object labels via `bronze.event_objects` → `bronze.objects.label_details`, and/or MEVA activity types (`bronze.ground_truth.activity_type`, `bronze.matched_pairs.meva_reference`)                | The frontend guesses tags from the caption today.                                                                               |
 
-**Filters.** The Filters modal (camera, event type, minimum confidence, date range) and the inline term menus in the search field set filters that `/search` ignores, because it only accepts `q` and `limit`. Add optional params: `cameras` (repeatable, `videos.camera_id`), `scenes` (repeatable, `videos.scene`), `tags` (repeatable), `min_confidence` (0–100), `date_from`, `date_to` (ISO dates, against the wall-clock `timestamp`). Pass them to the RAG as metadata filters, so they aren't applied after retrieval. The frontend will send them as soon as the params exist.
+**Filters.** The Filters modal (camera, scene, event type, minimum confidence) and the inline term menus in the search field set filters that `/search` ignores, because it only accepts `q` and `limit`. Add optional params: `cameras` (repeatable, `videos.camera_id`), `scenes` (repeatable, `videos.scene`), `tags` (repeatable) and `min_confidence` (0–100). Pass them to the RAG as metadata filters, so they aren't applied after retrieval. The frontend will send them as soon as the params exist. There are no date filters, because there is no wall-clock time.
 
 **Video URLs.** `video_url` is loaded by a plain `<video>` element, which can't send the bearer token. It must be public or a **signed URL** that expires after a while. `bronze.videos` has `storage_bucket` and `storage_path`, so the backend can sign a URL per request (for example with Supabase Storage `createSignedUrl`) instead of returning the stored `video_url`. The file host must allow HTTP range requests. MP4s should be encoded with `-movflags +faststart`; otherwise seeking to `start_seconds` waits for most of the file to download.
 
@@ -318,17 +314,17 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
 
 ## 5. RAG integration — everything that goes through the RAG
 
-| #   | Where                         | What the RAG must provide                                                                                                                                                                                                                                                  | Status                                              |
-| --- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| 1   | `GET /search`                 | Retrieval over indexed footage: ranked moments plus the `answer` summary shown as the first assistant message in Results                                                                                                                                                   | ✅ Live (pass-through)                              |
-| 2   | `GET /search`                 | Normalized moment metadata joined from `bronze.events`/`bronze.videos`: event id, event name, camera, scene, wall-clock time, thumbnail, tags (§4.1)                                                                                                                       | 🟡 Mostly live · timestamp and thumbnail still null |
-| 3   | `GET /search`                 | Metadata filters: cameras, scenes, event types, confidence, dates (§4.1)                                                                                                                                                                                                   | 🔴 Missing                                          |
-| 4   | `GET /search` side effects    | Write a recent-query row; bump `hits` on a matching saved query                                                                                                                                                                                                            | Documented by the backend, unverified               |
-| 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | ✅ Live and wired                                   |
-| 6   | `POST /assistant/suggestions` | Opening suggested questions for the context (after a search, a selected moment, Clip Detail), limited to what the data can answer (§3.4)                                                                                                                                   | ✅ Live and wired · rule-based, not RAG yet         |
-| 7   | `POST /assistant/ask`         | Cross-camera reasoning: same vehicle or person across cameras, "before/after this", "near this scene". Within one video, `bronze.objects` and `bronze.geometries` (bounding boxes, `spatial_position`) support it; across cameras the schema has no re-identification link | 🟡 Proposed; needs re-identification and time data  |
-| 8   | Clip Detail opening message   | Summary of one moment against the original search (via #5)                                                                                                                                                                                                                 | 🟡 Proposed; built locally today                    |
-| 9   | `video_url`                   | Playable, signed, seekable footage URLs (§4.1)                                                                                                                                                                                                                             | ⚠️ Works when public; signing not specified         |
+| #   | Where                         | What the RAG must provide                                                                                                                                                                                                                                                  | Status                                             |
+| --- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 1   | `GET /search`                 | Retrieval over indexed footage: ranked moments plus the `answer` summary shown as the first assistant message in Results                                                                                                                                                   | ✅ Live (pass-through)                             |
+| 2   | `GET /search`                 | Normalized moment metadata joined from `bronze.events`/`bronze.videos`: event id, event name, camera, scene, thumbnail, tags (§4.1)                                                                                                                                        | 🟡 Mostly live · thumbnail still null              |
+| 3   | `GET /search`                 | Metadata filters: cameras, scenes, event types, confidence, dates (§4.1)                                                                                                                                                                                                   | 🔴 Missing                                         |
+| 4   | `GET /search` side effects    | Write a recent-query row; bump `hits` on a matching saved query                                                                                                                                                                                                            | Documented by the backend, unverified              |
+| 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | ✅ Live and wired                                  |
+| 6   | `POST /assistant/suggestions` | Opening suggested questions for the context (after a search, a selected moment, Clip Detail), limited to what the data can answer (§3.4)                                                                                                                                   | ✅ Live and wired · rule-based, not RAG yet        |
+| 7   | `POST /assistant/ask`         | Cross-camera reasoning: same vehicle or person across cameras, "before/after this", "near this scene". Within one video, `bronze.objects` and `bronze.geometries` (bounding boxes, `spatial_position`) support it; across cameras the schema has no re-identification link | 🟡 Proposed; needs re-identification and time data |
+| 8   | Clip Detail opening message   | Summary of one moment against the original search (via #5)                                                                                                                                                                                                                 | 🟡 Proposed; built locally today                   |
+| 9   | `video_url`                   | Playable, signed, seekable footage URLs (§4.1)                                                                                                                                                                                                                             | ⚠️ Works when public; signing not specified        |
 
 ---
 
@@ -341,7 +337,6 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
   id: string;                  // bronze.events.event_id
   camera: string;
   code: string;
-  perspective: string;
   ts: string;                  // "HH:MM:SS"
   date: string;
   order: number;
@@ -357,7 +352,8 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
 
 **Other shapes:**
 
-- **`CameraDirectoryEntry`:** `{ code, perspective, eventCount, scene? }` (`scene` requested, §2)
+- **`CameraDirectoryEntry`:** `{ code, eventCount, scene? }`
+- **`perspective`:** the backend's `Clip` and `CameraDirectoryEntry` schemas still include it, but it isn't in the database and the frontend ignores it. Consider dropping it from those schemas.
 - **`RecentQuery`:** `{ id, text, ts, cameras }`
 - **`SavedQueryOut`:** `{ id, text, savedOn, hits }`
 - **`RagQueryResult`, `RagResultItem`, `AssistantMoment`** and the assistant request/response: see §2 and §3.2.
