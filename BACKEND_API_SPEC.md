@@ -102,7 +102,7 @@ No params. **Response:** `CamerasResponse` `{ cameras: { code, eventCount, scene
 
 Read-only; rows come from `/search`. **Response:** `RecentQueriesResponse` `{ queries: { id, text, ts, cameras }[] }`.
 
-- **Please add a `limit` query param.** Home shows the **3** newest. Today the frontend fetches every row, sorts them newest first by `ts`, and keeps 3 (`getRecentQueries(limit)` already takes the limit, ready to pass it through).
+- **`?limit=`** — the frontend sends `limit=3` (Home shows the 3 newest). Reported as implemented, but **not in the deployed `/openapi.json` yet (2026-09-29)**. Until it is, the frontend also sorts rows newest first by `ts` and keeps 3, so the list is right either way.
 - **Please send `ts` as ISO 8601**, in UTC or with an offset. The frontend shows it relative to now ("just now", "10 min ago", "2 hours ago", "3 days ago", then "Sep 21" after a week), refreshed every minute. A value without an offset is read as UTC; anything that isn't ISO is shown as-is.
 
 ### `GET /api/v1/queries/saved`
