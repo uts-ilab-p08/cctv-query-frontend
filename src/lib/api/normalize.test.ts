@@ -48,4 +48,57 @@ describe("ragResultItemToClip", () => {
     expect(ragResultItemToClip({ ...item, scene: "admin" }, 0).scene).toBe("admin");
     expect(ragResultItemToClip(item, 0).scene).toBeUndefined();
   });
+
+  describe("enriched /search results", () => {
+    const enriched = {
+      ...item,
+      start_seconds: 169.233,
+      end_seconds: 177.067,
+      event_id: "evt-26e5",
+      event_name: "Person walks toward a door",
+      description: "A person wearing a dark jacket walks toward a door.",
+      camera: "G331",
+      scene: "bus",
+      timestamp: null,
+      thumbnail_url: null,
+      tags: ["Person", "Teleport"],
+    };
+
+    it("uses the event id and keeps it for tracks and the detail page", () => {
+      const clip = ragResultItemToClip(enriched, 0);
+      expect(clip.id).toBe("evt-26e5");
+      expect(clip.eventId).toBe("evt-26e5");
+    });
+
+    it("shows the real camera, scene, event name, description and caption", () => {
+      expect(ragResultItemToClip(enriched, 0)).toMatchObject({
+        camera: "G331",
+        code: "G331",
+        scene: "bus",
+        eventName: "Person walks toward a door",
+        action: "Person walks toward a door",
+        description: "A person wearing a dark jacket walks toward a door.",
+        caption: item.caption,
+        perspective: "",
+      });
+    });
+
+    it("trusts the backend's tags, keeping only known ones", () => {
+      const clip = ragResultItemToClip(enriched, 0);
+      expect(clip.tags).toEqual(["Person"]);
+      expect(clip.objects).toBe("Person");
+    });
+
+    it("shows the camera's own wall-clock time when a timestamp arrives", () => {
+      const clip = ragResultItemToClip({ ...enriched, timestamp: "2018-03-05T13:23:04-05:00" }, 0);
+      expect(clip.ts).toBe("13:23:04");
+      expect(clip.date).toBe("Mar 5");
+    });
+
+    it("falls back to the offset into the video without a timestamp", () => {
+      const clip = ragResultItemToClip(enriched, 0);
+      expect(clip.ts).toBe("2:49");
+      expect(clip.date).toBe("");
+    });
+  });
 });

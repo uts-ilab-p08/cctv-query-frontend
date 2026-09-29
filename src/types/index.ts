@@ -33,6 +33,13 @@ export interface Clip {
   /** Site within the facility (`bronze.videos.scene`, e.g. `admin`, from MEVA's file
    *  names). Mocked for the demo set until /search returns it. */
   scene?: string;
+  /** `bronze.events.event_id` when /search returns it — opens /clips/{eventId} and
+   *  narrows /videos/{id}/tracks to this event's objects. */
+  eventId?: string;
+  /** Longer text about the event (`bronze.events.description`). */
+  description?: string;
+  /** The RAG's own text for why this moment matched. */
+  caption?: string;
   /** Source video id — several moments (clips) can share one video. */
   videoId?: string;
   /** Where the moment starts/ends inside `videoUrl`, in seconds. */

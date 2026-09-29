@@ -29,11 +29,15 @@ function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => stri
       value: [clip.date, clip.ts].filter(Boolean).join(" · "),
       mono: true,
     },
-    { label: "CAMERA", value: `${clip.camera} (${clip.code})` },
+    {
+      label: "CAMERA",
+      value: clip.code && clip.code !== clip.camera ? `${clip.camera} (${clip.code})` : clip.camera,
+    },
     ...(clip.scene ? [{ label: "SCENE", value: clip.scene }] : []),
-    { label: "PERSPECTIVE", value: clip.perspective },
+    ...(clip.perspective ? [{ label: "PERSPECTIVE", value: clip.perspective }] : []),
     { label: "ACTION TYPE", value: clip.action },
     { label: "OBJECTS DETECTED", value: clip.objects },
+    ...(clip.description ? [{ label: "DESCRIPTION", value: clip.description }] : []),
     {
       label: "CONFIDENCE",
       value: `${clip.confidence}%`,

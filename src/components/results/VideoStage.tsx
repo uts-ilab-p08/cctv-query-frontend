@@ -103,9 +103,11 @@ export function VideoStage({
                 {clip.scene}
               </span>
             ) : null}
-            <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 text-[11px] text-white/80">
-              {clip.perspective}
-            </span>
+            {clip.perspective ? (
+              <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 text-[11px] text-white/80">
+                {clip.perspective}
+              </span>
+            ) : null}
           </div>
 
           <span className="absolute top-3 right-3 rounded-md border border-white/[0.16] bg-[rgba(12,15,19,0.82)] px-[9px] py-1 font-mono text-[11px] text-white">

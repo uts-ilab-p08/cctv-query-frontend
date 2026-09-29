@@ -12,10 +12,16 @@ export interface RagResultItem {
   end_seconds: number;
   caption: string;
   score: number;
-  /** Short event label. Not in the documented contract yet — optional until the RAG confirms it. */
+  /** Enriched by the backend from bronze.events / bronze.videos (spec §4.1). */
+  event_id?: string | null;
   event_name?: string | null;
-  /** Requested (§4.1): `bronze.videos.scene`. Optional until /search returns it. */
+  description?: string | null;
+  camera?: string | null;
   scene?: string | null;
+  /** ISO 8601 wall-clock start at the camera; `null` until the backend fills it. */
+  timestamp?: string | null;
+  thumbnail_url?: string | null;
+  tags?: string[] | null;
 }
 
 export interface RagQueryResult {

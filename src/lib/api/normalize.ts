@@ -56,25 +56,70 @@ function inferTags(caption: string): ClipTag[] {
   return [...tags];
 }
 
-export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
+const CLIP_TAGS: readonly ClipTag[] = [
+  "Person",
+  "Vehicle",
+  "Entry",
+  "Exit",
+  "Loitering",
+  "Object Left",
+];
+
+function toClipTags(tags: readonly string[]): ClipTag[] {
+  return tags.filter((tag): tag is ClipTag => (CLIP_TAGS as readonly string[]).includes(tag));
+}
+
+const ISO_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
+const SHORT_DATE = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+/** Wall-clock time and date *at the camera*, read straight from the ISO string —
+ *  never converted to the viewer's time zone. */
+function wallClock(timestamp: string | null | undefined): { ts: string; date: string } | null {
+  const match = timestamp ? ISO_LOCAL.exec(timestamp) : null;
+  if (!match) return null;
+  const [, year, month, day, hours, minutes, seconds] = match;
   return {
-    id: `${item.video_id}:${item.start_seconds}`,
-    camera: "Unknown",
-    code: "Unknown",
-    perspective: "Unknown",
-    // Offset into the source video, straight from the endpoint. Switch to wall-clock time
-    // once the RAG returns it.
-    ts: fmtElapsed(item.start_seconds),
-    date: "",
+    ts: `${hours}:${minutes}:${seconds}`,
+    date: SHORT_DATE.format(Date.UTC(Number(year), Number(month) - 1, Number(day))),
+  };
+}
+
+const text = (value: string | null | undefined) => value?.trim() || undefined;
+
+export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
+  const eventId = text(item.event_id);
+  const camera = text(item.camera);
+  const eventName = text(item.event_name);
+  const tags = item.tags ? toClipTags(item.tags) : inferTags(item.caption);
+  const clock = wallClock(item.timestamp);
+  return {
+    // The event id when present: stable, and valid for /clips/{id}. `searchClips`
+    // keeps ids unique when two results fall in the same event.
+    id: eventId ?? `${item.video_id}:${item.start_seconds}`,
+    eventId,
+    camera: camera ?? "Unknown",
+    code: camera ?? "Unknown",
+    // Not returned by /search; empty hides it rather than printing "Unknown".
+    perspective: "",
+    // Wall-clock at the camera when the backend sends it; otherwise the offset
+    // into the source video.
+    ts: clock?.ts ?? fmtElapsed(item.start_seconds),
+    date: clock?.date ?? "",
     order,
     confidence: Math.round(item.score * 100),
-    tags: inferTags(item.caption),
-    objects: item.caption,
-    action: item.caption,
-    thumbnailUrl: undefined,
+    tags,
+    objects: tags.length ? tags.join(", ") : item.caption,
+    action: eventName ?? item.caption,
+    thumbnailUrl: text(item.thumbnail_url),
     videoUrl: item.video_url ?? undefined,
-    eventName: item.event_name?.trim() || undefined,
-    scene: item.scene?.trim() || undefined,
+    eventName,
+    description: text(item.description),
+    caption: item.caption,
+    scene: text(item.scene),
     videoId: item.video_id,
     startSeconds: item.start_seconds,
     endSeconds: item.end_seconds,
@@ -91,9 +136,7 @@ export function apiClipToClip(clip: ApiClip): Clip {
     date: clip.date,
     order: clip.order,
     confidence: clip.confidence,
-    tags: clip.tags.filter((tag): tag is ClipTag =>
-      ["Person", "Vehicle", "Entry", "Exit", "Loitering", "Object Left"].includes(tag),
-    ),
+    tags: toClipTags(clip.tags),
     objects: clip.objects,
     action: clip.action,
     thumbnailUrl: clip.thumbnailUrl ?? undefined,
@@ -131,7 +174,7 @@ export function clipToAssistantMoment(clip: Clip): AssistantMoment {
     // Mock clips have no video offset; their position in the demo window stands in.
     start_seconds: clip.startSeconds ?? clipPos(clip),
     end_seconds: clip.endSeconds ?? null,
-    caption: clip.eventName ?? clip.action,
+    caption: clip.caption ?? clip.eventName ?? clip.action,
     score: clip.confidence / 100,
     camera: clip.camera === "Unknown" ? null : clip.camera,
   };

@@ -40,10 +40,15 @@ export interface SearchResult {
 export async function searchClips(query: string, limit = 10): Promise<SearchResult> {
   const params = new URLSearchParams({ q: query, limit: String(limit) });
   const result = await apiFetch<RagQueryResult>(`/api/v1/search?${params.toString()}`);
-  return {
-    clips: result.results.map((item, index) => ragResultItemToClip(item, index)),
-    summary: result.answer,
-  };
+  // Two results can fall in the same event; suffix the start so ids stay unique.
+  const seen = new Set<string>();
+  const clips = result.results.map((item, index) => {
+    const clip = ragResultItemToClip(item, index);
+    const id = seen.has(clip.id) ? `${clip.id}:${item.start_seconds}` : clip.id;
+    seen.add(id);
+    return id === clip.id ? clip : { ...clip, id };
+  });
+  return { clips, summary: result.answer };
 }
 
 /**
