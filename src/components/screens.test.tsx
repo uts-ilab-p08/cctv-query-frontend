@@ -56,11 +56,10 @@ const clipSuggestedQuestions: string[] = Object.values(MOMENT_QUESTIONS);
 vi.mock("@/lib/api/endpoints", () => ({
   searchClips: vi.fn(async (query: string) => {
     const { filterClips } = await import("@/lib/filters");
-    const { summarizeResults } = await import("@/lib/assistant");
     const { getAllClips: getMockClips } = await import("@/lib/clips");
     const { emptyFilters } = await import("@/lib/filters");
     const clips = filterClips(getMockClips(), emptyFilters);
-    return { clips, summary: summarizeResults(clips, query) };
+    return { clips, summary: `Found ${clips.length} indexed events matching "${query}".` };
   }),
   getClipById: vi.fn(async (id: string) => {
     const { getClipById: getMockClipById } = await import("@/lib/clips");
@@ -781,13 +780,28 @@ describe("Clip detail", () => {
     expect(screen.getByRole("heading", { name: "RELATED CLIPS" })).toBeInTheDocument();
   });
 
-  it("seeds the assistant thread with the query and an AI summary", () => {
+  it("opens the thread by asking the backend the original search about this clip", async () => {
     useAppStore.setState({ query: "red car" });
     render(<ClipDetailScreen clip={clip} />);
 
-    const thread = useAppStore.getState().chats[String(clip.id)] ?? [];
-    expect(thread[0]).toMatchObject({ role: "user", text: "red car" });
-    expect(thread[1]?.text).toMatch(/Matched against "red car"/);
+    expect(vi.mocked(askAssistant).mock.calls[0][0]).toMatchObject({
+      query: "red car",
+      question: "red car",
+      scope: "moment",
+      focus_moment_id: clip.id,
+    });
+    const thread = () => useAppStore.getState().chats[String(clip.id)] ?? [];
+    expect(thread()[0]).toMatchObject({ role: "user", text: "red car" });
+    // First the "thinking" placeholder, then the backend's answer in its place.
+    await vi.waitFor(() => expect(thread()[1]?.status).toBeUndefined());
+    expect(thread()[1]).toMatchObject({ role: "agent" });
+  });
+
+  it("asks nothing up front when the clip was opened without a search", () => {
+    render(<ClipDetailScreen clip={clip} />);
+
+    expect(askAssistant).not.toHaveBeenCalled();
+    expect(useAppStore.getState().chats[String(clip.id)] ?? []).toEqual([]);
   });
 
   it("keeps the assistant closed until the floating pill is used", async () => {

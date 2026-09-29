@@ -44,7 +44,7 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
   // by id and would otherwise only find the demo set.
   useEffect(() => {
     rememberClip(clip);
-    seedClipChat(clip.id, query);
+    void seedClipChat(clip.id, query);
   }, [clip, query, rememberClip, seedClipChat]);
 
   return (

@@ -3,7 +3,6 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
-import { summarizeClip } from "@/lib/assistant";
 import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
 import { clipToAssistantMoment } from "@/lib/api/normalize";
 import { emptyFilters } from "@/lib/filters";
@@ -86,7 +85,7 @@ interface AppState {
   /** Shared by both scopes; `focusId` null means the whole result set. */
   ask: (key: string, question: string, focusId: string | null) => Promise<void>;
   /** Open a clip thread with the user's query and the model's read of the clip. */
-  seedClipChat: (clipId: string, query: string) => void;
+  seedClipChat: (clipId: string, query: string) => Promise<void>;
   /** Clips loaded from the API outside a search (the /clips/[id] page), by id — so the
    *  assistant can find a clip that is neither in `results` nor in the demo set. */
   knownClips: Record<string, Clip>;
@@ -353,20 +352,14 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      seedClipChat: (clipId, query) =>
-        set((s) => {
-          const id = chatKey(clipId);
-          if (s.chats[id]?.length) return s;
-          const clip = s.knownClips[id];
-          if (!clip) return s;
-
-          const seeded: ChatMessage[] = [];
-          const trimmed = query.trim();
-          if (trimmed) seeded.push({ role: "user", text: trimmed });
-          seeded.push({ role: "agent", text: summarizeClip(clip, trimmed) });
-
-          return { chats: { ...s.chats, [id]: seeded } };
-        }),
+      seedClipChat: async (clipId, query) => {
+        const state = get();
+        const id = chatKey(clipId);
+        // Seed once, only for a clip we know, and only when there was a search to ask about:
+        // the backend answers the original search about this clip (no local summary).
+        if (state.chats[id]?.length || !state.knownClips[id] || !query.trim()) return;
+        await get().ask(id, query, id);
+      },
 
       rememberClip: (clip) => set((s) => ({ knownClips: { ...s.knownClips, [clip.id]: clip } })),
 
