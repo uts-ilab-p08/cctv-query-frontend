@@ -1,8 +1,6 @@
 import { fmtElapsed } from "@/lib/time";
 import type { Clip, ClipTag } from "@/types";
 
-import { clipPos } from "@/lib/time";
-
 import type {
   ApiCameraDirectoryEntry,
   ApiClip,
@@ -145,8 +143,8 @@ export function clipToAssistantMoment(clip: Clip): AssistantMoment {
   return {
     moment_id: clip.id,
     video_id: clip.videoId ?? clip.id,
-    // Mock clips have no video offset; their position in the demo window stands in.
-    start_seconds: clip.startSeconds ?? clipPos(clip),
+    // Clips from GET /clips/{id} carry no offset into their video (yet).
+    start_seconds: clip.startSeconds ?? 0,
     end_seconds: clip.endSeconds ?? null,
     caption: clip.caption ?? clip.eventName ?? clip.action,
     score: clip.confidence / 100,

@@ -6,7 +6,6 @@ import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
 import { summarizeClip } from "@/lib/assistant";
 import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
 import { clipToAssistantMoment } from "@/lib/api/normalize";
-import { getAllClips, getClipById } from "@/lib/clips";
 import { emptyFilters } from "@/lib/filters";
 import { topMatches } from "@/lib/matches";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
@@ -112,21 +111,18 @@ export function startersKey(key: string, focusId: string | null, query: string):
 }
 
 /**
- * What the assistant endpoints receive: the moments on screen (the Results strip;
- * without a live search, the demo set — unless the focus is a real API clip, which
- * stands alone rather than being mixed with demo data) and the thread so far.
- * `null` when the focused moment can't be found.
+ * What the assistant endpoints receive: the moments on screen (the Results strip,
+ * plus the focused clip if it isn't in it — Clip Detail's clip comes from the API)
+ * and the thread so far. Never demo data. `null` when the focused moment is unknown.
  */
 function assistantContext(
   state: AppState,
   key: string,
   focusId: string | null,
 ): { moments: Clip[]; history: { role: "user" | "assistant"; text: string }[] } | null {
-  const known = focusId ? state.knownClips[focusId] : undefined;
-  const pool = state.results.length ? state.results : known ? [] : getAllClips();
-  const moments = topMatches(pool);
+  const moments = topMatches(state.results);
   if (focusId && !moments.some((clip) => clip.id === focusId)) {
-    const focus = pool.find((clip) => clip.id === focusId) ?? known ?? getClipById(focusId);
+    const focus = state.results.find((clip) => clip.id === focusId) ?? state.knownClips[focusId];
     if (!focus) return null;
     moments.push(focus);
   }
@@ -361,7 +357,7 @@ export const useAppStore = create<AppState>()(
         set((s) => {
           const id = chatKey(clipId);
           if (s.chats[id]?.length) return s;
-          const clip = s.knownClips[id] ?? getClipById(clipId);
+          const clip = s.knownClips[id];
           if (!clip) return s;
 
           const seeded: ChatMessage[] = [];

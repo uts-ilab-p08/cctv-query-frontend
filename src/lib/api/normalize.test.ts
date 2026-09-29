@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ragResultItemToClip } from "./normalize";
+import { clipToAssistantMoment, ragResultItemToClip } from "./normalize";
 
 const item = {
   video_id: "vid-1",
@@ -92,5 +92,14 @@ describe("ragResultItemToClip", () => {
       expect(clip.ts).toBe("2:49");
       expect(clip.date).toBe("");
     });
+  });
+});
+
+describe("clipToAssistantMoment", () => {
+  it("never invents a start from the old demo window when the clip has none", () => {
+    const clip = ragResultItemToClip(item, 0);
+    // A clip from GET /clips/{id}: wall-clock `ts`, no offset into its video.
+    const withoutStart = { ...clip, ts: "14:00:00", startSeconds: undefined };
+    expect(clipToAssistantMoment(withoutStart).start_seconds).toBe(0);
   });
 });

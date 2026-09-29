@@ -988,7 +988,20 @@ describe("Pipeline", () => {
   });
 });
 
+describe("Assistant context", () => {
+  it("sends no stand-in moments to the backend when there are no results", async () => {
+    await act(() => useAppStore.getState().askInResults("anything at all"));
+
+    expect(vi.mocked(askAssistant).mock.calls[0][0].moments).toEqual([]);
+  });
+});
+
 describe("Query Assistant", () => {
+  // The assistant answers about search results — with none, it has nothing to go on.
+  beforeEach(async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+  });
+
   it("answers a suggested question in the results thread", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ chatOpen: true });
