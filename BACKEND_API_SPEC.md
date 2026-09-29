@@ -7,26 +7,26 @@ What the frontend consumes today, what it still needs, and every place the RAG s
 
 - **Base URL:** `NEXT_PUBLIC_API_BASE_URL`. Dev is `https://surveillance-backend-nodd.onrender.com`; a local backend is `http://localhost:8000`. Live docs are at `/docs`.
 - **Auth:** every endpoint except `/health` requires `Authorization: Bearer <Supabase access token>`. The live backend returns `403 {"detail":"Not authenticated"}` without a token and `401 {"detail":"Invalid or expired token"}` for a bad one. The frontend attaches the token in `src/lib/api/client.ts`: the browser session on the client, and a server-resolved token for the `/clips/[id]` server component.
-- **Last checked against the live `/openapi.json`:** 2026-09-24.
+- **Last checked against the live `/openapi.json`:** 2026-09-29.
 
 ---
 
 ## 1. Status at a glance
 
-| Endpoint                               | Status                                        | Used by (frontend)                                                                              | Calls the RAG                         |
-| -------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `GET /health`                          | ✅ Live                                       | Not used. Monitoring only, no screen needs it.                                                  | No                                    |
-| `GET /api/v1/search`                   | ✅ Live · **changes requested** (§4.1)        | Search from Home, New Query, Recent/Saved "run again", and a Results refresh via `?q=`          | **Yes**: pass-through                 |
-| `GET /api/v1/clips/{id}`               | ✅ Live                                       | Clip Detail page (server-rendered)                                                              | No                                    |
-| `GET /api/v1/clips/{id}/related`       | ✅ Live · envelope untyped (§4.2)             | Clip Detail, "Related clips"                                                                    | No                                    |
-| `GET /api/v1/cameras`                  | ✅ Live · envelope untyped (§4.2)             | Cameras directory modal                                                                         | No                                    |
-| `GET /api/v1/queries/recent`           | ✅ Live · envelope untyped (§4.2)             | Home, "Recent queries"                                                                          | Written as a side effect of `/search` |
-| `GET /api/v1/queries/saved`            | ✅ Live · envelope untyped (§4.2)             | Saved Queries screen                                                                            | No                                    |
-| `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3) | Bookmark on the original query in the chat                                                      | No                                    |
-| `DELETE /api/v1/queries/saved/{id}`    | 🟡 **Proposed** (§3.1)                        | Delete button on Saved Queries (UI ready; gets `405` today)                                     | No                                    |
-| `POST /api/v1/assistant/ask`           | 🟡 **Proposed** (§3.2)                        | Results chat and Clip Detail assistant (**simulated** in the frontend today)                    | **Yes**                               |
-| `POST /api/v1/assistant/suggestions`   | 🟡 **Proposed** (§3.4)                        | Opening suggested questions in the Results chat and Clip Detail assistant (**simulated** today) | **Yes**                               |
-| `GET /api/v1/videos/{video_id}/tracks` | 🟡 **Proposed** (§3.3)                        | Box around the detected object on the Results player (**simulated** today, labelled SIMULATED)  | No (database)                         |
+| Endpoint                               | Status                                                   | Used by (frontend)                                                                              | Calls the RAG                         |
+| -------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `GET /health`                          | ✅ Live                                                  | Not used. Monitoring only, no screen needs it.                                                  | No                                    |
+| `GET /api/v1/search`                   | ✅ Live · **changes requested** (§4.1)                   | Search from Home, New Query, Recent/Saved "run again", and a Results refresh via `?q=`          | **Yes**: pass-through                 |
+| `GET /api/v1/clips/{id}`               | ✅ Live                                                  | Clip Detail page (server-rendered)                                                              | No                                    |
+| `GET /api/v1/clips/{id}/related`       | ✅ Live                                                  | Clip Detail, "Related clips"                                                                    | No                                    |
+| `GET /api/v1/cameras`                  | ✅ Live                                                  | Cameras directory modal                                                                         | No                                    |
+| `GET /api/v1/queries/recent`           | ✅ Live                                                  | Home, "Recent queries"                                                                          | Written as a side effect of `/search` |
+| `GET /api/v1/queries/saved`            | ✅ Live                                                  | Saved Queries screen                                                                            | No                                    |
+| `POST /api/v1/queries/saved`           | ✅ Live · duplicate handling requested (§4.3)            | Bookmark on the original query in the chat                                                      | No                                    |
+| `DELETE /api/v1/queries/saved/{id}`    | ✅ Live (§3.1)                                           | Delete button, with a confirmation step, on Saved Queries                                       | No                                    |
+| `POST /api/v1/assistant/ask`           | 🔵 Live in the backend · frontend still simulated (§3.2) | Results chat and Clip Detail assistant (**simulated** in the frontend today)                    | **Yes**                               |
+| `POST /api/v1/assistant/suggestions`   | 🔵 Live in the backend · frontend still simulated (§3.4) | Opening suggested questions in the Results chat and Clip Detail assistant (**simulated** today) | **Yes**                               |
+| `GET /api/v1/videos/{video_id}/tracks` | 🔵 Live in the backend · frontend still simulated (§3.3) | Box around the detected object on the Results player (**simulated** today, labelled SIMULATED)  | No (database)                         |
 
 ---
 
@@ -84,19 +84,19 @@ The Clip Detail page renders it on the server with the user's token. The page re
 
 ### `GET /api/v1/clips/{id}/related`
 
-Query `limit` (1–20, default 4). The relatedness heuristic is owned by the backend ("same camera, closest in time"). **Response:** a list of `Clip`. The envelope is untyped (§4.2).
+Query `limit` (1–20, default 4). The relatedness heuristic is owned by the backend ("same camera, closest in time"). **Response:** `ClipListResponse` `{ clips: Clip[] }`.
 
 ### `GET /api/v1/cameras`
 
-No params. **Response:** a list of `{ code, perspective, eventCount }`. The envelope is untyped (§4.2). Fetched when the Cameras modal opens. **Please add `scene`** (`bronze.videos.scene`, see §4.1), so the directory can group cameras by site. `eventCount` can come from counting `bronze.events` per `videos.camera_id`.
+No params. **Response:** `CamerasResponse` `{ cameras: { code, perspective, eventCount }[] }`. Fetched when the Cameras modal opens. **Please add `scene`** (`bronze.videos.scene`, see §4.1), so the directory can group cameras by site. `eventCount` can come from counting `bronze.events` per `videos.camera_id`.
 
 ### `GET /api/v1/queries/recent`
 
-Read-only; rows come from `/search`. **Response:** a list of `{ id, text, ts, cameras }`. The envelope is untyped (§4.2).
+Read-only; rows come from `/search`. **Response:** `RecentQueriesResponse` `{ queries: { id, text, ts, cameras }[] }`.
 
 ### `GET /api/v1/queries/saved`
 
-**Response:** a list of `SavedQueryOut` `{ id, text, savedOn, hits }`. The envelope is untyped (§4.2). `savedOn` is a plain string: the frontend formats ISO timestamps as `Sep 24` and shows any other value as-is. **Please send ISO 8601.**
+**Response:** `SavedQueriesResponse` `{ queries: SavedQueryOut[] }`, where `SavedQueryOut` is `{ id, text, savedOn, hits }`. `savedOn` is a plain string: the frontend formats ISO timestamps as `Sep 24` and shows any other value as-is. **Please send ISO 8601.**
 
 ### `POST /api/v1/queries/saved`
 
@@ -106,11 +106,13 @@ The frontend saves from a bookmark beside the original query bubble in the Resul
 
 ---
 
-## 3. Pending endpoints (to implement)
+## 3. Endpoints added for this frontend
+
+As of 2026-09-29, all four are live in the backend. §3.1 is wired in the frontend; §3.2–§3.4 still run on the frontend simulations until they are wired, one at a time.
 
 ### 3.1 `DELETE /api/v1/queries/saved/{id}`
 
-The frontend is ready (`deleteSavedQuery()` in `src/lib/api/endpoints.ts`, with a delete button and a confirmation step on every row). Until this endpoint exists the backend answers `405`, and the screen says _"Deleting saved queries isn't available yet"_.
+**Live and wired (2026-09-29).** `deleteSavedQuery()` in `src/lib/api/endpoints.ts` backs the delete button, which has a confirmation step, on every Saved Queries row. On success the row disappears. A `404` is treated as already deleted. Any other error keeps the row and says why.
 
 - **Request:** no body. `{id}` is `SavedQueryOut.id`, URL-encoded.
 
@@ -288,9 +290,9 @@ The frontend can't fill these gaps itself, but **almost all of this data already
 
 **Video URLs.** `video_url` is loaded by a plain `<video>` element, which can't send the bearer token. It must be public or a **signed URL** that expires after a while. `bronze.videos` has `storage_bucket` and `storage_path`, so the backend can sign a URL per request (for example with Supabase Storage `createSignedUrl`) instead of returning the stored `video_url`. The file host must allow HTTP range requests. MP4s should be encoded with `-movflags +faststart`; otherwise seeking to `start_seconds` waits for most of the file to download.
 
-### 4.2 Typed list envelopes
+### 4.2 Typed list envelopes — ✅ resolved (2026-09-29)
 
-`/clips/{id}/related`, `/cameras`, `/queries/recent` and `/queries/saved` are untyped `object`s in the OpenAPI schema (no `response_model`). The frontend accepts both `{ clips | cameras | queries: [...] }` and a bare array (`listFrom()` in `src/lib/api/endpoints.ts`) and treats anything else as empty. **Please add response models** so the envelope is part of the contract; the frontend then drops the guesswork.
+All four list endpoints now declare response models: `ClipListResponse { clips }`, `CamerasResponse { cameras }`, `RecentQueriesResponse { queries }` and `SavedQueriesResponse { queries }`. They match the keys the frontend reads. `listFrom()` still accepts a bare array; that fallback can go.
 
 ### 4.3 `POST /queries/saved` — duplicates
 
@@ -306,8 +308,8 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
 | 2   | `GET /search`                 | Normalized moment metadata joined from `bronze.events`/`bronze.videos`: event id, event name, camera, scene, wall-clock time, thumbnail, tags (§4.1)                                                                                                                       | 🔴 Missing                                         |
 | 3   | `GET /search`                 | Metadata filters: cameras, scenes, event types, confidence, dates (§4.1)                                                                                                                                                                                                   | 🔴 Missing                                         |
 | 4   | `GET /search` side effects    | Write a recent-query row; bump `hits` on a matching saved query                                                                                                                                                                                                            | Documented by the backend, unverified              |
-| 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | 🟡 Proposed; simulated in the frontend             |
-| 6   | `POST /assistant/suggestions` | Opening suggested questions for the context (after a search, a selected moment, Clip Detail), limited to what the data can answer (§3.4)                                                                                                                                   | 🟡 Proposed; simulated in the frontend             |
+| 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | 🔵 Live in the backend; frontend still simulated   |
+| 6   | `POST /assistant/suggestions` | Opening suggested questions for the context (after a search, a selected moment, Clip Detail), limited to what the data can answer (§3.4)                                                                                                                                   | 🔵 Live in the backend; frontend still simulated   |
 | 7   | `POST /assistant/ask`         | Cross-camera reasoning: same vehicle or person across cameras, "before/after this", "near this scene". Within one video, `bronze.objects` and `bronze.geometries` (bounding boxes, `spatial_position`) support it; across cameras the schema has no re-identification link | 🟡 Proposed; needs re-identification and time data |
 | 8   | Clip Detail opening message   | Summary of one moment against the original search (via #5)                                                                                                                                                                                                                 | 🟡 Proposed; built locally today                   |
 | 9   | `video_url`                   | Playable, signed, seekable footage URLs (§4.1)                                                                                                                                                                                                                             | ⚠️ Works when public; signing not specified        |
@@ -361,7 +363,7 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
   - The tracks simulation (§3.3).
   - The mock scene per demo camera (`cameraScenes` in `src/data/cameras.ts`). The UI already shows `scene` on match cards, the player, chunk metadata, clip detail, the camera directory (grouped by scene) and the Filters dialog (§4.1).
   - `summarizeClip` (§3.2).
-  - `listFrom` envelope guessing (§4.2).
+  - `listFrom`'s bare-array fallback (§4.2, now resolved).
 - **Precincts removed.** MEVA was recorded at a single facility (Muscatatuck Urban Training Center, Known Facility 1), and the `bronze` schema only has `camera_id` and `scene` per video, with no precinct, district or zone. The frontend removed the precinct selector and its data. No backend endpoint is needed; `scene` covers grouping by site (§4.1).
 - **Results URL:** the search lives in `?q=`, so a refresh or a shared link re-runs `/search`. The backend sees the same query again; it isn't a new user action.
 - **Tests** mock `@/lib/api/endpoints`, so no test hits the network.
