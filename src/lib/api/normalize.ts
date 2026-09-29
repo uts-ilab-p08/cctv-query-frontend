@@ -114,6 +114,8 @@ export function apiClipToClip(clip: ApiClip): Clip {
     thumbnailUrl: clip.thumbnailUrl ?? undefined,
     videoUrl: clip.videoUrl ?? undefined,
     scene: clip.scene ?? undefined,
+    startSeconds: clip.startSeconds ?? undefined,
+    endSeconds: clip.endSeconds ?? undefined,
   };
 }
 

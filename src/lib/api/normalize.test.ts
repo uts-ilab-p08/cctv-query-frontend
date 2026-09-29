@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { clipToAssistantMoment, ragResultItemToClip } from "./normalize";
+import { apiClipToClip, clipToAssistantMoment, ragResultItemToClip } from "./normalize";
+import type { ApiClip } from "./types";
 
 const item = {
   video_id: "vid-1",
@@ -92,6 +93,35 @@ describe("ragResultItemToClip", () => {
       expect(clip.ts).toBe("2:49");
       expect(clip.date).toBe("");
     });
+  });
+});
+
+describe("apiClipToClip", () => {
+  const apiClip: ApiClip = {
+    id: "evt-1",
+    camera: "G328",
+    code: "G328",
+    ts: "0:12",
+    date: "",
+    order: 1,
+    confidence: 0.9,
+    tags: ["Vehicle"],
+    objects: "vehicle",
+    action: "A car parks",
+    thumbnailUrl: null,
+    videoUrl: "https://cdn.test/v.mp4",
+  };
+
+  it("keeps the moment's bounds when /clips/{id} sends them", () => {
+    const clip = apiClipToClip({ ...apiClip, startSeconds: 12, endSeconds: 20 });
+    expect(clip.startSeconds).toBe(12);
+    expect(clip.endSeconds).toBe(20);
+  });
+
+  it("leaves the bounds empty until the backend sends them", () => {
+    const clip = apiClipToClip(apiClip);
+    expect(clip.startSeconds).toBeUndefined();
+    expect(clip.endSeconds).toBeUndefined();
   });
 });
 

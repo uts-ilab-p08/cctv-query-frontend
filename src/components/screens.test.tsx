@@ -791,10 +791,43 @@ describe("Clip detail", () => {
   it("renders the player, metadata and related clips", () => {
     render(<ClipDetailScreen clip={clip} />);
 
-    expect(screen.getByRole("button", { name: "Play clip" })).toBeInTheDocument();
+    expect(screen.getByText("No footage for this clip")).toBeInTheDocument();
+    // No fake play button or invented progress for a clip without footage.
+    expect(screen.queryByRole("button", { name: /Play clip/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(screen.getByText("SCENE")).toBeInTheDocument();
     expect(screen.queryByText("PERSPECTIVE")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "RELATED CLIPS" })).toBeInTheDocument();
+  });
+
+  it("plays the clip's real footage, with its thumbnail as the poster", () => {
+    render(
+      <ClipDetailScreen
+        clip={{
+          ...clip,
+          videoUrl: "https://cdn.test/c.mp4",
+          thumbnailUrl: "https://cdn.test/c.jpg",
+        }}
+      />,
+    );
+
+    const video = screen.getByLabelText("Clip footage") as HTMLVideoElement;
+    expect(video.getAttribute("src")).toBe("https://cdn.test/c.mp4");
+    expect(video.getAttribute("poster")).toBe("https://cdn.test/c.jpg");
+    expect(video).toHaveAttribute("controls");
+    expect(screen.queryByText("No footage for this clip")).not.toBeInTheDocument();
+  });
+
+  it("cues the footage to the moment when the clip knows where it starts", () => {
+    render(
+      <ClipDetailScreen clip={{ ...clip, videoUrl: "https://cdn.test/c.mp4", startSeconds: 42 }} />,
+    );
+
+    const video = screen.getByLabelText("Clip footage") as HTMLVideoElement;
+    act(() => {
+      video.dispatchEvent(new Event("loadedmetadata"));
+    });
+    expect(video.currentTime).toBe(42);
   });
 
   it("opens the thread by asking the backend the original search about this clip", async () => {

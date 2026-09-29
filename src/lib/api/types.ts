@@ -42,6 +42,10 @@ export interface ApiClip {
   videoUrl: string | null;
   /** Requested (§4.1): `bronze.videos.scene`. */
   scene?: string | null;
+  /** Requested: the event's bounds in seconds into `videoUrl`, so Clip Detail can
+   *  open the footage at the moment instead of at 0:00. */
+  startSeconds?: number | null;
+  endSeconds?: number | null;
 }
 
 export interface ApiCameraDirectoryEntry {
