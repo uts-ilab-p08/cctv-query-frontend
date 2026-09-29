@@ -1,10 +1,10 @@
 import type { TrackBox, TracksResponse } from "../types";
 
 /**
- * SIMULATION of the proposed `GET /api/v1/videos/{video_id}/tracks` (contract in
- * ../types.ts). It invents one plausible object track across the moment so the
- * overlay can be built and demoed; the boxes do NOT follow anything in the real
- * footage, which is why the response is flagged `simulated`.
+ * TEST-ONLY SIMULATION of `GET /api/v1/videos/{video_id}/tracks` (contract in
+ * ../types.ts). The endpoint is live and the app calls it; the screen tests use this
+ * instead so they never hit the network. It invents one plausible track across the
+ * moment — boxes that follow nothing in real footage — so it is flagged `simulated`.
  */
 
 const FRAME = { width: 1920, height: 1080 };
@@ -71,13 +71,4 @@ export function simulateTracks(moment: SimulatedMoment): TracksResponse {
     objects: [{ object_id: `sim-${moment.video_id}-${moment.start_seconds}`, label, boxes }],
     simulated: true,
   };
-}
-
-/** Network-shaped wrapper, like the real endpoint would behave. */
-export async function mockGetTracks(
-  moment: SimulatedMoment,
-  { delayMs = 300 }: { delayMs?: number } = {},
-): Promise<TracksResponse> {
-  await new Promise((resolve) => setTimeout(resolve, delayMs));
-  return simulateTracks(moment);
 }

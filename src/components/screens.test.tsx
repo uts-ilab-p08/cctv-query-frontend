@@ -87,7 +87,7 @@ vi.mock("@/lib/api/endpoints", () => ({
   // Object tracks from the simulation, instantly.
   getTracks: vi.fn(async (query: TracksQuery) => {
     const { simulateTracks } = await import("@/lib/api/mocks/tracks");
-    return simulateTracks(query);
+    return simulateTracks({ ...query, caption: "" });
   }),
   // The simulated backend, answering instantly so tests don't wait on its latency.
   askAssistant: vi.fn(async (request: AssistantAskRequest) => {

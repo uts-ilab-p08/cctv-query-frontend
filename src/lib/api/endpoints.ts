@@ -1,7 +1,6 @@
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
 import { apiFetch } from "./client";
-import { mockGetTracks } from "./mocks/tracks";
 import {
   apiCameraToCameraDirectoryEntry,
   apiClipToClip,
@@ -138,24 +137,21 @@ export interface TracksQuery {
   end_seconds: number;
   /** Once /search returns it: limit the tracks to this event's objects. */
   event_id?: string | null;
-  /** Simulation only — the real endpoint reads objects from the database. */
-  caption: string;
 }
 
 /**
- * PROPOSED `GET /api/v1/videos/{video_id}/tracks?start_seconds&end_seconds[&event_id]`
- * — SIMULATED until the backend ships it (contract: `TracksResponse` in ./types.ts;
- * spec: BACKEND_API_SPEC.md §3.3). To switch, replace the body with:
- *
- *   const params = new URLSearchParams({
- *     start_seconds: String(query.start_seconds),
- *     end_seconds: String(query.end_seconds),
- *     ...(query.event_id ? { event_id: query.event_id } : {}),
- *   });
- *   return apiFetch<TracksResponse>(
- *     `/api/v1/videos/${encodeURIComponent(query.video_id)}/tracks?${params}`,
- *   );
+ * `GET /api/v1/videos/{video_id}/tracks` — bounding boxes for the moment's window,
+ * read from bronze.geometries (no RAG). Boxes are top-left + size in source-frame
+ * pixels, `t` in seconds into the same file as `video_url`. With `event_id`, only
+ * that event's objects; without it, every event of the video overlapping the window.
  */
 export async function getTracks(query: TracksQuery): Promise<TracksResponse> {
-  return mockGetTracks(query);
+  const params = new URLSearchParams({
+    start_seconds: String(query.start_seconds),
+    end_seconds: String(query.end_seconds),
+    ...(query.event_id ? { event_id: query.event_id } : {}),
+  });
+  return apiFetch<TracksResponse>(
+    `/api/v1/videos/${encodeURIComponent(query.video_id)}/tracks?${params}`,
+  );
 }
