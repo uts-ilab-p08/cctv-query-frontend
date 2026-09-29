@@ -9,7 +9,6 @@ import { QueryPanel } from "@/components/results/QueryPanel";
 import { useMomentTracks } from "@/components/results/useMomentTracks";
 import { VideoStage } from "@/components/results/VideoStage";
 import { topMatches } from "@/lib/matches";
-import { clipPos, WIN_LEN } from "@/lib/time";
 import { useAppStore } from "@/store/useAppStore";
 import type { Clip } from "@/types";
 
@@ -55,21 +54,9 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   const selected = clips.find((clip) => clip.id === selectedClipId);
 
-  const nearestOnFeed = useMemo(() => {
-    const onCamera = clips.filter((clip) => clip.camera === activeCamera);
-    return (
-      [...onCamera].sort(
-        (a, b) => Math.abs(clipPos(a) - currentTime) - Math.abs(clipPos(b) - currentTime),
-      )[0] ?? clips[0]
-    );
-  }, [clips, activeCamera, currentTime]);
-
-  // Real footage opens on the first top match without *selecting* it, so the
-  // assistant stays on the query thread. Mock clips (no video) keep the
-  // demo-window behaviour of showing the event nearest the playhead.
-  const firstMatch = matches[0];
-  const activeClip: Clip | undefined =
-    selected ?? (firstMatch?.videoUrl ? firstMatch : nearestOnFeed);
+  // The player opens on the first top match without *selecting* it, so the
+  // assistant stays on the query thread.
+  const activeClip: Clip | undefined = selected ?? matches[0] ?? clips[0];
   const videoMode = !!activeClip?.videoUrl;
   const tracks = useMomentTracks(activeClip);
 
@@ -80,19 +67,10 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
     setPlaying(false);
   }, [clips]);
 
-  useEffect(() => {
-    // Real video drives its own clock through `onTimeUpdate`.
-    if (!playing || videoMode) return;
-    const id = window.setInterval(() => {
-      setCurrentTime((t) => (t >= WIN_LEN ? 0 : t + 1));
-    }, 250);
-    return () => window.clearInterval(id);
-  }, [playing, videoMode]);
-
   const selectMatch = useCallback((clip: Clip) => {
     setSelectedClipId(clip.id);
     setActiveCamera(clip.camera);
-    setCurrentTime(clip.videoUrl ? (clip.startSeconds ?? 0) : clipPos(clip));
+    setCurrentTime(clip.startSeconds ?? 0);
     setCueCount((n) => n + 1);
   }, []);
 
@@ -115,25 +93,16 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   );
 
   const ticks = useMemo(() => {
-    if (activeClip?.videoUrl) {
-      // Mark every matching moment that lives in the loaded video.
-      if (duration <= 0) return [];
-      return clips
-        .filter((clip) => clip.videoUrl === activeClip.videoUrl)
-        .map((clip) => ({
-          id: clip.id,
-          left: Math.min(100, ((clip.startSeconds ?? 0) / duration) * 100),
-          active: clip.id === selectedClipId,
-        }));
-    }
+    // Mark every matching moment that lives in the loaded video.
+    if (!activeClip?.videoUrl || duration <= 0) return [];
     return clips
-      .filter((clip) => clip.camera === activeCamera)
+      .filter((clip) => clip.videoUrl === activeClip.videoUrl)
       .map((clip) => ({
         id: clip.id,
-        left: (clipPos(clip) / WIN_LEN) * 100,
+        left: Math.min(100, ((clip.startSeconds ?? 0) / duration) * 100),
         active: clip.id === selectedClipId,
       }));
-  }, [clips, activeClip, activeCamera, selectedClipId, duration]);
+  }, [clips, activeClip, selectedClipId, duration]);
 
   if (searchPending) {
     return (

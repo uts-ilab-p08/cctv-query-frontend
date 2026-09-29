@@ -3,14 +3,13 @@
 import { X } from "lucide-react";
 
 import { confidenceVar } from "@/components/results/confidence";
-import { fmtClock } from "@/lib/time";
+import { fmtElapsed } from "@/lib/time";
 import type { Clip } from "@/types";
 
 interface MetadataOverlayProps {
   clip: Clip;
+  /** Playhead, in seconds into the video. */
   currentTime: number;
-  /** Playhead formatter — wall clock for the demo window, elapsed time for real video. */
-  formatTime?: (sec: number) => string;
   onClose: () => void;
 }
 
@@ -21,7 +20,7 @@ interface MetaRow {
   color?: string;
 }
 
-function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => string): MetaRow[] {
+function rows(clip: Clip, currentTime: number): MetaRow[] {
   return [
     {
       label: "TIMESTAMP",
@@ -43,7 +42,7 @@ function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => stri
       mono: true,
       color: confidenceVar(clip.confidence),
     },
-    { label: "PLAYHEAD", value: formatTime(currentTime), mono: true },
+    { label: "PLAYHEAD", value: fmtElapsed(currentTime), mono: true },
   ];
 }
 
@@ -54,12 +53,7 @@ function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => stri
  * the reason it used to be a fixed dark colour — and the text tokens on it are
  * contrast-checked for every palette (theme-contrast.test.ts).
  */
-export function MetadataOverlay({
-  clip,
-  currentTime,
-  formatTime = fmtClock,
-  onClose,
-}: MetadataOverlayProps) {
+export function MetadataOverlay({ clip, currentTime, onClose }: MetadataOverlayProps) {
   return (
     <div
       role="region"
@@ -79,7 +73,7 @@ export function MetadataOverlay({
       </div>
 
       <div className="grid grid-cols-2 gap-x-[18px] gap-y-2.5">
-        {rows(clip, currentTime, formatTime).map((row) => (
+        {rows(clip, currentTime).map((row) => (
           <div key={row.label}>
             <div className="text-ink-3 mb-1 font-mono text-[10px] tracking-[1px]">{row.label}</div>
             <div

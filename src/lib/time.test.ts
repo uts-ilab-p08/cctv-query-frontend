@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { formatRelativeTime, tsToSec } from "./time";
+import { fmtElapsed, formatRelativeTime } from "./time";
 
-describe("tsToSec", () => {
-  it("reads a wall-clock time", () => {
-    expect(tsToSec("13:58:02")).toBe(13 * 3600 + 58 * 60 + 2);
+describe("fmtElapsed", () => {
+  it("shows minutes and seconds into the video", () => {
+    expect(fmtElapsed(125)).toBe("2:05");
   });
 
-  it("reads a video offset without hours", () => {
-    expect(tsToSec("2:05")).toBe(125);
+  it("adds hours past the first hour and drops fractions", () => {
+    expect(fmtElapsed(3725.9)).toBe("1:02:05");
+  });
+
+  it("never goes below zero", () => {
+    expect(fmtElapsed(-4)).toBe("0:00");
   });
 });
 

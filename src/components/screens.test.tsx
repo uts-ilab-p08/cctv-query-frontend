@@ -320,6 +320,21 @@ describe("Results", () => {
     expect(within(panel).getByText("admin")).toBeInTheDocument();
   });
 
+  it("shows a moment without footage as a still frame, without faking playback", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    expect(screen.getByText("No footage for this moment")).toBeInTheDocument();
+    const play = screen.getByRole("button", { name: "Play" });
+    expect(play).toBeDisabled();
+    await user.click(play);
+    expect(screen.queryByRole("button", { name: "Pause" })).not.toBeInTheDocument();
+    // No invented wall clock (the old demo window started at 13:55:00).
+    expect(screen.queryByText("13:55:00")).not.toBeInTheDocument();
+    expect(screen.getAllByText("0:00").length).toBeGreaterThan(0);
+  });
+
   it("never loads a stand-in image from an outside site", async () => {
     await act(() => useAppStore.getState().runSearch("red car"));
     const { container } = render(<ResultsScreen />);

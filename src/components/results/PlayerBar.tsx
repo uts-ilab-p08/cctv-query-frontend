@@ -3,7 +3,7 @@
 import { Info, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { MouseEvent } from "react";
 
-import { fmtClock, WIN_LEN } from "@/lib/time";
+import { fmtElapsed } from "@/lib/time";
 
 export interface PlayerTick {
   id: string;
@@ -12,10 +12,12 @@ export interface PlayerTick {
 }
 
 interface PlayerBarProps {
+  /** Playhead, in seconds into the video. */
   currentTime: number;
-  /** Scrubber length in seconds — the demo window, or the loaded video's duration. */
-  duration?: number;
-  formatTime?: (sec: number) => string;
+  /** The loaded video's length in seconds; 0 until its metadata arrives. */
+  duration: number;
+  /** No footage for this moment: play and the scrubber are disabled. */
+  noFootage?: boolean;
   playing: boolean;
   muted: boolean;
   metaOpen: boolean;
@@ -35,8 +37,8 @@ const iconBtn =
 /** Playback control strip: play/pause, clock, scrubber with per-clip ticks, mute, info, fullscreen. */
 export function PlayerBar({
   currentTime,
-  duration = WIN_LEN,
-  formatTime = fmtClock,
+  duration,
+  noFootage = false,
   playing,
   muted,
   metaOpen,
@@ -51,6 +53,7 @@ export function PlayerBar({
   const pct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   const seek = (event: MouseEvent<HTMLDivElement>) => {
+    if (noFootage || duration <= 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     onSeek(Math.round(ratio * duration));
@@ -61,8 +64,10 @@ export function PlayerBar({
       <button
         type="button"
         onClick={onTogglePlay}
+        disabled={noFootage}
         aria-label={playing ? "Pause" : "Play"}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.14] bg-white/[0.08] text-white"
+        title={noFootage ? "No footage for this moment" : undefined}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.14] bg-white/[0.08] text-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         {playing ? (
           <Pause size={14} strokeWidth={2} fill="currentColor" aria-hidden />
@@ -71,9 +76,13 @@ export function PlayerBar({
         )}
       </button>
 
-      <span className="shrink-0 font-mono text-[12px] text-white">{formatTime(currentTime)}</span>
+      <span className="shrink-0 font-mono text-[12px] text-white">{fmtElapsed(currentTime)}</span>
 
-      <div onClick={seek} className="relative flex h-6 min-w-0 flex-1 cursor-pointer items-center">
+      <div
+        onClick={seek}
+        aria-disabled={noFootage}
+        className="relative flex h-6 min-w-0 flex-1 cursor-pointer items-center aria-disabled:cursor-default"
+      >
         <div className="absolute right-0 left-0 h-[5px] rounded-[3px] bg-white/[0.16]" />
         <div
           className="absolute left-0 h-[5px] rounded-[3px]"
