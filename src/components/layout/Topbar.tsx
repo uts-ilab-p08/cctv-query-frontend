@@ -2,9 +2,10 @@
 
 import { ArrowLeft } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { cameraNames } from "@/data/cameras";
+import { getCameras } from "@/lib/api/endpoints";
 import { useAppStore } from "@/store/useAppStore";
 
 const BREADCRUMBS: ReadonlyArray<{ prefix: string; label: string }> = [
@@ -24,6 +25,22 @@ export function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
   const openCameras = useAppStore((state) => state.openCameras);
+  /** Cameras in the backend's directory; unknown (no count shown) until it answers. */
+  const [cameraCount, setCameraCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCameras()
+      .then((cameras) => {
+        if (!cancelled) setCameraCount(cameras.length);
+      })
+      .catch(() => {
+        // The count is decoration; the cameras modal reports the error when opened.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const breadcrumb =
     BREADCRUMBS.find((entry) => pathname.startsWith(entry.prefix))?.label ?? "Query";
@@ -52,7 +69,10 @@ export function Topbar() {
           className="text-ink-2 hover:text-ink flex cursor-pointer items-center gap-2 font-mono text-xs transition-colors duration-150"
         >
           <span aria-hidden className="bg-accent size-[7px] rounded-full" />
-          Archived footage · {cameraNames.length} cameras indexed
+          Archived footage
+          {cameraCount !== null
+            ? ` · ${cameraCount} ${cameraCount === 1 ? "camera" : "cameras"} indexed`
+            : null}
         </button>
         <ThemeToggle />
       </div>
