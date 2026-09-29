@@ -1,3 +1,4 @@
+import { parseIsoTime } from "@/lib/time";
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
 import { apiFetch } from "./client";
@@ -79,10 +80,21 @@ export async function getCameras(): Promise<CameraDirectoryEntry[]> {
   );
 }
 
-/** Untyped response in the OpenAPI schema — see `listFrom`. */
-export async function getRecentQueries(): Promise<RecentQuery[]> {
+/**
+ * The newest `limit` recent queries. The endpoint takes no `limit` yet (spec §2),
+ * so the rows are sorted newest first here — when every `ts` is an ISO date — and cut.
+ */
+export async function getRecentQueries(limit = 3): Promise<RecentQuery[]> {
   const response = await apiFetch<unknown>("/api/v1/queries/recent");
-  return listFrom<ApiRecentQuery>(response, "queries");
+  const rows = listFrom<ApiRecentQuery>(response, "queries");
+  const times = rows.map((row) => parseIsoTime(row.ts));
+  const sorted = times.every((t) => t !== null)
+    ? rows
+        .map((row, index) => ({ row, t: times[index] as number }))
+        .sort((a, b) => b.t - a.t)
+        .map(({ row }) => row)
+    : rows;
+  return sorted.slice(0, limit);
 }
 
 /** Untyped response in the OpenAPI schema — see `listFrom`. */

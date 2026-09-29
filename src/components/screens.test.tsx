@@ -23,6 +23,7 @@ import { savedQueries } from "@/data/savedQueries";
 import {
   askAssistant,
   deleteSavedQuery,
+  getRecentQueries,
   getSavedQueries,
   getTracks,
   suggestQuestions,
@@ -155,6 +156,23 @@ describe("Dashboard", () => {
     expect(screen.getByRole("heading", { name: "Query your camera network" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Search the camera network/ })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
+  });
+
+  it("shows at most three recent queries, timed relative to now", async () => {
+    const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+    vi.mocked(getRecentQueries).mockResolvedValueOnce([
+      { id: "a", text: "red car at the gate", ts: at(1), cameras: 2 },
+      { id: "b", text: "loitering near the dock", ts: at(10), cameras: 1 },
+      { id: "c", text: "people waiting in a room", ts: at(120), cameras: 3 },
+      { id: "d", text: "a fourth query", ts: at(300), cameras: 1 },
+    ]);
+    render(<RecentQueries />);
+
+    const items = await screen.findAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(within(items[0]).getByText("1 min ago")).toBeInTheDocument();
+    expect(within(items[1]).getByText("10 min ago")).toBeInTheDocument();
+    expect(within(items[2]).getByText("2 hours ago")).toBeInTheDocument();
   });
 
   it("underlines detected terms inline as the investigator types", async () => {

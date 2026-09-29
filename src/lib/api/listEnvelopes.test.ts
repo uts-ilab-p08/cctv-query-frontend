@@ -56,3 +56,23 @@ describe.each([
     await expect(call()).resolves.toEqual([]);
   });
 });
+
+describe("getRecentQueries", () => {
+  beforeEach(() => vi.mocked(apiFetch).mockReset());
+
+  it("returns the newest three, since the endpoint has no limit param yet", async () => {
+    const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      queries: [
+        { id: "old", text: "old", ts: at(90), cameras: 1 },
+        { id: "newest", text: "newest", ts: at(1), cameras: 1 },
+        { id: "mid", text: "mid", ts: at(30), cameras: 1 },
+        { id: "new", text: "new", ts: at(10), cameras: 1 },
+      ],
+    });
+
+    const queries = await getRecentQueries();
+
+    expect(queries.map((q) => q.id)).toEqual(["newest", "new", "mid"]);
+  });
+});
