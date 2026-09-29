@@ -4,7 +4,7 @@ import type { TrackBox, TracksResponse } from "../types";
  * TEST-ONLY SIMULATION of `GET /api/v1/videos/{video_id}/tracks` (contract in
  * ../types.ts). The endpoint is live and the app calls it; the screen tests use this
  * instead so they never hit the network. It invents one plausible track across the
- * moment — boxes that follow nothing in real footage — so it is flagged `simulated`.
+ * moment; the boxes follow nothing in real footage.
  */
 
 const FRAME = { width: 1920, height: 1080 };
@@ -69,6 +69,5 @@ export function simulateTracks(moment: SimulatedMoment): TracksResponse {
     frame_width: FRAME.width,
     frame_height: FRAME.height,
     objects: [{ object_id: `sim-${moment.video_id}-${moment.start_seconds}`, label, boxes }],
-    simulated: true,
   };
 }

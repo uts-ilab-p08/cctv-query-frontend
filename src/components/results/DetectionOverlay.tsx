@@ -40,19 +40,18 @@ export function DetectionOverlay({ tracks, videoRef }: DetectionOverlayProps) {
     const box = boxAt(object.boxes, time);
     return box ? [{ object, box }] : [];
   });
-  const suffix = tracks.simulated ? " (simulated)" : "";
 
   return (
     <svg
       role="img"
-      aria-label={`Detected objects${visible.length ? `: ${visible.map((v) => v.object.label).join(", ")}` : ""}${suffix}`}
+      aria-label={`Detected objects${visible.length ? `: ${visible.map((v) => v.object.label).join(", ")}` : ""}`}
       viewBox={`0 0 ${tracks.frame_width} ${tracks.frame_height}`}
       preserveAspectRatio="xMidYMid meet"
       className="pointer-events-none absolute inset-0 h-full w-full"
     >
       {visible.map(({ object, box }) => {
         const confidence = box.confidence != null ? ` ${Math.round(box.confidence * 100)}%` : "";
-        const label = `${object.label}${confidence}${tracks.simulated ? " · SIMULATED" : ""}`;
+        const label = `${object.label}${confidence}`;
         const chipY = Math.max(0, box.y - CHIP_H - 4);
         return (
           <g key={object.object_id}>

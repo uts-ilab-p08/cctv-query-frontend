@@ -726,7 +726,7 @@ describe("Results with real footage", () => {
     expect(screen.getByRole("button", { name: /Moment B/ })).toBeInTheDocument();
   });
 
-  it("highlights the tracked object over the footage, flagged as simulated", async () => {
+  it("highlights the tracked object over the footage with its label and confidence", async () => {
     render(<ResultsScreen />);
     await loadMetadata(footage());
 
@@ -735,7 +735,9 @@ describe("Results with real footage", () => {
     );
     const overlay = await screen.findByRole("img", { name: /^Detected objects/ });
     await vi.waitFor(() => expect(overlay.querySelector("rect")).not.toBeNull());
-    expect(within(overlay).getByText(/SIMULATED/)).toBeInTheDocument();
+    expect(overlay).toHaveAccessibleName(/^Detected objects: \w+$/);
+    expect(within(overlay).getByText(/^\w+ \d+%$/)).toBeInTheDocument();
+    expect(within(overlay).queryByText(/simulated/i)).toBeNull();
   });
 
   it("keeps the assistant on the query thread until a match is picked", () => {

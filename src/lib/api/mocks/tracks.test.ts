@@ -8,7 +8,7 @@ describe("simulateTracks (stand-in for GET /videos/{id}/tracks)", () => {
   it("covers the moment with one track that stays inside the frame", () => {
     const response = simulateTracks({ ...moment, caption: "A red car enters the lot" });
 
-    expect(response.simulated).toBe(true);
+    expect(response).not.toHaveProperty("simulated");
     expect(response.objects).toHaveLength(1);
     const { boxes } = response.objects[0];
     expect(boxes[0].t).toBe(12);
