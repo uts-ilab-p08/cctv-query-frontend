@@ -102,6 +102,9 @@ No params. **Response:** `CamerasResponse` `{ cameras: { code, eventCount, scene
 
 Read-only; rows come from `/search`. **Response:** `RecentQueriesResponse` `{ queries: { id, text, ts, cameras }[] }`.
 
+- **Please add a `limit` query param.** Home shows the **3** newest. Today the frontend fetches every row, sorts them newest first by `ts`, and keeps 3 (`getRecentQueries(limit)` already takes the limit, ready to pass it through).
+- **Please send `ts` as ISO 8601**, in UTC or with an offset. The frontend shows it relative to now ("just now", "10 min ago", "2 hours ago", "3 days ago", then "Sep 21" after a week), refreshed every minute. A value without an offset is read as UTC; anything that isn't ISO is shown as-is.
+
 ### `GET /api/v1/queries/saved`
 
 **Response:** `SavedQueriesResponse` `{ queries: SavedQueryOut[] }`, where `SavedQueryOut` is `{ id, text, savedOn, hits }`. `savedOn` is a plain string: the frontend formats ISO timestamps as `Sep 24` and shows any other value as-is. **Please send ISO 8601.**
@@ -298,7 +301,7 @@ The frontend can't fill these gaps itself, but **almost all of this data already
 | `thumbnail_url`             | No column: extract the frame at `start_seconds` (e.g. ffmpeg) and store it next to the video                                                                                                      | Match cards show a placeholder image.                                                                                           |
 | `tags` (the `ClipTag` enum) | Object labels via `bronze.event_objects` → `bronze.objects.label_details`, and/or MEVA activity types (`bronze.ground_truth.activity_type`, `bronze.matched_pairs.meva_reference`)                | The frontend guesses tags from the caption today.                                                                               |
 
-**Filters.** The Filters modal (camera, scene, event type, minimum confidence) and the inline term menus in the search field set filters that `/search` ignores, because it only accepts `q` and `limit`. Add optional params: `cameras` (repeatable, `videos.camera_id`), `scenes` (repeatable, `videos.scene`), `tags` (repeatable) and `min_confidence` (0–100). Pass them to the RAG as metadata filters, so they aren't applied after retrieval. The frontend will send them as soon as the params exist. There are no date filters, because there is no wall-clock time.
+**Filters.** The Filters modal (camera, scene, event type, minimum confidence) and the inline term menus in the search field set filters that `/search` ignores, because it only accepts `q` and `limit`. Add optional params: `cameras` (repeatable, `videos.camera_id`), `scenes` (repeatable, `videos.scene`), `tags` (repeatable) and `min_confidence` (0–100). Pass them to the RAG as metadata filters, so they aren't applied after retrieval. The frontend will send them as soon as the params exist. **Open — date filters:** the Filters modal still has a From/To date range, but there is no wall-clock time to filter against, so `/search` gets no date params for now. This may become a backend request later.
 
 **Video URLs.** `video_url` is loaded by a plain `<video>` element, which can't send the bearer token. It must be public or a **signed URL** that expires after a while. `bronze.videos` has `storage_bucket` and `storage_path`, so the backend can sign a URL per request (for example with Supabase Storage `createSignedUrl`) instead of returning the stored `video_url`. The file host must allow HTTP range requests. MP4s should be encoded with `-movflags +faststart`; otherwise seeking to `start_seconds` waits for most of the file to download.
 
