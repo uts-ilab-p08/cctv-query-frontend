@@ -183,7 +183,7 @@ AssistantMoment = {
 - **Return follow-ups** suited to the scope in `suggested_questions`. These appear under each answer; the questions shown **before** anything is asked come from §3.4.
 - **Errors:** any non-2xx shows _"The assistant couldn't answer that. Try again."_ in the thread. Expect one request at a time per thread; the UI blocks a second question while one is pending.
 
-**The opening message on Clip Detail** is still built locally (`summarizeClip()` in `src/lib/assistant.ts`) from the clip's fields. Proposal: generate it with this same endpoint, sending `scope: "moment"`, `question = <the original search>` and an empty `history`, instead of adding another endpoint. The frontend will wire that once §3.2 is live.
+**The opening message on Clip Detail** comes from this endpoint (wired 2026-09-29). When Clip Detail opens after a search, the frontend asks the original search about that clip (`scope: "moment"`, `question` = the search, empty `history`), and the answer opens the thread. Opened without a search, there is no opening message; the opening suggestions (§3.4) show instead.
 
 ### 3.3 `GET /api/v1/videos/{video_id}/tracks` — highlight objects on the player
 
@@ -325,7 +325,7 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
 | 5   | `POST /assistant/ask`         | Grounded answers over the moments on screen, with citations and follow-up questions, for the whole result set or one moment (§3.2)                                                                                                                                         | ✅ Live and wired                                  |
 | 6   | `POST /assistant/suggestions` | Opening suggested questions for the context (after a search, a selected moment, Clip Detail), limited to what the data can answer (§3.4)                                                                                                                                   | ✅ Live and wired · rule-based, not RAG yet        |
 | 7   | `POST /assistant/ask`         | Cross-camera reasoning: same vehicle or person across cameras, "before/after this", "near this scene". Within one video, `bronze.objects` and `bronze.geometries` (bounding boxes, `spatial_position`) support it; across cameras the schema has no re-identification link | 🟡 Proposed; needs re-identification and time data |
-| 8   | Clip Detail opening message   | Summary of one moment against the original search (via #5)                                                                                                                                                                                                                 | 🟡 Proposed; built locally today                   |
+| 8   | Clip Detail opening message   | Summary of one moment against the original search (via #5)                                                                                                                                                                                                                 | ✅ Live and wired (via /assistant/ask)             |
 | 9   | `video_url`                   | Playable, signed, seekable footage URLs (§4.1)                                                                                                                                                                                                                             | ⚠️ Works when public; signing not specified        |
 
 ---
@@ -374,7 +374,6 @@ The bookmark remembers "saved" only while the component is mounted. Saving the s
 - **Stopgaps to delete** once the backend covers them:
   - `ragResultItemToClip`'s fallbacks for missing fields (§4.1).
   - The mock scene per demo camera (`cameraScenes` in `src/data/cameras.ts`). The UI already shows `scene` on match cards, the player, chunk metadata, clip detail, the camera directory (grouped by scene) and the Filters dialog (§4.1).
-  - `summarizeClip` (§3.2).
   - `listFrom`'s bare-array fallback (§4.2, now resolved).
 - **Precincts removed.** MEVA was recorded at a single facility (Muscatatuck Urban Training Center, Known Facility 1), and the `bronze` schema only has `camera_id` and `scene` per video, with no precinct, district or zone. The frontend removed the precinct selector and its data. No backend endpoint is needed; `scene` covers grouping by site (§4.1).
 - **Results URL:** the search lives in `?q=`, so a refresh or a shared link re-runs `/search`. The backend sees the same query again; it isn't a new user action.
