@@ -77,17 +77,17 @@ interface AppState {
   askInResults: (question: string, focusId?: string | null) => Promise<void>;
   /** Ask the assistant about one moment (that clip's thread). */
   askAboutClip: (clipId: string, question: string) => Promise<void>;
-  /** Opening questions per thread context (see `startersKey`), from the simulated
+  /** Opening questions per thread context (see `startersKey`), from
    *  `/assistant/suggestions`. Empty while loading. */
   starters: Record<string, string[]>;
   /** Fetch the opening questions for a context once; cached by `startersKey`. */
   loadStarters: (key: string, focusId: string | null) => Promise<void>;
   /** Shared by both scopes; `focusId` null means the whole result set. */
   ask: (key: string, question: string, focusId: string | null) => Promise<void>;
-  /** Open a clip thread with the user's query and the model's read of the clip. */
+  /** Open a clip thread by asking the backend the original search about the clip. */
   seedClipChat: (clipId: string, query: string) => Promise<void>;
   /** Clips loaded from the API outside a search (the /clips/[id] page), by id — so the
-   *  assistant can find a clip that is neither in `results` nor in the demo set. */
+   *  assistant can find a clip that is not in `results`. */
   knownClips: Record<string, Clip>;
   rememberClip: (clip: Clip) => void;
   resetChat: (key: ChatKey) => void;

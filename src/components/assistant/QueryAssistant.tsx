@@ -51,7 +51,7 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
     setDraft("");
   };
 
-  // Opening questions for this thread come from the RAG (simulated /assistant/suggestions).
+  // Opening questions for this thread come from the RAG (/assistant/suggestions).
   useEffect(() => {
     if (open) void loadStarters(key, focusId);
   }, [open, key, focusId, focusKnown, query, loadStarters]);

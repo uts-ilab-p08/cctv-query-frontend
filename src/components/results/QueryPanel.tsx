@@ -54,8 +54,8 @@ export function QueryPanel({
     useAppStore((state) => state.starters[startersKey("results", selectedClipId, storeQuery)]) ??
     NO_QUESTIONS;
 
-  // The opening questions for this context come from the RAG (simulated
-  // /assistant/suggestions); fetched once per search + selected moment.
+  // The opening questions for this context come from the RAG (/assistant/suggestions);
+  // fetched once per search + selected moment.
   useEffect(() => {
     void loadStarters("results", selectedClipId);
   }, [loadStarters, selectedClipId, storeQuery]);

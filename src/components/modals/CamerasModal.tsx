@@ -28,7 +28,7 @@ export function CamerasModal() {
     };
   }, [camerasOpen]);
 
-  // Group by scene when the backend (or the demo data) provides it; otherwise one flat list.
+  // Group by scene when the backend provides it; otherwise one flat list.
   const groups: Array<[string | null, CameraDirectoryEntry[]]> = directory.some((c) => c.scene)
     ? [...Map.groupBy(directory, (camera) => camera.scene ?? "other")]
     : [[null, directory]];

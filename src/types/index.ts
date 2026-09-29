@@ -1,9 +1,8 @@
 /**
  * Domain types for the surveillance query workspace.
  *
- * These mirror the shape a real annotation backend (FastAPI) is expected to
- * return, so swapping `src/data` mocks for network calls does not ripple into
- * the component layer.
+ * The API layer (`src/lib/api/normalize.ts`) maps the FastAPI responses into
+ * these, so backend shape changes do not ripple into the component layer.
  */
 
 export type ClipTag = "Person" | "Vehicle" | "Entry" | "Exit" | "Loitering" | "Object Left";
@@ -30,7 +29,7 @@ export interface Clip {
   /** Short event label from the RAG; when absent, `action` (the description) is shown. */
   eventName?: string;
   /** Site within the facility (`bronze.videos.scene`, e.g. `admin`, from MEVA's file
-   *  names). Mocked for the demo set until /search returns it. */
+   *  names). */
   scene?: string;
   /** `bronze.events.event_id` when /search returns it — opens /clips/{eventId} and
    *  narrows /videos/{id}/tracks to this event's objects. */
