@@ -127,10 +127,9 @@ export async function suggestQuestions(
 }
 
 /**
- * PROPOSED `DELETE /api/v1/queries/saved/{id}` — NOT on the backend yet (the live
- * OpenAPI only has GET/POST on /queries/saved; see BACKEND_API_SPEC.md §5). Until it
- * ships the backend answers 405, which the Saved Queries screen reports as
- * "not available yet". Expected: 204 on success, 404 if already gone.
+ * `DELETE /api/v1/queries/saved/{id}` — hard delete of the caller's own saved query.
+ * 204 on success. 404 for an unknown id *or another user's* (never 403), so a retry
+ * or a second click also gets 404: callers treat it as "already gone".
  */
 export async function deleteSavedQuery(id: string): Promise<void> {
   await apiFetch<void>(`/api/v1/queries/saved/${encodeURIComponent(id)}`, { method: "DELETE" });

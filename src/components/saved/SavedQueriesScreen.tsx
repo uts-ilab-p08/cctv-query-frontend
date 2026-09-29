@@ -14,9 +14,6 @@ type LoadStatus = "loading" | "ready" | "error";
 
 /** Why a delete failed, in the investigator's terms. 404 never gets here: gone is gone. */
 function deleteErrorMessage(reason: unknown): string {
-  if (reason instanceof ApiError && (reason.status === 405 || reason.status === 501)) {
-    return "Deleting saved queries isn't available yet — the backend doesn't support it.";
-  }
   return `Couldn't delete this query${reason instanceof Error ? `: ${reason.message}` : "."}`;
 }
 

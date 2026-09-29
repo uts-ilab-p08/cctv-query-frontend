@@ -875,16 +875,18 @@ describe("Saved queries", () => {
     );
   });
 
-  it("says deleting isn't available while the backend lacks the endpoint", async () => {
+  it("keeps the row and says why when the delete fails", async () => {
     const user = userEvent.setup();
-    vi.mocked(deleteSavedQuery).mockRejectedValueOnce(new ApiError(405, "Method Not Allowed"));
+    vi.mocked(deleteSavedQuery).mockRejectedValueOnce(new ApiError(500, "Database unavailable"));
     render(<SavedQueriesScreen />);
     const row = await firstRow();
 
     await user.click(within(row).getByRole("button", { name: /^Delete "/ }));
     await user.click(within(row).getByRole("button", { name: "Confirm delete" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/isn't available yet/);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't delete this query: Database unavailable",
+    );
     expect(screen.getByText(savedQueries[0].text)).toBeInTheDocument();
   });
 

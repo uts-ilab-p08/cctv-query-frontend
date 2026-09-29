@@ -41,7 +41,7 @@ describe("apiSavedQueryToSavedQuery", () => {
 describe("deleteSavedQuery", () => {
   beforeEach(() => vi.mocked(apiFetch).mockReset());
 
-  it("sends DELETE /api/v1/queries/saved/{id} (proposed endpoint)", async () => {
+  it("sends DELETE /api/v1/queries/saved/{id} with the id URL-encoded", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(undefined);
     await deleteSavedQuery("sq 1/x");
     expect(apiFetch).toHaveBeenCalledWith("/api/v1/queries/saved/sq%201%2Fx", { method: "DELETE" });
