@@ -34,7 +34,6 @@ function rows(clip: Clip, currentTime: number, formatTime: (sec: number) => stri
       value: clip.code && clip.code !== clip.camera ? `${clip.camera} (${clip.code})` : clip.camera,
     },
     ...(clip.scene ? [{ label: "SCENE", value: clip.scene }] : []),
-    ...(clip.perspective ? [{ label: "PERSPECTIVE", value: clip.perspective }] : []),
     { label: "ACTION TYPE", value: clip.action },
     { label: "OBJECTS DETECTED", value: clip.objects },
     ...(clip.description ? [{ label: "DESCRIPTION", value: clip.description }] : []),

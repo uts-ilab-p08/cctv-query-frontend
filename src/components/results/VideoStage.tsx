@@ -36,7 +36,7 @@ interface VideoStageProps {
 }
 
 /**
- * The player: still frame (stand-in for a real `<video>` stream) + camera/perspective
+ * The player: still frame (stand-in for a real `<video>` stream) + camera/scene
  * chips + chunk-metadata overlay + control bar. Overlay chips are fixed black/white
  * on purpose — they must read over any frame (SPEC §2).
  */
@@ -101,11 +101,6 @@ export function VideoStage({
             {clip.scene ? (
               <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 font-mono text-[11px] text-white/80">
                 {clip.scene}
-              </span>
-            ) : null}
-            {clip.perspective ? (
-              <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 text-[11px] text-white/80">
-                {clip.perspective}
               </span>
             ) : null}
           </div>

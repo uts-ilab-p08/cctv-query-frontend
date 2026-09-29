@@ -10,7 +10,6 @@ const clip: ApiClip = {
   id: "evt-1",
   camera: "G328",
   code: "G328",
-  perspective: "North gate",
   ts: "13:58:02",
   date: "Aug 4",
   order: 0,
@@ -22,7 +21,7 @@ const clip: ApiClip = {
   videoUrl: null,
 };
 const recent = { id: "rq-1", text: "red car", ts: "10:02", cameras: 2 };
-const camera = { code: "G328", perspective: "North gate", eventCount: 3 };
+const camera = { code: "G328", eventCount: 3 };
 
 /**
  * These three responses are untyped `object`s in the live OpenAPI schema, so the

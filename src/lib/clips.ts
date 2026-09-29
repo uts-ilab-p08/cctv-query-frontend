@@ -42,7 +42,6 @@ export function getCameraDirectory(): CameraDirectoryEntry[] {
     const sample = clips.find((clip) => clip.code === code);
     return {
       code,
-      perspective: sample?.perspective ?? "—",
       scene: sample?.scene,
       eventCount: clips.filter((clip) => clip.code === code).length,
     };

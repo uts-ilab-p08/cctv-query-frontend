@@ -59,7 +59,6 @@ describe("ragResultItemToClip", () => {
       description: "A person wearing a dark jacket walks toward a door.",
       camera: "G331",
       scene: "bus",
-      timestamp: null,
       thumbnail_url: null,
       tags: ["Person", "Teleport"],
     };
@@ -79,7 +78,6 @@ describe("ragResultItemToClip", () => {
         action: "Person walks toward a door",
         description: "A person wearing a dark jacket walks toward a door.",
         caption: item.caption,
-        perspective: "",
       });
     });
 
@@ -89,13 +87,7 @@ describe("ragResultItemToClip", () => {
       expect(clip.objects).toBe("Person");
     });
 
-    it("shows the camera's own wall-clock time when a timestamp arrives", () => {
-      const clip = ragResultItemToClip({ ...enriched, timestamp: "2018-03-05T13:23:04-05:00" }, 0);
-      expect(clip.ts).toBe("13:23:04");
-      expect(clip.date).toBe("Mar 5");
-    });
-
-    it("falls back to the offset into the video without a timestamp", () => {
+    it("shows the offset into the video, since /search has no wall-clock time", () => {
       const clip = ragResultItemToClip(enriched, 0);
       expect(clip.ts).toBe("2:49");
       expect(clip.date).toBe("");

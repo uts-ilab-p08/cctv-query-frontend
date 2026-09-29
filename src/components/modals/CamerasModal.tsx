@@ -59,10 +59,7 @@ export function CamerasModal() {
                 key={camera.code}
                 className="bg-panel-solid border-hairline flex items-center justify-between border-b px-4 py-3 last:border-b-0"
               >
-                <div>
-                  <p className="text-ink font-mono text-[13px] font-semibold">{camera.code}</p>
-                  <p className="text-ink-3 text-xs">{camera.perspective}</p>
-                </div>
+                <p className="text-ink font-mono text-[13px] font-semibold">{camera.code}</p>
                 <span className="bg-accent-soft text-accent rounded-chip px-2 py-[3px] font-mono text-[11px]">
                   {camera.eventCount} events
                 </span>

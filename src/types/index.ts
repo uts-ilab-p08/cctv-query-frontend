@@ -13,7 +13,6 @@ export interface Clip {
   id: string;
   camera: string;
   code: string;
-  perspective: string;
   /** Time of the event as shown: wall-clock `HH:MM:SS` for the mock data; for RAG
    *  results, the offset into the source video (`m:ss`) until wall-clock time exists. */
   ts: string;
@@ -47,12 +46,8 @@ export interface Clip {
   endSeconds?: number;
 }
 
-export interface Camera {
+export interface CameraDirectoryEntry {
   code: string;
-  perspective: string;
-}
-
-export interface CameraDirectoryEntry extends Camera {
   eventCount: number;
   /** Site within the facility (`bronze.videos.scene`, e.g. `admin`). */
   scene?: string;

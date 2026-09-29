@@ -20,5 +20,5 @@ export function summarizeResults(clips: Clip[], query: string): string {
 /** Opening read of a single clip, shown when its assistant thread starts. */
 export function summarizeClip(clip: Clip, query: string): string {
   const context = query.trim() ? `Matched against "${query.trim()}". ` : "";
-  return `${context}This clip shows ${clip.action.toLowerCase()} on ${clip.camera} (${clip.perspective}) at ${clip.date} ${clip.ts}. Detected: ${clip.objects}. Model confidence ${clip.confidence}%.`;
+  return `${context}This clip shows ${clip.action.toLowerCase()} on ${clip.camera}${clip.scene ? ` (${clip.scene})` : ""} at ${clip.date} ${clip.ts}. Detected: ${clip.objects}. Model confidence ${clip.confidence}%.`;
 }

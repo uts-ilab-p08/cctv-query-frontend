@@ -18,8 +18,6 @@ export interface RagResultItem {
   description?: string | null;
   camera?: string | null;
   scene?: string | null;
-  /** ISO 8601 wall-clock start at the camera; `null` until the backend fills it. */
-  timestamp?: string | null;
   thumbnail_url?: string | null;
   tags?: string[] | null;
 }
@@ -33,7 +31,6 @@ export interface ApiClip {
   id: string;
   camera: string;
   code: string;
-  perspective: string;
   ts: string;
   date: string;
   order: number;
@@ -49,7 +46,6 @@ export interface ApiClip {
 
 export interface ApiCameraDirectoryEntry {
   code: string;
-  perspective: string;
   eventCount: number;
   /** Requested: `bronze.videos.scene`, to group the directory by site. */
   scene?: string | null;

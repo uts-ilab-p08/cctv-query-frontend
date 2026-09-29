@@ -14,7 +14,6 @@ const base = {
   event_name: "Person walks toward a door",
   camera: "G331",
   scene: "bus",
-  timestamp: null,
   thumbnail_url: null,
   tags: ["Person"],
 };

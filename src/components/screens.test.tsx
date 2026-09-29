@@ -620,7 +620,6 @@ describe("Results with real footage", () => {
     id: "",
     camera: "Unknown",
     code: "Unknown",
-    perspective: "Unknown",
     ts: "",
     date: "",
     order: 0,
@@ -752,8 +751,8 @@ describe("Clip detail", () => {
     render(<ClipDetailScreen clip={clip} />);
 
     expect(screen.getByRole("button", { name: "Play clip" })).toBeInTheDocument();
-    expect(screen.getByText("PERSPECTIVE")).toBeInTheDocument();
-    expect(screen.getByText(clip.perspective)).toBeInTheDocument();
+    expect(screen.getByText("SCENE")).toBeInTheDocument();
+    expect(screen.queryByText("PERSPECTIVE")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "RELATED CLIPS" })).toBeInTheDocument();
   });
 

@@ -30,8 +30,6 @@ import type { CameraDirectoryEntry, SavedQuery } from "@/types";
  *                       wall-clock time is returned yet
  * - `objects`/`action` -> `caption` (the RAG gives us one free-text field,
  *                       not a separate object/action breakdown)
- * - `camera`/`code`/`perspective` -> unknown from this payload; left as
- *                       placeholders until the backend enriches `/search`
  * - `tags`          -> best-effort keyword match against `caption`
  *
  * This is a stopgap: once `/search` (or a follow-up endpoint) returns
@@ -69,25 +67,6 @@ function toClipTags(tags: readonly string[]): ClipTag[] {
   return tags.filter((tag): tag is ClipTag => (CLIP_TAGS as readonly string[]).includes(tag));
 }
 
-const ISO_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
-const SHORT_DATE = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
-
-/** Wall-clock time and date *at the camera*, read straight from the ISO string —
- *  never converted to the viewer's time zone. */
-function wallClock(timestamp: string | null | undefined): { ts: string; date: string } | null {
-  const match = timestamp ? ISO_LOCAL.exec(timestamp) : null;
-  if (!match) return null;
-  const [, year, month, day, hours, minutes, seconds] = match;
-  return {
-    ts: `${hours}:${minutes}:${seconds}`,
-    date: SHORT_DATE.format(Date.UTC(Number(year), Number(month) - 1, Number(day))),
-  };
-}
-
 const text = (value: string | null | undefined) => value?.trim() || undefined;
 
 export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
@@ -95,7 +74,6 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
   const camera = text(item.camera);
   const eventName = text(item.event_name);
   const tags = item.tags ? toClipTags(item.tags) : inferTags(item.caption);
-  const clock = wallClock(item.timestamp);
   return {
     // The event id when present: stable, and valid for /clips/{id}. `searchClips`
     // keeps ids unique when two results fall in the same event.
@@ -103,12 +81,9 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
     eventId,
     camera: camera ?? "Unknown",
     code: camera ?? "Unknown",
-    // Not returned by /search; empty hides it rather than printing "Unknown".
-    perspective: "",
-    // Wall-clock at the camera when the backend sends it; otherwise the offset
-    // into the source video.
-    ts: clock?.ts ?? fmtElapsed(item.start_seconds),
-    date: clock?.date ?? "",
+    // The offset into the source video: /search has no wall-clock time.
+    ts: fmtElapsed(item.start_seconds),
+    date: "",
     order,
     confidence: Math.round(item.score * 100),
     tags,
@@ -131,7 +106,6 @@ export function apiClipToClip(clip: ApiClip): Clip {
     id: clip.id,
     camera: clip.camera,
     code: clip.code,
-    perspective: clip.perspective,
     ts: clip.ts,
     date: clip.date,
     order: clip.order,
@@ -148,7 +122,7 @@ export function apiClipToClip(clip: ApiClip): Clip {
 export function apiCameraToCameraDirectoryEntry(
   camera: ApiCameraDirectoryEntry,
 ): CameraDirectoryEntry {
-  return { ...camera, scene: camera.scene ?? undefined };
+  return { code: camera.code, eventCount: camera.eventCount, scene: camera.scene ?? undefined };
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
