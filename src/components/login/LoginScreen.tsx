@@ -11,20 +11,20 @@ interface LoginScreenProps {
   redirectTo?: string;
 }
 
-/** Login: narrative panel (left) + precinct-credentials form (right), backed by Supabase auth. */
+/** Login: the project's pitch (left, as on the landing) + the sign-in form (right), backed by
+ *  Supabase auth. The session persists on its own, so there is no remember-me toggle. */
 export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [reveal, setReveal] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email || !password) {
-      setError("Enter your badge email and password to continue.");
+      setError("Enter your email and password to continue.");
       return;
     }
     setError("");
@@ -56,33 +56,35 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
 
         <div className="relative my-12 max-w-[460px] lg:my-0">
           <p className="text-ink-3 mb-4 font-mono text-[11px] tracking-[1.4px]">
-            INVESTIGATIVE VIDEO SEARCH
+            UTS CAPSTONE · PROJECT 08-01
           </p>
           <h1
             className="font-barlow mb-4 text-[34px] leading-[1.15] font-bold"
             style={{ textWrap: "pretty" }}
           >
-            Ask your archive a question. Get the moment, not the tape.
+            Ask your camera archive a question. Get the moment, not the tape.
           </h1>
           <p
             className="text-ink-2 font-barlow text-[15px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            Natural-language queries across indexed footage from every indexed camera — with the
-            timestamp, the feed, and the confidence behind each match.
+            Query multi-camera CCTV footage in natural language. Every answer points to the exact
+            moments behind it, with the camera, the time and the confidence of each match.
           </p>
         </div>
 
         <div className="text-ink-3 relative flex flex-wrap gap-[26px] font-mono text-[12px]">
-          <span>8 cameras indexed</span>
-          <span>Archived footage · audit-logged access</span>
+          <span>Pre-recorded footage only</span>
+          <span>MEVA research dataset</span>
         </div>
       </div>
 
       <div className="flex min-w-0 flex-1 items-center justify-center px-8 py-10 lg:basis-[48%]">
         <div className="font-barlow w-full max-w-[376px]">
           <h2 className="mb-1.5 text-[24px] font-bold">Sign in</h2>
-          <p className="text-ink-2 mb-7 text-[14px]">Use your precinct credentials.</p>
+          <p className="text-ink-2 mb-7 text-[14px]">
+            Use your project account to open the query workspace.
+          </p>
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div>
@@ -90,7 +92,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                 htmlFor="login-email"
                 className="text-ink-2 mb-[7px] block font-mono text-[12px] tracking-[0.8px]"
               >
-                BADGE EMAIL
+                EMAIL
               </label>
               <input
                 id="login-email"
@@ -101,7 +103,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                   setEmail(event.target.value);
                   setError("");
                 }}
-                placeholder="l.ortiz@precinct.gov"
+                placeholder="you@example.com"
                 className="border-hairline-strong bg-panel-solid text-ink h-12 w-full rounded-[10px] border px-3.5 text-[14px]"
               />
             </div>
@@ -144,24 +146,6 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
             </div>
 
             <button
-              type="button"
-              onClick={() => setRemember((r) => !r)}
-              aria-pressed={remember}
-              className="flex min-h-[44px] items-center gap-[9px] self-start"
-            >
-              <span
-                className={
-                  remember
-                    ? "surface-action flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border border-transparent"
-                    : "border-hairline-strong flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border"
-                }
-              >
-                {remember ? "✓" : ""}
-              </span>
-              <span className="text-ink-2 text-[13px]">Trust this terminal</span>
-            </button>
-
-            <button
               type="submit"
               disabled={pending}
               className="surface-action h-[50px] w-full rounded-[11px] text-[15px] font-semibold disabled:opacity-60"
@@ -184,8 +168,8 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
             className="text-ink-3 mt-[26px] text-[12px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            Every search and playback is recorded against your badge ID. Access to archived footage
-            is governed by your precinct&apos;s retention policy.
+            A research prototype by a UTS capstone team (Master of Data Science and Innovation),
+            searching pre-recorded footage from the MEVA research dataset.
           </p>
         </div>
       </div>

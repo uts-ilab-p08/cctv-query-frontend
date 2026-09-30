@@ -18,6 +18,8 @@ import { CamerasModal } from "@/components/modals/CamerasModal";
 import { FiltersModal } from "@/components/results/FiltersModal";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { Toaster } from "@/components/ui/Toaster";
+import { useToasts } from "@/lib/toast";
 import { recentQueries } from "@/data/recentQueries";
 import { savedQueries } from "@/data/savedQueries";
 import {
@@ -33,6 +35,8 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { MOMENT_QUESTIONS, RESULTS_QUESTIONS } from "@/lib/api/mocks/assistant";
 import { getAllClips } from "@/lib/clips";
+import { EXAMPLE_QUESTIONS } from "@/lib/exampleQuestions";
+import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 import type { TracksQuery } from "@/lib/api/endpoints";
 import type {
@@ -120,6 +124,7 @@ afterEach(() => {
 
 beforeEach(() => {
   resetStore();
+  useToasts.setState({ toasts: [] });
   pushMock.mockClear();
   vi.mocked(saveQuery).mockClear();
   vi.mocked(askAssistant).mockClear();
@@ -152,13 +157,28 @@ describe("Login", () => {
 });
 
 describe("Dashboard", () => {
-  it("links the search-mode hint to the settings page", () => {
+  it("shows the search mode as a settings button that opens Settings", () => {
     render(<QueryComposer />);
 
-    expect(screen.getByRole("link", { name: /change in settings/ })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
+    const button = screen.getByRole("link", {
+      name: "Natural language mode. Change the search mode in Settings",
+    });
+    expect(button).toHaveAttribute("href", "/settings");
+    expect(button).toHaveTextContent("Natural language mode");
+    expect(button).toHaveClass("rounded-full", "border");
+    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("names the classic mode on the same button", () => {
+    useAppStore.setState({ searchMode: "classic" });
+    render(<QueryComposer />);
+
+    expect(
+      screen.getByRole("link", {
+        name: "Classic filters mode. Change the search mode in Settings",
+      }),
+    ).toHaveTextContent("Classic filters mode");
+    expect(screen.getByText(/narrow it with Filters/)).toBeInTheDocument();
   });
 
   it("renders the composer and its recent queries", async () => {
@@ -169,7 +189,8 @@ describe("Dashboard", () => {
       </>,
     );
 
-    expect(screen.getByRole("heading", { name: "Query your camera network" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ask your footage" })).toBeInTheDocument();
+    expect(screen.getByText(/Describe the moment in plain words/)).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Search the camera network/ })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
   });
@@ -245,6 +266,24 @@ describe("Dashboard", () => {
 
     expect(pushMock).toHaveBeenCalledWith("/results?q=red+car");
     expect(useAppStore.getState().query).toBe("red car");
+  });
+
+  it("spins the search button while the results page loads, and ignores repeat submits", async () => {
+    const user = userEvent.setup();
+    pushMock.mockClear();
+    render(<QueryComposer />);
+    const field = screen.getByRole("textbox", { name: /Search the camera network/ });
+
+    await user.type(field, "red car");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    const button = screen.getByRole("button", { name: "Search" });
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toBeDisabled();
+    expect(button.querySelector(".animate-spin")).not.toBeNull();
+
+    await user.type(field, "{Enter}");
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not search on an empty query", async () => {
@@ -357,6 +396,58 @@ describe("Results — while the search runs", () => {
 
     expect(screen.getByText("Answer for the newer search.")).toBeInTheDocument();
     expect(screen.queryByText("Found the red car at two gates.")).not.toBeInTheDocument();
+  });
+});
+
+describe("Results — no matches", () => {
+  beforeEach(async () => {
+    vi.mocked(searchClips).mockResolvedValueOnce({
+      clips: [],
+      summary: "No matching footage was found for this question.",
+    });
+    await act(() => useAppStore.getState().runSearch("a helicopter landing on the roof"));
+  });
+
+  it("says nothing matched, repeating the search, and explains how to rephrase it", () => {
+    render(<ResultsScreen />);
+
+    const empty = screen.getByRole("region", { name: "No matching moments" });
+    expect(empty).toHaveTextContent("“a helicopter landing on the roof”");
+    const tips = within(empty).getByRole("list", { name: "Search tips" });
+    expect(within(tips).getAllByRole("listitem")).toHaveLength(3);
+    expect(tips).toHaveTextContent(/action/i);
+    expect(tips).toHaveTextContent(/object/i);
+    expect(tips).toHaveTextContent(/place/i);
+  });
+
+  it("lets the investigator search again right there, starting from the last search", async () => {
+    const user = userEvent.setup();
+    pushMock.mockClear();
+    render(<ResultsScreen />);
+
+    const empty = screen.getByRole("region", { name: "No matching moments" });
+    const field = within(empty).getByRole("textbox", { name: /Search the camera network/ });
+    expect(field).toHaveValue("a helicopter landing on the roof");
+
+    await user.clear(field);
+    await user.type(field, "a person gets out of a car");
+    await user.click(within(empty).getByRole("button", { name: "Search" }));
+
+    expect(pushMock).toHaveBeenCalledWith(resultsHref("a person gets out of a car"));
+    expect(searchClips).toHaveBeenLastCalledWith("a person gets out of a car");
+  });
+
+  it("offers ready-made searches that are known to find footage", () => {
+    render(<ResultsScreen />);
+
+    const empty = screen.getByRole("region", { name: "No matching moments" });
+    const links = within(
+      within(empty).getByRole("list", { name: "Example searches" }),
+    ).getAllByRole("link");
+    expect(links.length).toBeGreaterThanOrEqual(3);
+    links.forEach((link) =>
+      expect(link).toHaveAttribute("href", resultsHref(link.textContent ?? "")),
+    );
   });
 });
 
@@ -631,6 +722,61 @@ describe("Results", () => {
     expect(saved).toBeDisabled();
   });
 
+  it("spins the bookmark while saving, then confirms with a toast linking to Saved Queries", async () => {
+    const user = userEvent.setup();
+    let finishSave: (saved: SavedQuery) => void = () => {};
+    vi.mocked(saveQuery).mockReturnValueOnce(
+      new Promise((done) => {
+        finishSave = done;
+      }),
+    );
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(
+      <>
+        <ResultsScreen />
+        <Toaster />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save query" }));
+
+    const saving = screen.getByRole("button", { name: "Saving query…" });
+    expect(saving).toBeDisabled();
+    expect(saving.querySelector(".animate-spin")).not.toBeNull();
+
+    await act(async () => finishSave({ id: "s1", text: "red car", savedOn: "Sep 30", hits: 0 }));
+
+    const toast = within(screen.getByRole("region", { name: "Notifications" })).getByRole(
+      "listitem",
+    );
+    expect(toast).toHaveTextContent("Query saved");
+    expect(toast).toHaveTextContent("red car");
+    expect(within(toast).getByRole("link", { name: "View saved queries" })).toHaveAttribute(
+      "href",
+      "/saved",
+    );
+  });
+
+  it("says so in a toast when saving fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveQuery).mockRejectedValueOnce(new Error("boom"));
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(
+      <>
+        <ResultsScreen />
+        <Toaster />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save query" }));
+
+    const toast = await within(screen.getByRole("region", { name: "Notifications" })).findByRole(
+      "listitem",
+    );
+    expect(toast).toHaveAttribute("data-tone", "error");
+    expect(toast).toHaveTextContent("Couldn't save this query");
+  });
+
   it("offers the bookmark only on the original query, not on follow-ups", async () => {
     const user = userEvent.setup();
     await act(() => useAppStore.getState().runSearch("red car"));
@@ -704,7 +850,7 @@ describe("Results — assistant", () => {
     expect(buttons.map((button) => button.textContent)).toEqual(suggested_questions);
   });
 
-  it("runs a glow around the border of one suggested question at a time, starting at the first", async () => {
+  it("runs a glow around the border of one suggested question at a time", async () => {
     allowMotion();
     render(<ResultsScreen />);
 
@@ -712,7 +858,9 @@ describe("Results — assistant", () => {
       name: (name) => resultsSuggestedQuestions.includes(name),
     });
     const glowing = buttons.filter((button) => button.classList.contains("suggestion-glow"));
-    expect(glowing).toEqual([buttons[0]]);
+    // Exactly one: which one depends on timing (it moves every lap); the order is covered
+    // by useSequentialGlow's own tests with fake timers.
+    expect(glowing).toHaveLength(1);
   });
 
   it("puts the answer on the chat's own background and the question in a bubble pointing at the thread", async () => {
@@ -1319,6 +1467,23 @@ describe("Saved queries", () => {
     expect(screen.queryByRole("status", { name: "Loading saved queries" })).not.toBeInTheDocument();
   });
 
+  it("spins the Run again button while the results page loads, and blocks other runs", async () => {
+    const user = userEvent.setup();
+    pushMock.mockClear();
+    render(<SavedQueriesScreen />);
+    const runButtons = await screen.findAllByRole("button", { name: "Run again" });
+
+    await user.click(runButtons[0]);
+
+    expect(runButtons[0]).toHaveAttribute("aria-busy", "true");
+    expect(runButtons[0]).toBeDisabled();
+    expect(runButtons[0].querySelector(".animate-spin")).not.toBeNull();
+    runButtons.slice(1).forEach((button) => expect(button).toBeDisabled());
+
+    await user.click(runButtons[1]);
+    expect(pushMock).toHaveBeenCalledTimes(1);
+  });
+
   const firstRow = async () => (await screen.findAllByRole("listitem"))[0];
 
   it("deletes a saved query after confirming", async () => {
@@ -1378,11 +1543,26 @@ describe("Saved queries", () => {
     expect(screen.getByText(savedQueries[0].text)).toBeInTheDocument();
   });
 
-  it("shows an empty state when nothing has been saved", async () => {
+  it("invites a first search when nothing has been saved, and shows where saving happens", async () => {
     vi.mocked(getSavedQueries).mockResolvedValueOnce([]);
     render(<SavedQueriesScreen />);
 
-    expect(await screen.findByText(/No saved queries yet/)).toBeInTheDocument();
+    const empty = await screen.findByRole("region", { name: "No saved queries yet" });
+    // Sits on the page itself: no card border or fill around it.
+    expect(empty.className).not.toMatch(/glass-card|(^|\s)border(\s|$)|(^|\s)bg-/);
+    expect(within(empty).getByText(/bookmark/i)).toBeInTheDocument();
+    expect(within(empty).getByRole("link", { name: "Start a search" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+
+    const examples = within(empty).getByRole("list", { name: "Example searches" });
+    const links = within(examples).getAllByRole("link");
+    expect(links).toHaveLength(3);
+    links.forEach((link) =>
+      expect(link).toHaveAttribute("href", resultsHref(link.textContent ?? "")),
+    );
+    expect(links[0]).toHaveTextContent(EXAMPLE_QUESTIONS[0]);
   });
 
   it("surfaces a load failure and recovers on retry", async () => {
@@ -1488,7 +1668,9 @@ describe("Query Assistant", () => {
       name: (name) => resultsSuggestedQuestions.includes(name),
     });
     const glowing = buttons.filter((button) => button.classList.contains("suggestion-glow"));
-    expect(glowing).toEqual([buttons[0]]);
+    // Exactly one: which one depends on timing (it moves every lap); the order is covered
+    // by useSequentialGlow's own tests with fake timers.
+    expect(glowing).toHaveLength(1);
   });
 
   it("puts the answer on the chat's own background and the question in a bubble pointing at the thread", async () => {
@@ -1655,6 +1837,23 @@ describe("Modals", () => {
       await user.click(screen.getByRole("radio", { name: label }));
       expect(document.documentElement.getAttribute("data-palette")).toBe(id);
     }
+  });
+
+  it("lists the default palette first and marks it as the default", () => {
+    useAppStore.setState({ theme: "dark" });
+    render(
+      <ThemeProvider>
+        <SettingsScreen />
+      </ThemeProvider>,
+    );
+
+    const radios = within(screen.getByRole("radiogroup", { name: "Palette" })).getAllByRole(
+      "radio",
+    );
+    expect(radios[0]).toHaveAccessibleName(/^Slate console/);
+    expect(within(radios[0]).getByText("Default")).toBeInTheDocument();
+    // Only the default says so.
+    radios.slice(1).forEach((radio) => expect(radio).not.toHaveTextContent(/default/i));
   });
 
   it("is a page with its own sections, not a dialog", () => {

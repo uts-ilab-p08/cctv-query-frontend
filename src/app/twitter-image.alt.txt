@@ -1,0 +1,1 @@
+The CCTV AI Results workspace: the question “Did someone carry a heavy object in this scene?”, an answer citing numbered sources, and parking-lot footage with two tracked people outlined.

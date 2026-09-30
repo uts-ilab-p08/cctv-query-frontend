@@ -1,10 +1,11 @@
 "use client";
 
-import { Bookmark, BookmarkCheck, BookmarkX } from "lucide-react";
+import { Bookmark, BookmarkCheck, BookmarkX, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { saveQuery } from "@/lib/api/endpoints";
 import { cn } from "@/lib/cn";
+import { showToast } from "@/lib/toast";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -21,8 +22,8 @@ interface SaveQueryButtonProps {
 }
 
 /** Bookmark beside the original query bubble — `POST /queries/saved`, which is
- *  what the Saved Queries screen lists. Disabled once saved so a double click
- *  cannot create duplicate rows. */
+ *  what the Saved Queries screen lists. Spins while saving and confirms with a toast
+ *  (see `Toaster`). Disabled once saved so a double click cannot create duplicate rows. */
 export function SaveQueryButton({ text, className }: SaveQueryButtonProps) {
   const [status, setStatus] = useState<SaveStatus>("idle");
 
@@ -31,12 +32,29 @@ export function SaveQueryButton({ text, className }: SaveQueryButtonProps) {
     try {
       await saveQuery(text);
       setStatus("saved");
+      showToast({
+        message: "Query saved",
+        detail: text,
+        action: { label: "View saved queries", href: "/saved" },
+      });
     } catch {
       setStatus("error");
+      showToast({
+        message: "Couldn't save this query",
+        detail: "Try again with the bookmark.",
+        tone: "error",
+      });
     }
   };
 
-  const Icon = status === "saved" ? BookmarkCheck : status === "error" ? BookmarkX : Bookmark;
+  const Icon =
+    status === "saving"
+      ? Loader2
+      : status === "saved"
+        ? BookmarkCheck
+        : status === "error"
+          ? BookmarkX
+          : Bookmark;
   const label = LABELS[status];
 
   return (
@@ -51,7 +69,6 @@ export function SaveQueryButton({ text, className }: SaveQueryButtonProps) {
         status === "saved" && "text-accent-strong",
         status === "error" && "text-flag",
         (status === "idle" || status === "saving") && "text-ink-3 hover:text-ink",
-        status === "saving" && "animate-pulse",
         className,
       )}
     >
@@ -59,6 +76,7 @@ export function SaveQueryButton({ text, className }: SaveQueryButtonProps) {
         size={15}
         strokeWidth={2}
         fill={status === "saved" ? "currentColor" : "none"}
+        className={status === "saving" ? "animate-spin" : undefined}
         aria-hidden
       />
     </button>

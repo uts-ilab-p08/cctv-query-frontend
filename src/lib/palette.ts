@@ -3,8 +3,9 @@ import type { Palette } from "@/types";
 /** localStorage key holding the investigator's palette choice. */
 export const PALETTE_STORAGE_KEY = "cctvai.palette";
 
-/** Violet is the design's default palette — keep in sync with `src/app/layout.tsx`. */
-export const DEFAULT_PALETTE: Palette = "violet";
+/** Slate console is the default palette. Its token block in `globals.css` is also the
+ *  fallback for `:root` (palette.test.ts keeps the two in sync). */
+export const DEFAULT_PALETTE: Palette = "slate";
 
 const PALETTE_IDS: readonly Palette[] = [
   "violet",
@@ -23,7 +24,7 @@ export function isPalette(value: unknown): value is Palette {
 
 /**
  * Runs before hydration to stamp the stored palette on <html>, so a non-default
- * user never sees a violet first paint. Serialized into an inline script, so it
+ * user never sees a first paint in the default palette. Serialized into an inline script, so it
  * must stay self-contained and reference no module-scope binding.
  *
  * Lives in a plain (non `"use client"`) module: a Server Component (`app/layout.tsx`)

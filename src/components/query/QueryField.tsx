@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/cn";
@@ -33,6 +33,9 @@ export interface QueryFieldProps {
   /** Over a modal backdrop: swap the translucent card for the opaque floating surface. */
   floating?: boolean;
   onSubmit: () => void;
+  /** The search was sent and the next page is loading: the button spins and further
+   *  submits (click or Enter) are ignored. */
+  submitting?: boolean;
 }
 
 /** Characters typed before the clear button appears — below this it is noise. */
@@ -65,6 +68,7 @@ export function QueryField({
   onChange,
   floating = false,
   onSubmit,
+  submitting = false,
 }: QueryFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -142,7 +146,7 @@ export function QueryField({
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      onSubmit();
+      if (!submitting) onSubmit();
     }
   };
 
@@ -271,12 +275,23 @@ export function QueryField({
             type="button"
             onClick={onSubmit}
             aria-label="Search"
+            aria-busy={submitting || undefined}
+            disabled={submitting}
             className={cn(
-              "surface-action shadow-action flex cursor-pointer items-center justify-center rounded-full",
+              "surface-action shadow-action flex cursor-pointer items-center justify-center rounded-full disabled:cursor-progress",
               hero ? "size-11" : "size-[38px]",
             )}
           >
-            <Search size={hero ? 19 : 17} strokeWidth={2.1} />
+            {submitting ? (
+              <Loader2
+                size={hero ? 19 : 17}
+                strokeWidth={2.1}
+                className="animate-spin"
+                aria-hidden
+              />
+            ) : (
+              <Search size={hero ? 19 : 17} strokeWidth={2.1} />
+            )}
           </button>
         </div>
       </div>

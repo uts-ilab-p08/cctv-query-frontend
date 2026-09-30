@@ -15,8 +15,8 @@ export const PALETTES: ReadonlyArray<{
 }> = [
   {
     id: "violet",
-    label: "Violet (default)",
-    hint: "The system's default dark palette.",
+    label: "Violet",
+    hint: "Deep indigo night. Electric violet accent.",
     swatch: ["#0a0718", "#171233", "#7c5cff"],
   },
   {

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { SeekRequest } from "@/components/results/MatchVideo";
 import { MatchStrip } from "@/components/results/MatchStrip";
+import { NoMatches } from "@/components/results/NoMatches";
 import { QueryPanel } from "@/components/results/QueryPanel";
 import { MatchStripSkeleton, VideoStageSkeleton } from "@/components/results/ResultsSkeletons";
 import { useMomentTracks } from "@/components/results/useMomentTracks";
@@ -28,6 +29,8 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const clips = useAppStore((state) => state.results);
   const searchPending = useAppStore((state) => state.searchPending);
   const searchError = useAppStore((state) => state.searchError);
+  /** The last submitted search — unlike `query`, not the draft being edited. */
+  const lastSearch = useAppStore((state) => state.lastSearch);
 
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -116,8 +119,8 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   if (!searchPending && !activeClip) {
     return (
-      <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
-        No matching clips found.
+      <div className="flex h-[calc(100vh-64px)] items-center overflow-y-auto">
+        <NoMatches searched={lastSearch ?? query} />
       </div>
     );
   }
