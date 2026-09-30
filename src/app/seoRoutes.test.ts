@@ -7,7 +7,15 @@ import { SITE_URL } from "@/lib/seo";
 
 vi.mock("@/lib/supabase/middleware", () => ({ updateSession: vi.fn() }));
 
-const PRIVATE = ["/dashboard", "/results", "/saved", "/settings", "/pipeline", "/clips"];
+const PRIVATE = [
+  "/dashboard",
+  "/results",
+  "/saved",
+  "/settings",
+  "/pipeline",
+  "/clips",
+  "/profile",
+];
 
 describe("robots.txt", () => {
   it("lets crawlers read the public pages but not the signed-in app", () => {

@@ -15,7 +15,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { BrandLockup, BrandMark } from "@/components/brand/BrandMark";
+import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
+import { nameFromEmail } from "@/lib/displayName";
+import { useCurrentUserEmail } from "@/lib/useCurrentUserEmail";
 import { createClient } from "@/lib/supabase/client";
 
 interface NavItem {
@@ -57,14 +60,9 @@ const COLLAPSED_STORAGE_KEY = "cctvai.sidebar";
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { email: userEmail } = useCurrentUserEmail();
   // Starts expanded to match the server render; the stored choice applies after mount.
   const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
-  }, []);
 
   useEffect(() => {
     try {
@@ -87,6 +85,9 @@ export function Sidebar() {
   };
 
   /** Collapsed rows keep their label for screen readers and show it as a tooltip. */
+  /** Read from the email (nelkit.chavez@… → Nelkit, NC); see `nameFromEmail`. */
+  const name = nameFromEmail(userEmail);
+
   const label = (text: string) => <span className={cn(collapsed && "sr-only")}>{text}</span>;
 
   const signOut = async () => {
@@ -166,8 +167,30 @@ export function Sidebar() {
       <div className="flex-1" />
 
       <div className="border-hairline flex flex-col gap-0.5 border-t pt-3.5">
-        {collapsed ? null : (
-          <p className="text-ink-3 truncate font-mono text-[11px]">{userEmail ?? "—"}</p>
+        {/* The signed-in user, as a card into their profile; just the avatar when collapsed. */}
+        {collapsed ? (
+          <Link
+            href="/profile"
+            aria-label={`Profile: ${userEmail ?? "signed-in user"}`}
+            title="View your profile"
+            className="mx-auto rounded-full no-underline"
+          >
+            <Avatar initials={name?.initials ?? "?"} />
+          </Link>
+        ) : (
+          <Link
+            href="/profile"
+            title="View your profile"
+            className="glass-card-flat hover:border-accent-line flex min-w-0 items-center gap-2.5 rounded-xl p-2.5 no-underline transition-colors duration-150"
+          >
+            <Avatar initials={name?.initials ?? "?"} />
+            <span className="flex min-w-0 flex-col">
+              {name?.first ? (
+                <span className="text-ink truncate text-[14px] font-semibold">{name.first}</span>
+              ) : null}
+              <span className="text-ink-3 truncate font-mono text-[11px]">{userEmail ?? "—"}</span>
+            </span>
+          </Link>
         )}
         <button
           type="button"
