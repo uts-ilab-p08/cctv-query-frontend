@@ -13,21 +13,22 @@ const TITLE = "CCTV AI: natural-language search for multi-camera CCTV footage";
 const DESCRIPTION =
   "Ask multi-camera CCTV footage questions in plain language and get the exact moments back, with cited answers. A UTS data science capstone.";
 
-/** Project 08-01's team, with each member's role from the proposal (Table 19). */
+/** Project 08-01's team and roles, as confirmed by the team (these supersede the
+ *  proposal's Table 19). */
 export const TEAM = [
-  { name: "Abhishek Chopda", handle: "abychopda", role: "RAG Lead · Backend support" },
+  { name: "Abhishek Chopda", handle: "abychopda", role: "RAG Lead" },
   { name: "Gourika Sood", handle: "gourika22", role: "Backend Lead · RAG Researcher" },
   { name: "Juan Sebastian Vargas", handle: "Sebas102507", role: "Video Annotation Lead" },
   {
     name: "Maria Jose Bustamante",
     handle: "mariajosebustamante99",
-    role: "Evaluation Lead · Backend support",
+    role: "Evaluation Lead",
   },
-  { name: "Nelkit Chavez", handle: "Nelkit", role: "Frontend Lead · RAG Researcher" },
+  { name: "Nelkit Chavez", handle: "Nelkit", role: "Frontend Lead · Backend support" },
   {
     name: "Saurabh Sabharwal",
     handle: "finegoodok",
-    role: "Video Annotation Researcher · RAG support",
+    role: "Video Annotation Researcher · Evaluation Lead",
   },
 ] as const;
 
