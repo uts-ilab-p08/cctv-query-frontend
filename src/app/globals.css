@@ -50,9 +50,7 @@
   --shadow-action: var(--shadow-accent);
 }
 
-/* ---------- dark / violet (default palette) ---------- */
-:root,
-[data-theme="dark"],
+/* ---------- dark / violet ---------- */
 [data-theme="dark"][data-palette="violet"] {
   --bg: #0a0718;
   --glow-1: rgb(124 92 255 / 0.32);
@@ -121,9 +119,11 @@
   color-scheme: dark;
 }
 
-/* ---------- dark / slate console ----------
+/* ---------- dark / slate console (default palette; also the :root fallback) ----------
    Same gradient formulas as violet above (stops, direction, relative opacities) —
    only the hue changes, to the NSW blue accent from the handoff reference. */
+:root,
+[data-theme="dark"],
 [data-theme="dark"][data-palette="slate"] {
   --bg: #0a0d12;
   --glow-1: rgb(4 102 200 / 0.28);
@@ -827,6 +827,11 @@ body {
     animation: suggestion-glow var(--glow-lap, 2600ms) linear infinite;
   }
 
+  /* A toast slides in from just above its place. */
+  .toast-in {
+    animation: toast-in 180ms ease-out;
+  }
+
   /* SPEC §4 — clip thumbnails read as archived footage, never as product imagery. */
   .thumb-filter {
     filter: grayscale(0.55) contrast(1.05) brightness(0.85);
@@ -864,5 +869,12 @@ body {
   100% {
     --glow-angle: 360deg;
     opacity: 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
   }
 }

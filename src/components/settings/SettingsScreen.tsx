@@ -1,9 +1,16 @@
 "use client";
 
-import { PALETTES, usePalette } from "@/components/theme/ThemeProvider";
+import { DEFAULT_PALETTE, PALETTES, usePalette } from "@/components/theme/ThemeProvider";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 import type { SearchMode } from "@/types";
+
+/** The palettes as Settings lists them: the default first, the rest in their usual order.
+ *  Derived from DEFAULT_PALETTE, so changing the default updates the list too. */
+const PALETTE_OPTIONS = [
+  ...PALETTES.filter((option) => option.id === DEFAULT_PALETTE),
+  ...PALETTES.filter((option) => option.id !== DEFAULT_PALETTE),
+];
 
 const SECTION = "rounded-card glass-card-flat mb-4 p-5";
 const HEADING = "text-ink mb-1 text-[15px] font-semibold";
@@ -90,8 +97,9 @@ export function SettingsScreen() {
 
         {paletteApplies ? (
           <div role="radiogroup" aria-label="Palette" className="grid gap-2.5 sm:grid-cols-3">
-            {PALETTES.map((option) => {
+            {PALETTE_OPTIONS.map((option) => {
               const active = palette === option.id;
+              const isDefault = option.id === DEFAULT_PALETTE;
               return (
                 <button
                   key={option.id}
@@ -114,7 +122,14 @@ export function SettingsScreen() {
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-semibold">{option.label}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{option.label}</span>
+                    {isDefault ? (
+                      <span className="border-hairline text-ink-2 rounded-full border px-1.5 py-px font-mono text-[10px] tracking-[0.6px]">
+                        Default
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="text-ink-2 text-xs leading-relaxed">{option.hint}</span>
                 </button>
               );

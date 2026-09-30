@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono, Michroma, Saira } from "next/font/google";
 import Script from "next/script";
 
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { DEFAULT_PALETTE, paletteInitScript } from "@/lib/palette";
+import { siteMetadata, siteViewport } from "@/lib/seo";
 import { DEFAULT_THEME, themeInitScript } from "@/lib/theme";
 
 import "./globals.css";
@@ -41,11 +41,9 @@ const michroma = Michroma({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "CCTV AI Assistant",
-  description:
-    "Search annotated CCTV footage in natural language, review matching clips and queue footage for annotation.",
-};
+/* Defined in @/lib/seo, where they can be tested without next/font. */
+export const metadata = siteMetadata;
+export const viewport = siteViewport;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

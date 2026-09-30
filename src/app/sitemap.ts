@@ -1,0 +1,11 @@
+import type { MetadataRoute } from "next";
+
+import { SITE_URL } from "@/lib/seo";
+
+/** Only the public pages; everything else requires signing in. */
+export default function sitemap(): MetadataRoute.Sitemap {
+  return [
+    { url: `${SITE_URL}/`, changeFrequency: "monthly", priority: 1 },
+    { url: `${SITE_URL}/login`, changeFrequency: "yearly", priority: 0.3 },
+  ];
+}

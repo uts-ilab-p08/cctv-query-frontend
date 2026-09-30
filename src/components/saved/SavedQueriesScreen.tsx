@@ -1,12 +1,14 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Bookmark, Loader2, Search, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { QueryListSkeleton } from "@/components/ui/QueryListSkeleton";
 import { ApiError } from "@/lib/api/client";
 import { deleteSavedQuery, getSavedQueries } from "@/lib/api/endpoints";
+import { EXAMPLE_QUESTIONS } from "@/lib/exampleQuestions";
 import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 import type { SavedQuery } from "@/types";
@@ -30,6 +32,9 @@ export function SavedQueriesScreen() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  /** Row whose "Run again" was clicked: it spins until Results replaces this page, and
+   *  every other run waits, so a double click can't start two searches. */
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   const remove = async (id: string) => {
     setDeletingId(id);
@@ -93,11 +98,7 @@ export function SavedQueriesScreen() {
         </div>
       ) : null}
 
-      {status === "ready" && savedQueries.length === 0 ? (
-        <p className="text-ink-3 text-sm">
-          No saved queries yet. Use the bookmark beside a query in Results to save it.
-        </p>
-      ) : null}
+      {status === "ready" && savedQueries.length === 0 ? <EmptySavedQueries /> : null}
 
       {deleteError ? (
         <p role="alert" className="text-flag mb-3 text-sm">
@@ -154,11 +155,18 @@ export function SavedQueriesScreen() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (runningId) return;
+                      setRunningId(query.id);
                       void runSearch(query.text);
                       router.push(resultsHref(query.text));
                     }}
-                    className="surface-action shadow-action h-9 cursor-pointer rounded-full px-4 font-sans text-[13px]"
+                    aria-busy={runningId === query.id || undefined}
+                    disabled={runningId !== null}
+                    className="surface-action shadow-action flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-4 font-sans text-[13px] disabled:cursor-progress disabled:opacity-70 aria-busy:opacity-100"
                   >
+                    {runningId === query.id ? (
+                      <Loader2 size={14} strokeWidth={2.2} className="animate-spin" aria-hidden />
+                    ) : null}
                     Run again
                   </button>
                 </div>
@@ -168,5 +176,70 @@ export function SavedQueriesScreen() {
         </ul>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Nothing saved yet: say what saving is for, show where the bookmark sits (a replica of a
+ * question bubble in Results), and offer a way in: a new search or a ready-made one.
+ */
+function EmptySavedQueries() {
+  return (
+    <section
+      aria-labelledby="saved-empty-title"
+      className="flex flex-col items-center px-6 py-10 text-center"
+    >
+      <span
+        aria-hidden
+        className="border-accent-line bg-accent-soft text-accent-strong mb-5 flex size-14 items-center justify-center rounded-full border"
+      >
+        <Bookmark size={24} strokeWidth={1.8} />
+      </span>
+      <h2 id="saved-empty-title" className="text-ink mb-2 text-[20px] font-semibold">
+        No saved queries yet
+      </h2>
+      <p
+        className="text-ink-2 mb-6 max-w-[46ch] text-[14px] leading-[1.6]"
+        style={{ textWrap: "pretty" }}
+      >
+        Save the searches you run often and re-run them in one click. In Results, use the bookmark
+        next to your question.
+      </p>
+
+      {/* Where to look: the bookmark beside the question bubble, as it appears in Results. */}
+      <div aria-hidden className="mb-7 flex items-center gap-2">
+        <Bookmark size={16} strokeWidth={2} className="text-accent-strong shrink-0" />
+        <span className="surface-chat-user border-accent-line text-ink rounded-[10px] rounded-br-none border px-3 py-2 text-[13px]">
+          {EXAMPLE_QUESTIONS[0]}
+        </span>
+      </div>
+
+      <Link
+        href="/dashboard"
+        className="surface-action shadow-action mb-8 inline-flex h-10 items-center gap-2 rounded-full px-5 text-[14px] font-semibold no-underline"
+      >
+        <Search size={15} strokeWidth={2.2} aria-hidden />
+        Start a search
+      </Link>
+
+      <p className="text-ink-3 mb-2.5 font-mono text-[11px] tracking-[1.2px]">
+        OR TRY ONE OF THESE
+      </p>
+      <ul
+        aria-label="Example searches"
+        className="flex list-none flex-wrap justify-center gap-2 p-0"
+      >
+        {EXAMPLE_QUESTIONS.slice(0, 3).map((question) => (
+          <li key={question}>
+            <Link
+              href={resultsHref(question)}
+              className="border-hairline text-ink-2 hover:border-accent-line hover:text-ink inline-block rounded-full border px-3 py-1.5 text-[13px] no-underline transition-colors duration-150"
+            >
+              {question}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
