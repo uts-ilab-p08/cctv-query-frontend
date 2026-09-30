@@ -39,12 +39,12 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
     };
   }, [clip.id]);
 
-  // Open the thread with the investigator's query and the model's read of this clip.
-  // The clip comes from the API, so register it first: the assistant looks clips up
-  // by id and would otherwise only find the demo set.
+  // Open the thread with the backend's answer to the original search about this clip.
+  // The clip comes from /clips/{id}, not from a search, so register it first: the
+  // assistant looks clips up by id among the results and the known clips.
   useEffect(() => {
     rememberClip(clip);
-    seedClipChat(clip.id, query);
+    void seedClipChat(clip.id, query);
   }, [clip, query, rememberClip, seedClipChat]);
 
   return (

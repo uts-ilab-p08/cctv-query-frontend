@@ -15,6 +15,7 @@ export function resetStore(): void {
     results: [],
     knownClips: {},
     starters: {},
+    startersPending: {},
     lastSearch: null,
     searchPending: false,
     searchError: null,

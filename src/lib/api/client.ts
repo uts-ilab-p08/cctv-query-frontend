@@ -16,7 +16,10 @@
  */
 import { createClient } from "@/lib/supabase/client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+/** The API's base URL, without a trailing slash; empty when not configured. */
+export function apiBaseUrl(): string {
+  return (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
+}
 
 async function getBrowserAuthToken(): Promise<string | null> {
   const supabase = createClient();
@@ -42,7 +45,8 @@ interface AuthedInit extends RequestInit {
 }
 
 export async function apiFetch<T>(path: string, init: AuthedInit = {}): Promise<T> {
-  if (!API_BASE_URL) {
+  const baseUrl = apiBaseUrl();
+  if (!baseUrl) {
     throw new Error(
       "NEXT_PUBLIC_API_BASE_URL is not set — copy .env.example to .env.local and set it.",
     );
@@ -55,7 +59,7 @@ export async function apiFetch<T>(path: string, init: AuthedInit = {}): Promise<
   if (requestInit.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...requestInit, headers });
+  const response = await fetch(`${baseUrl}${path}`, { ...requestInit, headers });
 
   if (!response.ok) {
     const detail = await response

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  AlignLeft,
   Bookmark,
   Layers,
   LogOut,
@@ -36,7 +35,6 @@ const NAV_ITEMS: readonly NavItem[] = [
     match: ["/dashboard", "/results", "/clips"],
   },
   { href: "/saved", label: "Saved Queries", icon: Bookmark, match: ["/saved"] },
-  { href: "/reports", label: "Reports", icon: AlignLeft, match: ["/reports"] },
   { href: "/pipeline", label: "Annotation Pipeline", icon: Layers, match: ["/pipeline"] },
   { href: "/settings", label: "Settings", icon: Settings, match: ["/settings"] },
 ];

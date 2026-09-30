@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ragResultItemToClip } from "./normalize";
+import { apiClipToClip, clipToAssistantMoment, ragResultItemToClip } from "./normalize";
+import type { ApiClip } from "./types";
 
 const item = {
   video_id: "vid-1",
@@ -28,6 +29,11 @@ describe("ragResultItemToClip", () => {
     expect(first.id).not.toBe(second.id);
   });
 
+  it("numbers each moment as the answer cites it: the backend's index, else its position", () => {
+    expect(ragResultItemToClip({ ...item, citation_index: 4 }, 1).ref).toBe(4);
+    expect(ragResultItemToClip(item, 1).ref).toBe(2);
+  });
+
   it("uses the event name when the RAG provides one", () => {
     expect(ragResultItemToClip({ ...item, event_name: "Vehicle arrival" }, 0).eventName).toBe(
       "Vehicle arrival",
@@ -47,5 +53,109 @@ describe("ragResultItemToClip", () => {
   it("keeps the camera's scene when the backend sends it", () => {
     expect(ragResultItemToClip({ ...item, scene: "admin" }, 0).scene).toBe("admin");
     expect(ragResultItemToClip(item, 0).scene).toBeUndefined();
+  });
+
+  describe("enriched /search results", () => {
+    const enriched = {
+      ...item,
+      start_seconds: 169.233,
+      end_seconds: 177.067,
+      event_id: "evt-26e5",
+      event_name: "Person walks toward a door",
+      description: "A person wearing a dark jacket walks toward a door.",
+      camera: "G331",
+      scene: "bus",
+      thumbnail_url: null,
+      tags: ["Person", "Teleport"],
+    };
+
+    it("uses the event id and keeps it for tracks and the detail page", () => {
+      const clip = ragResultItemToClip(enriched, 0);
+      expect(clip.id).toBe("evt-26e5");
+      expect(clip.eventId).toBe("evt-26e5");
+    });
+
+    it("shows the real camera, scene, event name, description and caption", () => {
+      expect(ragResultItemToClip(enriched, 0)).toMatchObject({
+        camera: "G331",
+        code: "G331",
+        scene: "bus",
+        eventName: "Person walks toward a door",
+        action: "Person walks toward a door",
+        description: "A person wearing a dark jacket walks toward a door.",
+        caption: item.caption,
+      });
+    });
+
+    it("trusts the backend's tags, keeping only known ones", () => {
+      const clip = ragResultItemToClip(enriched, 0);
+      expect(clip.tags).toEqual(["Person"]);
+      expect(clip.objects).toBe("Person");
+    });
+
+    it("shows the offset into the video, since /search has no wall-clock time", () => {
+      const clip = ragResultItemToClip(enriched, 0);
+      expect(clip.ts).toBe("2:49");
+      expect(clip.date).toBe("");
+    });
+  });
+});
+
+describe("apiClipToClip", () => {
+  const apiClip: ApiClip = {
+    id: "evt-1",
+    camera: "G328",
+    code: "G328",
+    ts: "0:12",
+    date: "",
+    order: 1,
+    confidence: 0.9,
+    tags: ["Vehicle"],
+    objects: "vehicle",
+    action: "A car parks",
+    thumbnailUrl: null,
+    videoUrl: "https://cdn.test/v.mp4",
+  };
+
+  it("keeps the moment's bounds when /clips/{id} sends them", () => {
+    const clip = apiClipToClip({ ...apiClip, startSeconds: 12, endSeconds: 20 });
+    expect(clip.startSeconds).toBe(12);
+    expect(clip.endSeconds).toBe(20);
+  });
+
+  it("leaves the bounds empty until the backend sends them", () => {
+    const clip = apiClipToClip(apiClip);
+    expect(clip.startSeconds).toBeUndefined();
+    expect(clip.endSeconds).toBeUndefined();
+  });
+
+  describe("thumbnail", () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("points at the public thumbnail endpoint while /clips/{id} sends none", () => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.test/");
+      const clip = apiClipToClip({ ...apiClip, id: "evt 1/a" });
+      expect(clip.thumbnailUrl).toBe("https://api.test/api/v1/clips/evt%201%2Fa/thumbnail.jpg");
+    });
+
+    it("uses the backend's thumbnail once it sends one", () => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.test");
+      const clip = apiClipToClip({ ...apiClip, thumbnailUrl: "https://cdn.test/t.jpg" });
+      expect(clip.thumbnailUrl).toBe("https://cdn.test/t.jpg");
+    });
+
+    it("has no thumbnail when the API base URL isn't configured", () => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+      expect(apiClipToClip(apiClip).thumbnailUrl).toBeUndefined();
+    });
+  });
+});
+
+describe("clipToAssistantMoment", () => {
+  it("never invents a start from the old demo window when the clip has none", () => {
+    const clip = ragResultItemToClip(item, 0);
+    // A clip from GET /clips/{id}: wall-clock `ts`, no offset into its video.
+    const withoutStart = { ...clip, ts: "14:00:00", startSeconds: undefined };
+    expect(clipToAssistantMoment(withoutStart).start_seconds).toBe(0);
   });
 });

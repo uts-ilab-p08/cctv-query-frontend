@@ -6,19 +6,18 @@ import { MatchVideo, type SeekRequest } from "@/components/results/MatchVideo";
 import type { TracksResponse } from "@/lib/api/types";
 import { MetadataOverlay } from "@/components/results/MetadataOverlay";
 import { PlayerBar, type PlayerTick } from "@/components/results/PlayerBar";
-import { getThumbUrl } from "@/lib/clips";
-import { fmtClock, fmtElapsed } from "@/lib/time";
+import { Thumbnail } from "@/components/ui/Thumbnail";
+import { fmtElapsed } from "@/lib/time";
 import type { Clip } from "@/types";
 
 interface VideoStageProps {
   clip: Clip;
-  activeCamera: string;
   currentTime: number;
   playing: boolean;
   muted: boolean;
   metaOpen: boolean;
   ticks: PlayerTick[];
-  /** Loaded video's length; unused for the still-frame fallback. */
+  /** Loaded video's length; unused when the moment has no footage. */
   duration: number;
   cueKey: string;
   seekRequest: SeekRequest | null;
@@ -36,13 +35,12 @@ interface VideoStageProps {
 }
 
 /**
- * The player: still frame (stand-in for a real `<video>` stream) + camera/perspective
- * chips + chunk-metadata overlay + control bar. Overlay chips are fixed black/white
- * on purpose — they must read over any frame (SPEC §2).
+ * The player: the moment's footage (or, without a `video_url`, its still frame) +
+ * camera/scene chips + chunk-metadata overlay + control bar. Overlay chips are fixed
+ * black/white on purpose — they must read over any frame (SPEC §2).
  */
 export function VideoStage({
   clip,
-  activeCamera,
   currentTime,
   playing,
   muted,
@@ -62,8 +60,9 @@ export function VideoStage({
   onToggleMeta,
   onSeek,
 }: VideoStageProps) {
-  // Real footage plays on its own timeline; mock clips live in the 50-minute demo window.
-  const formatTime = clip.videoUrl ? fmtElapsed : fmtClock;
+  const hasFootage = !!clip.videoUrl;
+  // Without footage there is no playhead: show where the moment sits in its video.
+  const playhead = hasFootage ? currentTime : (clip.startSeconds ?? 0);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -80,40 +79,39 @@ export function VideoStage({
               onTimeUpdate={onTimeUpdate}
               onDuration={onDuration}
               onStop={onStop}
+              poster={clip.thumbnailUrl}
               tracks={tracks}
             />
           ) : (
-            /* Still frame for clips without footage (the mock dataset). */
-            <div
-              className="absolute inset-0 bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url(${getThumbUrl(clip)})`,
-                backgroundSize: "contain",
-                filter: "grayscale(0.58) contrast(1.06) brightness(0.72)",
-              }}
-            />
+            <>
+              <Thumbnail src={clip.thumbnailUrl} imgClassName="thumb-filter object-contain" />
+              <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border border-white/[0.16] bg-[rgba(12,15,19,0.82)] px-[9px] py-1 font-mono text-[11px] text-white">
+                No footage for this moment
+              </span>
+            </>
           )}
 
-          <div className="absolute top-3 left-3 flex items-center gap-2">
+          <div
+            role="group"
+            aria-label="Camera on the player"
+            className="absolute top-3 left-3 flex items-center gap-2"
+          >
             <span className="rounded-md border border-white/[0.16] bg-[rgba(12,15,19,0.82)] px-[9px] py-1 font-mono text-[11px] text-white">
-              {activeCamera}
+              {clip.camera}
             </span>
             {clip.scene ? (
               <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 font-mono text-[11px] text-white/80">
                 {clip.scene}
               </span>
             ) : null}
-            <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 text-[11px] text-white/80">
-              {clip.perspective}
-            </span>
           </div>
 
           <span className="absolute top-3 right-3 rounded-md border border-white/[0.16] bg-[rgba(12,15,19,0.82)] px-[9px] py-1 font-mono text-[11px] text-white">
             {clip.date ? `${clip.date} · ` : null}
-            {formatTime(currentTime)}
+            {fmtElapsed(playhead)}
           </span>
 
-          {!playing ? (
+          {hasFootage && !playing ? (
             <button
               type="button"
               onClick={onTogglePlay}
@@ -127,21 +125,16 @@ export function VideoStage({
           ) : null}
 
           {metaOpen ? (
-            <MetadataOverlay
-              clip={clip}
-              currentTime={currentTime}
-              formatTime={formatTime}
-              onClose={onToggleMeta}
-            />
+            <MetadataOverlay clip={clip} currentTime={playhead} onClose={onToggleMeta} />
           ) : null}
         </div>
       </div>
 
       <PlayerBar
-        currentTime={currentTime}
-        duration={clip.videoUrl ? duration : undefined}
-        formatTime={formatTime}
-        playing={playing}
+        currentTime={playhead}
+        duration={hasFootage ? duration : 0}
+        noFootage={!hasFootage}
+        playing={hasFootage && playing}
         muted={muted}
         metaOpen={metaOpen}
         ticks={ticks}

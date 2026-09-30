@@ -1,19 +1,32 @@
 "use client";
 
 import { Play, Plus, Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
+import { ChatMarkdown, type CitedSource } from "@/components/assistant/ChatMarkdown";
+import { StreamedText } from "@/components/assistant/StreamedText";
+import {
+  glowProps,
+  groupedItemClass,
+  SuggestionLabel,
+} from "@/components/assistant/SuggestedQuestions";
 import { ThinkingDots } from "@/components/assistant/ThinkingDots";
 import { MomentCardContent } from "@/components/results/MomentCard";
 import { NewQueryModal } from "@/components/results/NewQueryModal";
 import { cn } from "@/lib/cn";
+import { useSequentialGlow } from "@/lib/useSequentialGlow";
+import { useStickToBottom } from "@/lib/useStickToBottom";
 import { startersKey, useAppStore } from "@/store/useAppStore";
-import type { ChatMessage } from "@/types";
+import type { ChatMessage, Clip } from "@/types";
 
 /** Stable reference so an empty thread does not re-trigger the store selector. */
 const EMPTY_THREAD: ChatMessage[] = [];
 const NO_QUESTIONS: string[] = [];
+
+/** How a cited moment is named: what happened, where, and when in its video. */
+const sourceLabel = (clip: Clip) =>
+  `${clip.eventName ?? clip.action} · ${clip.camera} · ${clip.ts}`;
 
 interface QueryPanelProps {
   query: string;
@@ -49,16 +62,17 @@ export function QueryPanel({
   const results = useAppStore((state) => state.results);
 
   const storeQuery = useAppStore((state) => state.query);
+  const searchPending = useAppStore((state) => state.searchPending);
   const loadStarters = useAppStore((state) => state.loadStarters);
-  const starters =
-    useAppStore((state) => state.starters[startersKey("results", selectedClipId, storeQuery)]) ??
-    NO_QUESTIONS;
+  const contextKey = startersKey("results", selectedClipId, storeQuery);
+  const starters = useAppStore((state) => state.starters[contextKey]) ?? NO_QUESTIONS;
+  const startersLoading = useAppStore((state) => contextKey in state.startersPending);
 
-  // The opening questions for this context come from the RAG (simulated
-  // /assistant/suggestions); fetched once per search + selected moment.
+  // The opening questions for this context come from the RAG (/assistant/suggestions);
+  // fetched once per search + selected moment, after the search has answered.
   useEffect(() => {
     void loadStarters("results", selectedClipId);
-  }, [loadStarters, selectedClipId, storeQuery]);
+  }, [loadStarters, selectedClipId, storeQuery, searchPending]);
 
   // Suggestions follow the current context. The latest answer's follow-ups apply only
   // if it was about the same context; otherwise that context's opening questions.
@@ -75,10 +89,25 @@ export function QueryPanel({
         ? answerFollowUps
         : starters.filter((question) => !asked.has(question));
 
-  useEffect(() => {
-    const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [chat.length, last?.status]);
+  // One suggested question at a time gets a light running around its border.
+  const glowing = useSequentialGlow(suggestions.length);
+
+  // Each new message or answer brings the thread to the bottom; it then follows the
+  // answer as it streams in, unless the investigator scrolled up to read.
+  useStickToBottom(listRef, `${chat.length}:${last?.status ?? ""}`);
+
+  // The search's answer cites moments as [n] (`Clip.ref`): each becomes a chip.
+  const sourceFor = useCallback(
+    (ref: number): CitedSource | undefined => {
+      const clip = results.find((candidate) => candidate.ref === ref);
+      return clip ? { id: clip.id, label: sourceLabel(clip) } : undefined;
+    },
+    [results],
+  );
+  const formatAnswer = useCallback(
+    (text: string) => <ChatMarkdown text={text} source={sourceFor} onOpenSource={onJumpToClip} />,
+    [sourceFor, onJumpToClip],
+  );
 
   const ask = (text: string) => {
     const trimmed = text.trim();
@@ -146,7 +175,8 @@ export function QueryPanel({
                 <div
                   role="group"
                   aria-label="Question about a moment"
-                  className="surface-chat-user border-accent-line flex w-full max-w-[320px] flex-col gap-2 rounded-[10px] border p-1.5"
+                  data-bubble="user"
+                  className="surface-chat-user border-accent-line flex w-full max-w-[320px] flex-col gap-2 rounded-[10px] rounded-br-none border p-1.5"
                 >
                   <button
                     type="button"
@@ -168,60 +198,126 @@ export function QueryPanel({
                   {isOriginalQuery ? (
                     <SaveQueryButton text={message.text} className="mt-1.5" />
                   ) : null}
+                  {/* The question is a bubble with its square corner toward the thread; the
+                      answer sits on the chat's own background, so the two read apart. */}
                   <div
+                    data-bubble={isUser ? "user" : "agent"}
                     className={cn(
-                      "min-w-0 rounded-[10px] border px-[13px] py-[11px] text-[13px] leading-[1.5]",
+                      "min-w-0 text-[13px] leading-[1.5]",
                       isUser
-                        ? "surface-chat-user border-accent-line text-ink"
-                        : "border-hairline bg-panel-solid text-ink-2",
+                        ? "surface-chat-user border-accent-line text-ink rounded-[10px] rounded-br-none border px-[13px] py-[11px]"
+                        : "text-ink-2 py-0.5",
                       message.status === "error" && "text-flag",
                     )}
                     style={{ textWrap: "pretty" }}
                   >
-                    {message.status === "pending" ? <ThinkingDots /> : message.text}
+                    {message.status === "pending" ? (
+                      <ThinkingDots />
+                    ) : isUser || message.status ? (
+                      message.text
+                    ) : (
+                      <StreamedText text={message.text} streamKey={message} format={formatAnswer} />
+                    )}
                   </div>
                 </div>
               )}
 
               {message.citations?.length ? (
-                <div className="mt-1.5 flex max-w-[94%] flex-wrap gap-1.5">
-                  {message.citations.map((id) => {
-                    const clip = results.find((candidate) => candidate.id === id);
-                    if (!clip) return null;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => onJumpToClip(id)}
-                        aria-label={`Jump to ${clip.ts} · ${clip.eventName ?? clip.action}`}
-                        title={clip.eventName ?? clip.action}
-                        className="border-accent-line text-accent-strong bg-accent-soft flex max-w-full cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[11px]"
-                      >
-                        <Play size={10} strokeWidth={2.4} fill="currentColor" aria-hidden />
-                        <span className="font-mono">{clip.ts}</span>
-                        <span className="truncate">· {clip.eventName ?? clip.action}</span>
-                      </button>
-                    );
-                  })}
+                // One row of pills, scrolled sideways, so many sources never push the
+                // thread down.
+                <div
+                  role="group"
+                  aria-label="Sources"
+                  className="mt-1.5 flex w-full max-w-[94%] min-w-0 flex-col gap-1"
+                >
+                  <span aria-hidden className="text-ink-3 font-mono text-[10px] tracking-[1px]">
+                    SOURCES
+                  </span>
+                  <ul className="flex snap-x scrollbar-thin list-none flex-nowrap gap-1.5 overflow-x-auto p-0 pb-1">
+                    {message.citations.map((id) => {
+                      const clip = results.find((candidate) => candidate.id === id);
+                      if (!clip) return null;
+                      const name = clip.eventName ?? clip.action;
+                      return (
+                        <li key={id} className="shrink-0 snap-start">
+                          <button
+                            type="button"
+                            onClick={() => onJumpToClip(id)}
+                            aria-label={
+                              clip.ref
+                                ? `Jump to source ${clip.ref}: ${sourceLabel(clip)}`
+                                : `Jump to ${clip.ts} · ${name}`
+                            }
+                            title={name}
+                            className="border-hairline text-ink-3 hover:border-hairline-strong hover:text-ink-2 flex max-w-[220px] cursor-pointer items-center gap-1 rounded-full border bg-transparent px-2.5 py-1 text-[11px] whitespace-nowrap transition-colors duration-150"
+                          >
+                            {clip.ref ? (
+                              // Same number as the chip in the answer's text.
+                              <span className="bg-ink-3/15 flex h-3.5 min-w-3.5 shrink-0 items-center justify-center rounded-full px-1 font-mono text-[9px] leading-none">
+                                {clip.ref}
+                              </span>
+                            ) : (
+                              <Play
+                                size={10}
+                                strokeWidth={2.4}
+                                fill="currentColor"
+                                aria-hidden
+                                className="shrink-0"
+                              />
+                            )}
+                            <span className="shrink-0 font-mono">{clip.ts}</span>
+                            <span className="truncate">· {name}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               ) : null}
             </div>
           );
         })}
 
-        {suggestions.length ? (
-          <div className="flex flex-col gap-2">
+        {startersLoading && !answerFollowUps?.length && last?.status !== "pending" ? (
+          <div
+            role="status"
+            aria-label="Loading suggested questions"
+            className="mt-auto flex flex-col gap-2"
+          >
             <p className="text-ink-3 text-[12px]">Suggested questions</p>
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => ask(suggestion)}
-                className="border-accent-line bg-accent-soft text-ink-2 hover:text-ink cursor-pointer rounded-lg border px-3 py-2.5 text-left text-[13px] transition-colors duration-150"
-              >
-                {suggestion}
-              </button>
+            {[0, 1, 2].map((row) => (
+              <span
+                key={row}
+                aria-hidden
+                className="border-accent-line bg-accent-soft h-[41px] animate-pulse rounded-lg border"
+              />
             ))}
+          </div>
+        ) : suggestions.length ? (
+          // `mt-auto`: pinned down by the input while the thread is short; once it
+          // overflows the margin collapses and the block scrolls with the thread.
+          <div className="mt-auto flex flex-col gap-2">
+            <p className="text-ink-3 text-[12px]">Suggested questions</p>
+            <div role="group" aria-label="Suggested questions" className="flex flex-col">
+              {suggestions.map((suggestion, index) => {
+                const glow = glowProps(index === glowing);
+                return (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => ask(suggestion)}
+                    style={glow.style}
+                    className={cn(
+                      "group border-accent-line bg-accent-soft text-ink-2 hover:bg-accent-line/45 hover:text-ink hover:border-accent flex cursor-pointer items-center gap-2 border px-3 py-2.5 text-left text-[13px] transition-colors duration-150",
+                      groupedItemClass(index, suggestions.length, "lg"),
+                      glow.className,
+                    )}
+                  >
+                    <SuggestionLabel text={suggestion} />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ) : null}
       </div>

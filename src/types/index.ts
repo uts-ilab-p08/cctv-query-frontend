@@ -1,9 +1,8 @@
 /**
  * Domain types for the surveillance query workspace.
  *
- * These mirror the shape a real annotation backend (FastAPI) is expected to
- * return, so swapping `src/data` mocks for network calls does not ripple into
- * the component layer.
+ * The API layer (`src/lib/api/normalize.ts`) maps the FastAPI responses into
+ * these, so backend shape changes do not ripple into the component layer.
  */
 
 export type ClipTag = "Person" | "Vehicle" | "Entry" | "Exit" | "Loitering" | "Object Left";
@@ -13,7 +12,6 @@ export interface Clip {
   id: string;
   camera: string;
   code: string;
-  perspective: string;
   /** Time of the event as shown: wall-clock `HH:MM:SS` for the mock data; for RAG
    *  results, the offset into the source video (`m:ss`) until wall-clock time exists. */
   ts: string;
@@ -31,21 +29,26 @@ export interface Clip {
   /** Short event label from the RAG; when absent, `action` (the description) is shown. */
   eventName?: string;
   /** Site within the facility (`bronze.videos.scene`, e.g. `admin`, from MEVA's file
-   *  names). Mocked for the demo set until /search returns it. */
+   *  names). */
   scene?: string;
+  /** `bronze.events.event_id` when /search returns it — opens /clips/{eventId} and
+   *  narrows /videos/{id}/tracks to this event's objects. */
+  eventId?: string;
+  /** Longer text about the event (`bronze.events.description`). */
+  description?: string;
+  /** The RAG's own text for why this moment matched. */
+  caption?: string;
   /** Source video id — several moments (clips) can share one video. */
   videoId?: string;
   /** Where the moment starts/ends inside `videoUrl`, in seconds. */
   startSeconds?: number;
   endSeconds?: number;
+  /** The number the search's answer cites this moment by, as in `[2]`. */
+  ref?: number;
 }
 
-export interface Camera {
+export interface CameraDirectoryEntry {
   code: string;
-  perspective: string;
-}
-
-export interface CameraDirectoryEntry extends Camera {
   eventCount: number;
   /** Site within the facility (`bronze.videos.scene`, e.g. `admin`). */
   scene?: string;
@@ -99,14 +102,6 @@ export interface RecentQuery {
   text: string;
   ts: string;
   cameras: number;
-}
-
-export interface Report {
-  id: string;
-  title: string;
-  range: string;
-  cameras: number;
-  generatedOn: string;
 }
 
 export interface StatCardData {

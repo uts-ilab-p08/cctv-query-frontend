@@ -4,13 +4,12 @@ import { apiFetch } from "./client";
 import { getCameras, getRecentQueries, getRelatedClips } from "./endpoints";
 import type { ApiClip } from "./types";
 
-vi.mock("./client", () => ({ apiFetch: vi.fn() }));
+vi.mock("./client", () => ({ apiFetch: vi.fn(), apiBaseUrl: () => "" }));
 
 const clip: ApiClip = {
   id: "evt-1",
   camera: "G328",
   code: "G328",
-  perspective: "North gate",
   ts: "13:58:02",
   date: "Aug 4",
   order: 0,
@@ -22,7 +21,7 @@ const clip: ApiClip = {
   videoUrl: null,
 };
 const recent = { id: "rq-1", text: "red car", ts: "10:02", cameras: 2 };
-const camera = { code: "G328", perspective: "North gate", eventCount: 3 };
+const camera = { code: "G328", eventCount: 3 };
 
 /**
  * These three responses are untyped `object`s in the live OpenAPI schema, so the
@@ -55,5 +54,26 @@ describe.each([
   it("falls back to an empty list for an unknown envelope", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce({ items: [row] });
     await expect(call()).resolves.toEqual([]);
+  });
+});
+
+describe("getRecentQueries", () => {
+  beforeEach(() => vi.mocked(apiFetch).mockReset());
+
+  it("asks the backend for three and still keeps only the newest three", async () => {
+    const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      queries: [
+        { id: "old", text: "old", ts: at(90), cameras: 1 },
+        { id: "newest", text: "newest", ts: at(1), cameras: 1 },
+        { id: "mid", text: "mid", ts: at(30), cameras: 1 },
+        { id: "new", text: "new", ts: at(10), cameras: 1 },
+      ],
+    });
+
+    const queries = await getRecentQueries();
+
+    expect(apiFetch).toHaveBeenCalledWith("/api/v1/queries/recent?limit=3");
+    expect(queries.map((q) => q.id)).toEqual(["newest", "new", "mid"]);
   });
 });

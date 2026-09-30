@@ -3,10 +3,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
-import { summarizeClip } from "@/lib/assistant";
 import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
 import { clipToAssistantMoment } from "@/lib/api/normalize";
-import { getAllClips, getClipById } from "@/lib/clips";
+import { citedRefs } from "@/lib/citations";
 import { emptyFilters } from "@/lib/filters";
 import { topMatches } from "@/lib/matches";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
@@ -79,17 +78,19 @@ interface AppState {
   askInResults: (question: string, focusId?: string | null) => Promise<void>;
   /** Ask the assistant about one moment (that clip's thread). */
   askAboutClip: (clipId: string, question: string) => Promise<void>;
-  /** Opening questions per thread context (see `startersKey`), from the simulated
+  /** Opening questions per thread context (see `startersKey`), from
    *  `/assistant/suggestions`. Empty while loading. */
   starters: Record<string, string[]>;
+  /** Contexts (see `startersKey`) whose opening questions are still being fetched. */
+  startersPending: Record<string, true>;
   /** Fetch the opening questions for a context once; cached by `startersKey`. */
   loadStarters: (key: string, focusId: string | null) => Promise<void>;
   /** Shared by both scopes; `focusId` null means the whole result set. */
   ask: (key: string, question: string, focusId: string | null) => Promise<void>;
-  /** Open a clip thread with the user's query and the model's read of the clip. */
-  seedClipChat: (clipId: string, query: string) => void;
+  /** Open a clip thread by asking the backend the original search about the clip. */
+  seedClipChat: (clipId: string, query: string) => Promise<void>;
   /** Clips loaded from the API outside a search (the /clips/[id] page), by id — so the
-   *  assistant can find a clip that is neither in `results` nor in the demo set. */
+   *  assistant can find a clip that is not in `results`. */
   knownClips: Record<string, Clip>;
   rememberClip: (clip: Clip) => void;
   resetChat: (key: ChatKey) => void;
@@ -112,21 +113,18 @@ export function startersKey(key: string, focusId: string | null, query: string):
 }
 
 /**
- * What the assistant endpoints receive: the moments on screen (the Results strip;
- * without a live search, the demo set — unless the focus is a real API clip, which
- * stands alone rather than being mixed with demo data) and the thread so far.
- * `null` when the focused moment can't be found.
+ * What the assistant endpoints receive: the moments on screen (the Results strip,
+ * plus the focused clip if it isn't in it — Clip Detail's clip comes from the API)
+ * and the thread so far. Never demo data. `null` when the focused moment is unknown.
  */
 function assistantContext(
   state: AppState,
   key: string,
   focusId: string | null,
 ): { moments: Clip[]; history: { role: "user" | "assistant"; text: string }[] } | null {
-  const known = focusId ? state.knownClips[focusId] : undefined;
-  const pool = state.results.length ? state.results : known ? [] : getAllClips();
-  const moments = topMatches(pool);
+  const moments = topMatches(state.results);
   if (focusId && !moments.some((clip) => clip.id === focusId)) {
-    const focus = pool.find((clip) => clip.id === focusId) ?? known ?? getClipById(focusId);
+    const focus = state.results.find((clip) => clip.id === focusId) ?? state.knownClips[focusId];
     if (!focus) return null;
     moments.push(focus);
   }
@@ -251,21 +249,35 @@ export const useAppStore = create<AppState>()(
           set({ query: text });
           return;
         }
-        set({ query: trimmed, lastSearch: trimmed, searchPending: true, searchError: null });
+        // The thread opens right away with the query and a thinking bubble, so Results
+        // can lay itself out while the RAG searches.
+        set((s) => ({
+          query: trimmed,
+          lastSearch: trimmed,
+          searchPending: true,
+          searchError: null,
+          chats: { ...s.chats, results: [{ role: "user", text: trimmed }, THINKING] },
+        }));
+        // A newer search started meanwhile: its answer wins, this one is dropped.
+        const superseded = () => get().lastSearch !== trimmed;
         try {
           const { clips, summary } = await searchClips(trimmed);
+          if (superseded()) return;
+          // The summary cites its sources as [n]: list them under it, in citation order.
+          const citations = citedRefs(summary)
+            .map((ref) => clips.find((clip) => clip.ref === ref)?.id)
+            .filter((id): id is string => id !== undefined);
           set((s) => ({
             results: clips,
             searchPending: false,
-            chats: {
-              ...s.chats,
-              results: [
-                { role: "user", text: trimmed },
-                { role: "agent", text: summary },
-              ],
-            },
+            chats: settlePending(s.chats, "results", {
+              role: "agent",
+              text: summary,
+              ...(citations.length ? { citations } : {}),
+            }),
           }));
         } catch (error) {
+          if (superseded()) return;
           set({
             searchPending: false,
             searchError: error instanceof Error ? error.message : "Search failed.",
@@ -274,15 +286,26 @@ export const useAppStore = create<AppState>()(
       },
 
       starters: {},
+      startersPending: {},
 
       loadStarters: async (key, focusId) => {
         const state = get();
+        // Mid-search, `results` still holds the previous search: wait for the new one.
+        if (state.searchPending) return;
         const id = startersKey(key, focusId, state.query);
         if (id in state.starters) return;
         const context = assistantContext(state, key, focusId);
         if (!context) return;
         // Mark in flight: nothing to show yet, and no duplicate request.
-        set((s) => ({ starters: { ...s.starters, [id]: [] } }));
+        set((s) => ({
+          starters: { ...s.starters, [id]: [] },
+          startersPending: { ...s.startersPending, [id]: true },
+        }));
+        const settled = (pending: Record<string, true>) => {
+          const rest = { ...pending };
+          delete rest[id];
+          return rest;
+        };
         try {
           const { suggested_questions } = await suggestQuestions({
             query: state.query,
@@ -291,13 +314,16 @@ export const useAppStore = create<AppState>()(
             moments: context.moments.map(clipToAssistantMoment),
             history: context.history,
           });
-          set((s) => ({ starters: { ...s.starters, [id]: suggested_questions } }));
+          set((s) => ({
+            starters: { ...s.starters, [id]: suggested_questions },
+            startersPending: settled(s.startersPending),
+          }));
         } catch {
           // Forget the failed attempt so the next visit to this context retries.
           set((s) => {
             const starters = { ...s.starters };
             delete starters[id];
-            return { starters };
+            return { starters, startersPending: settled(s.startersPending) };
           });
         }
       },
@@ -357,20 +383,14 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      seedClipChat: (clipId, query) =>
-        set((s) => {
-          const id = chatKey(clipId);
-          if (s.chats[id]?.length) return s;
-          const clip = s.knownClips[id] ?? getClipById(clipId);
-          if (!clip) return s;
-
-          const seeded: ChatMessage[] = [];
-          const trimmed = query.trim();
-          if (trimmed) seeded.push({ role: "user", text: trimmed });
-          seeded.push({ role: "agent", text: summarizeClip(clip, trimmed) });
-
-          return { chats: { ...s.chats, [id]: seeded } };
-        }),
+      seedClipChat: async (clipId, query) => {
+        const state = get();
+        const id = chatKey(clipId);
+        // Seed once, only for a clip we know, and only when there was a search to ask about:
+        // the backend answers the original search about this clip (no local summary).
+        if (state.chats[id]?.length || !state.knownClips[id] || !query.trim()) return;
+        await get().ask(id, query, id);
+      },
 
       rememberClip: (clip) => set((s) => ({ knownClips: { ...s.knownClips, [clip.id]: clip } })),
 

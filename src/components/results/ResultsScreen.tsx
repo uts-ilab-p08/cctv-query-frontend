@@ -6,16 +6,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SeekRequest } from "@/components/results/MatchVideo";
 import { MatchStrip } from "@/components/results/MatchStrip";
 import { QueryPanel } from "@/components/results/QueryPanel";
+import { MatchStripSkeleton, VideoStageSkeleton } from "@/components/results/ResultsSkeletons";
 import { useMomentTracks } from "@/components/results/useMomentTracks";
 import { VideoStage } from "@/components/results/VideoStage";
 import { topMatches } from "@/lib/matches";
-import { clipPos, WIN_LEN } from "@/lib/time";
 import { useAppStore } from "@/store/useAppStore";
 import type { Clip } from "@/types";
 
 /**
  * Results workspace: query/assistant column + video player + matching-moments strip.
- * Player state (selection, camera, playhead, playing/muted/meta) is local to this
+ * Player state (selection, playhead, playing/muted/meta) is local to this
  * component — it is presentation-only and does not belong in the shared app store.
  */
 interface ResultsScreenProps {
@@ -30,7 +30,6 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const searchError = useAppStore((state) => state.searchError);
 
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
-  const [activeCamera, setActiveCamera] = useState(clips[0]?.camera ?? "");
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -55,21 +54,12 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   const selected = clips.find((clip) => clip.id === selectedClipId);
 
-  const nearestOnFeed = useMemo(() => {
-    const onCamera = clips.filter((clip) => clip.camera === activeCamera);
-    return (
-      [...onCamera].sort(
-        (a, b) => Math.abs(clipPos(a) - currentTime) - Math.abs(clipPos(b) - currentTime),
-      )[0] ?? clips[0]
-    );
-  }, [clips, activeCamera, currentTime]);
-
-  // Real footage opens on the first top match without *selecting* it, so the
-  // assistant stays on the query thread. Mock clips (no video) keep the
-  // demo-window behaviour of showing the event nearest the playhead.
-  const firstMatch = matches[0];
-  const activeClip: Clip | undefined =
-    selected ?? (firstMatch?.videoUrl ? firstMatch : nearestOnFeed);
+  // The player opens on the first top match without *selecting* it, so the
+  // assistant stays on the query thread.
+  // Mid-search, `clips` is still the previous result set: nothing is on the player yet.
+  const activeClip: Clip | undefined = searchPending
+    ? undefined
+    : (selected ?? matches[0] ?? clips[0]);
   const videoMode = !!activeClip?.videoUrl;
   const tracks = useMomentTracks(activeClip);
 
@@ -80,19 +70,9 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
     setPlaying(false);
   }, [clips]);
 
-  useEffect(() => {
-    // Real video drives its own clock through `onTimeUpdate`.
-    if (!playing || videoMode) return;
-    const id = window.setInterval(() => {
-      setCurrentTime((t) => (t >= WIN_LEN ? 0 : t + 1));
-    }, 250);
-    return () => window.clearInterval(id);
-  }, [playing, videoMode]);
-
   const selectMatch = useCallback((clip: Clip) => {
     setSelectedClipId(clip.id);
-    setActiveCamera(clip.camera);
-    setCurrentTime(clip.videoUrl ? (clip.startSeconds ?? 0) : clipPos(clip));
+    setCurrentTime(clip.startSeconds ?? 0);
     setCueCount((n) => n + 1);
   }, []);
 
@@ -115,33 +95,16 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   );
 
   const ticks = useMemo(() => {
-    if (activeClip?.videoUrl) {
-      // Mark every matching moment that lives in the loaded video.
-      if (duration <= 0) return [];
-      return clips
-        .filter((clip) => clip.videoUrl === activeClip.videoUrl)
-        .map((clip) => ({
-          id: clip.id,
-          left: Math.min(100, ((clip.startSeconds ?? 0) / duration) * 100),
-          active: clip.id === selectedClipId,
-        }));
-    }
+    // Mark every matching moment that lives in the loaded video.
+    if (!activeClip?.videoUrl || duration <= 0) return [];
     return clips
-      .filter((clip) => clip.camera === activeCamera)
+      .filter((clip) => clip.videoUrl === activeClip.videoUrl)
       .map((clip) => ({
         id: clip.id,
-        left: (clipPos(clip) / WIN_LEN) * 100,
+        left: Math.min(100, ((clip.startSeconds ?? 0) / duration) * 100),
         active: clip.id === selectedClipId,
       }));
-  }, [clips, activeClip, activeCamera, selectedClipId, duration]);
-
-  if (searchPending) {
-    return (
-      <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
-        Searching indexed footage…
-      </div>
-    );
-  }
+  }, [clips, activeClip, selectedClipId, duration]);
 
   if (searchError) {
     return (
@@ -151,7 +114,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
     );
   }
 
-  if (!activeClip) {
+  if (!searchPending && !activeClip) {
     return (
       <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
         No matching clips found.
@@ -185,37 +148,44 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
         />
 
         <div className="bg-video-frame flex min-h-0 min-w-[280px] flex-1 basis-[440px] flex-col overflow-hidden">
-          <VideoStage
-            clip={activeClip}
-            activeCamera={activeCamera}
-            currentTime={currentTime}
-            playing={playing}
-            muted={muted}
-            metaOpen={metaOpen}
-            ticks={ticks}
-            duration={duration}
-            cueKey={`${activeClip.id}#${cueCount}`}
-            seekRequest={seekRequest}
-            onTimeUpdate={setCurrentTime}
-            onDuration={setDuration}
-            onStop={stopPlayback}
-            tracks={tracks}
-            onTogglePlay={() => setPlaying((p) => !p)}
-            onToggleMute={() => setMuted((m) => !m)}
-            onToggleMeta={() => setMetaOpen((m) => !m)}
-            onSeek={seekTo}
-            videoExpanded={videoExpanded}
-            onToggleExpand={() => setVideoExpanded((expanded) => !expanded)}
-          />
+          {!activeClip ? (
+            <VideoStageSkeleton />
+          ) : (
+            <VideoStage
+              clip={activeClip}
+              currentTime={currentTime}
+              playing={playing}
+              muted={muted}
+              metaOpen={metaOpen}
+              ticks={ticks}
+              duration={duration}
+              cueKey={`${activeClip.id}#${cueCount}`}
+              seekRequest={seekRequest}
+              onTimeUpdate={setCurrentTime}
+              onDuration={setDuration}
+              onStop={stopPlayback}
+              tracks={tracks}
+              onTogglePlay={() => setPlaying((p) => !p)}
+              onToggleMute={() => setMuted((m) => !m)}
+              onToggleMeta={() => setMetaOpen((m) => !m)}
+              onSeek={seekTo}
+              videoExpanded={videoExpanded}
+              onToggleExpand={() => setVideoExpanded((expanded) => !expanded)}
+            />
+          )}
         </div>
       </div>
 
-      <MatchStrip
-        matches={matches}
-        selectedClipId={selectedClipId}
-        onSelect={selectMatch}
-        onClearSelection={() => setSelectedClipId(null)}
-      />
+      {searchPending ? (
+        <MatchStripSkeleton />
+      ) : (
+        <MatchStrip
+          matches={matches}
+          selectedClipId={selectedClipId}
+          onSelect={selectMatch}
+          onClearSelection={() => setSelectedClipId(null)}
+        />
+      )}
     </div>
   );
 }

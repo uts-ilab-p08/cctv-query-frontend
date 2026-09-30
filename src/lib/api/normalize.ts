@@ -1,7 +1,7 @@
 import { fmtElapsed } from "@/lib/time";
-import type { Clip, ClipTag } from "@/types";
 
-import { clipPos } from "@/lib/time";
+import { apiBaseUrl } from "./client";
+import type { Clip, ClipTag } from "@/types";
 
 import type {
   ApiCameraDirectoryEntry,
@@ -30,8 +30,6 @@ import type { CameraDirectoryEntry, SavedQuery } from "@/types";
  *                       wall-clock time is returned yet
  * - `objects`/`action` -> `caption` (the RAG gives us one free-text field,
  *                       not a separate object/action breakdown)
- * - `camera`/`code`/`perspective` -> unknown from this payload; left as
- *                       placeholders until the backend enriches `/search`
  * - `tags`          -> best-effort keyword match against `caption`
  *
  * This is a stopgap: once `/search` (or a follow-up endpoint) returns
@@ -56,29 +54,64 @@ function inferTags(caption: string): ClipTag[] {
   return [...tags];
 }
 
+const CLIP_TAGS: readonly ClipTag[] = [
+  "Person",
+  "Vehicle",
+  "Entry",
+  "Exit",
+  "Loitering",
+  "Object Left",
+];
+
+function toClipTags(tags: readonly string[]): ClipTag[] {
+  return tags.filter((tag): tag is ClipTag => (CLIP_TAGS as readonly string[]).includes(tag));
+}
+
+const text = (value: string | null | undefined) => value?.trim() || undefined;
+
 export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
+  const eventId = text(item.event_id);
+  const camera = text(item.camera);
+  const eventName = text(item.event_name);
+  const tags = item.tags ? toClipTags(item.tags) : inferTags(item.caption);
   return {
-    id: `${item.video_id}:${item.start_seconds}`,
-    camera: "Unknown",
-    code: "Unknown",
-    perspective: "Unknown",
-    // Offset into the source video, straight from the endpoint. Switch to wall-clock time
-    // once the RAG returns it.
+    // The event id when present: stable, and valid for /clips/{id}. `searchClips`
+    // keeps ids unique when two results fall in the same event.
+    id: eventId ?? `${item.video_id}:${item.start_seconds}`,
+    eventId,
+    camera: camera ?? "Unknown",
+    code: camera ?? "Unknown",
+    // The offset into the source video: /search has no wall-clock time.
     ts: fmtElapsed(item.start_seconds),
     date: "",
     order,
     confidence: Math.round(item.score * 100),
-    tags: inferTags(item.caption),
-    objects: item.caption,
-    action: item.caption,
-    thumbnailUrl: undefined,
+    tags,
+    objects: tags.length ? tags.join(", ") : item.caption,
+    action: eventName ?? item.caption,
+    thumbnailUrl: text(item.thumbnail_url),
     videoUrl: item.video_url ?? undefined,
-    eventName: item.event_name?.trim() || undefined,
-    scene: item.scene?.trim() || undefined,
+    eventName,
+    description: text(item.description),
+    caption: item.caption,
+    scene: text(item.scene),
     videoId: item.video_id,
     startSeconds: item.start_seconds,
     endSeconds: item.end_seconds,
+    // The RAG numbers its sources in response order. Until the backend sends the
+    // number itself, the position stands in: right unless the backend dropped a source.
+    ref: item.citation_index ?? order + 1,
   };
+}
+
+/**
+ * `GET /clips/{id}/thumbnail.jpg`: public (no token), so a plain `<img>` loads it and
+ * the browser caches it. `/search` already sends this URL as `thumbnail_url`;
+ * `/clips/{id}` and `/related` still send `null`, so it is built from the event id.
+ */
+function clipThumbnailUrl(eventId: string): string | undefined {
+  const base = apiBaseUrl();
+  return base ? `${base}/api/v1/clips/${encodeURIComponent(eventId)}/thumbnail.jpg` : undefined;
 }
 
 export function apiClipToClip(clip: ApiClip): Clip {
@@ -86,26 +119,25 @@ export function apiClipToClip(clip: ApiClip): Clip {
     id: clip.id,
     camera: clip.camera,
     code: clip.code,
-    perspective: clip.perspective,
     ts: clip.ts,
     date: clip.date,
     order: clip.order,
     confidence: clip.confidence,
-    tags: clip.tags.filter((tag): tag is ClipTag =>
-      ["Person", "Vehicle", "Entry", "Exit", "Loitering", "Object Left"].includes(tag),
-    ),
+    tags: toClipTags(clip.tags),
     objects: clip.objects,
     action: clip.action,
-    thumbnailUrl: clip.thumbnailUrl ?? undefined,
+    thumbnailUrl: clip.thumbnailUrl ?? clipThumbnailUrl(clip.id),
     videoUrl: clip.videoUrl ?? undefined,
     scene: clip.scene ?? undefined,
+    startSeconds: clip.startSeconds ?? undefined,
+    endSeconds: clip.endSeconds ?? undefined,
   };
 }
 
 export function apiCameraToCameraDirectoryEntry(
   camera: ApiCameraDirectoryEntry,
 ): CameraDirectoryEntry {
-  return { ...camera, scene: camera.scene ?? undefined };
+  return { code: camera.code, eventCount: camera.eventCount, scene: camera.scene ?? undefined };
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
@@ -128,10 +160,10 @@ export function clipToAssistantMoment(clip: Clip): AssistantMoment {
   return {
     moment_id: clip.id,
     video_id: clip.videoId ?? clip.id,
-    // Mock clips have no video offset; their position in the demo window stands in.
-    start_seconds: clip.startSeconds ?? clipPos(clip),
+    // Clips from GET /clips/{id} carry no offset into their video (yet).
+    start_seconds: clip.startSeconds ?? 0,
     end_seconds: clip.endSeconds ?? null,
-    caption: clip.eventName ?? clip.action,
+    caption: clip.caption ?? clip.eventName ?? clip.action,
     score: clip.confidence / 100,
     camera: clip.camera === "Unknown" ? null : clip.camera,
   };

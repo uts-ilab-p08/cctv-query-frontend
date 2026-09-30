@@ -690,6 +690,18 @@ body {
     box-shadow: var(--shadow-lg);
     transform: translateZ(0);
   }
+  /* Panels floating over the video (chunk metadata): a little of the frame shows
+     through, softened by a strong blur. Every palette's --text stays above 4.5:1 on
+     this fill even over a pure white or black frame (theme-contrast.test.ts), which is
+     why --overlay-alpha doesn't go lower and the panel's text uses --text only. */
+  .glass-overlay {
+    --overlay-alpha: 85%;
+    background-color: color-mix(in srgb, var(--panel-solid) var(--overlay-alpha), transparent);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
   .surface-sidebar {
     background-color: transparent;
     background-image: var(--sidebar-bg);
@@ -783,6 +795,38 @@ body {
     background-image: var(--chat-user-bg);
   }
 
+  /* Suggested questions: a soft light runs once around the border of one question, then
+     moves on to the next (useSequentialGlow picks which; each lap is --glow-lap). The
+     light is a conic gradient cut down to a 1.5px ring with mask-composite, so it only
+     ever touches the border. Reduced motion: the hook never marks a question, and the
+     global rule below would end the animation on its transparent keyframe anyway. */
+  .suggestion-glow {
+    position: relative;
+    /* Above its neighbours in a grouped list, so the whole ring shows. */
+    z-index: 2;
+  }
+  .suggestion-glow::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    padding: 1.5px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: conic-gradient(
+      from var(--glow-angle),
+      transparent 0deg 250deg,
+      color-mix(in srgb, var(--accent-strong) 35%, transparent) 310deg,
+      color-mix(in srgb, var(--accent-strong) 85%, transparent) 345deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: suggestion-glow var(--glow-lap, 2600ms) linear infinite;
+  }
+
   /* SPEC §4 — clip thumbnails read as archived footage, never as product imagery. */
   .thumb-filter {
     filter: grayscale(0.55) contrast(1.05) brightness(0.85);
@@ -797,5 +841,28 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* The angle the border light has reached; registered so it can be animated. */
+@property --glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* One lap around the border, fading in at the start and out at the end. */
+@keyframes suggestion-glow {
+  0% {
+    --glow-angle: 0deg;
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    --glow-angle: 360deg;
+    opacity: 0;
   }
 }

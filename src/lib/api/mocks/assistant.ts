@@ -9,11 +9,10 @@ import type {
 } from "../types";
 
 /**
- * SIMULATION of the proposed `POST /api/v1/assistant/ask` (contract in ../types.ts).
- * It answers only from what the request carries — the same information the real
- * endpoint would get — so a demo shows what the backend must do, not what the
- * frontend can fake. Rules are keyword-based on purpose: the real endpoint should
- * reason with the RAG/LLM instead.
+ * TEST-ONLY SIMULATION of `POST /api/v1/assistant/ask` and `/assistant/suggestions`
+ * (contracts in ../types.ts). Both endpoints are live and the app calls them; the
+ * screen tests use these instead so they never hit the network. They answer only
+ * from what the request carries — the same information the real endpoints get.
  */
 
 const VEHICLE = /\b(car|van|vehicle|truck|suv|sedan|bus)\b/i;
@@ -222,22 +221,4 @@ export function answerQuestion(request: AssistantAskRequest): AssistantAskRespon
     citations: cite([closest]),
     suggested_questions,
   };
-}
-
-/** Network-shaped wrapper: resolves after a delay, like the real endpoint would. */
-export async function mockAskAssistant(
-  request: AssistantAskRequest,
-  { delayMs = 900 }: { delayMs?: number } = {},
-): Promise<AssistantAskResponse> {
-  await new Promise((resolve) => setTimeout(resolve, delayMs));
-  return answerQuestion(request);
-}
-
-/** Network-shaped wrapper for the simulated `/assistant/suggestions`. */
-export async function mockSuggestQuestions(
-  request: AssistantSuggestionsRequest,
-  { delayMs = 400 }: { delayMs?: number } = {},
-): Promise<AssistantSuggestionsResponse> {
-  await new Promise((resolve) => setTimeout(resolve, delayMs));
-  return suggestQuestionsFor(request);
 }

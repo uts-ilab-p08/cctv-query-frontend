@@ -59,3 +59,42 @@ describe.each(["violet", "slate", "amber", "linen", "lavender", "magic", "sea", 
     }
   },
 );
+
+/**
+ * The metadata panel floats over the video with a little of the frame showing through
+ * (`.glass-overlay`: --panel-solid at --overlay-alpha). Its text must stay legible
+ * over any frame, so check the worst cases: a pure white and a pure black frame behind
+ * it, with no credit for the blur.
+ */
+describe("metadata overlay contrast over any frame", () => {
+  const alphaMatch = css.match(/--overlay-alpha:\s*(\d+)%/);
+  if (!alphaMatch) throw new Error("no --overlay-alpha in globals.css");
+  const alpha = Number(alphaMatch[1]) / 100;
+
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const hex = (channels: number[]) =>
+    `#${channels.map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
+  const over = (panel: string, frame: string) => {
+    const [p, f] = [rgb(panel), rgb(frame)];
+    return hex(p.map((c, i) => alpha * c + (1 - alpha) * f[i]));
+  };
+
+  const themes: Array<[string, string]> = [
+    ["light", '[data-theme="light"]'],
+    ...["violet", "slate", "amber", "linen", "lavender", "magic", "sea", "blues"].map(
+      (palette): [string, string] => [
+        `dark ${palette}`,
+        `[data-theme="dark"][data-palette="${palette}"]`,
+      ],
+    ),
+  ];
+
+  for (const [name, selector] of themes) {
+    for (const frame of ["#ffffff", "#000000"]) {
+      it(`${name}: --text over a ${frame} frame reaches 4.5:1`, () => {
+        const theme = tokens(selector);
+        expect(contrast(theme.text, over(theme["panel-solid"], frame))).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+  }
+});

@@ -1,4 +1,10 @@
-import { getConfidenceLevel } from "@/lib/clips";
+type ConfidenceLevel = "high" | "mid" | "low";
+
+function getConfidenceLevel(confidence: number): ConfidenceLevel {
+  if (confidence >= 85) return "high";
+  if (confidence >= 65) return "mid";
+  return "low";
+}
 
 /** SPEC §4 — the confidence scale maps to --match / --review / --flag. */
 const textClasses = {

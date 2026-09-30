@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { renderChatMarkdown } from "@/components/assistant/ChatMarkdown";
+import { StreamedText } from "@/components/assistant/StreamedText";
 import { ThinkingDots } from "@/components/assistant/ThinkingDots";
 import type { ReactNode } from "react";
 
@@ -21,17 +23,26 @@ export function ChatMessage({ message, action }: ChatMessageProps) {
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
       <div className="flex max-w-[88%] items-start gap-1">
         {action}
-        <p
+        {/* The question is a bubble with its square corner toward the thread; the answer
+            sits on the panel's own background, so the two read apart. */}
+        <div
+          data-bubble={isUser ? "user" : "agent"}
           className={cn(
-            "rounded-chip min-w-0 border px-3 py-2.5 text-[13px] leading-[1.4]",
+            "min-w-0 text-[13px] leading-[1.4]",
             isUser
-              ? "surface-chat-user border-accent-line text-ink"
-              : "border-hairline bg-panel-solid text-ink-2",
+              ? "surface-chat-user border-accent-line text-ink rounded-chip rounded-br-none border px-3 py-2.5"
+              : "text-ink-2 py-0.5",
             message.status === "error" && "text-flag",
           )}
         >
-          {message.status === "pending" ? <ThinkingDots /> : message.text}
-        </p>
+          {message.status === "pending" ? (
+            <ThinkingDots />
+          ) : isUser || message.status ? (
+            message.text
+          ) : (
+            <StreamedText text={message.text} streamKey={message} format={renderChatMarkdown} />
+          )}
+        </div>
       </div>
 
       {message.relatedId ? (

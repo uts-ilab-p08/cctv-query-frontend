@@ -22,7 +22,8 @@ export function useMomentTracks(clip: Clip | undefined): TracksResponse | null {
       video_id: clip.videoId ?? clip.id,
       start_seconds: start,
       end_seconds: clip.endSeconds ?? start + DEFAULT_MOMENT_SECONDS,
-      caption: clip.eventName ?? clip.action,
+      // Only this event's objects — exactly what was searched — when the id is known.
+      event_id: clip.eventId ?? null,
     })
       .then((response) => {
         if (!cancelled) setTracks(response);

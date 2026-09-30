@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 
 import { MomentCardContent } from "@/components/results/MomentCard";
+import { cn } from "@/lib/cn";
 import type { Clip } from "@/types";
 
 interface MatchStripProps {
@@ -44,13 +45,21 @@ export function MatchStrip({
                 type="button"
                 onClick={() => onSelect(match)}
                 title={title}
-                className="glass-card-flat flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] p-1.5 text-left"
-                style={{
-                  borderColor: active ? "var(--accent)" : "var(--border)",
-                  boxShadow: active ? "var(--shadow-accent)" : "var(--shadow-sm)",
-                }}
+                className={cn(
+                  // The glass fill of `glass-card-flat` without its border and shadow: those come
+                  // only from the classes below, so the picked and hover states always win.
+                  "group flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border bg-transparent [background-image:var(--panel)] p-1.5 text-left transition-colors duration-150",
+                  // Classes, not inline styles, so the hover can override them.
+                  active
+                    ? "border-accent shadow-action"
+                    : "border-hairline shadow-glass-sm hover:border-accent hover:bg-accent-soft",
+                )}
               >
-                <MomentCardContent clip={match} textClassName={active ? "pr-12" : undefined} />
+                <MomentCardContent
+                  clip={match}
+                  textClassName={active ? "pr-12" : undefined}
+                  revealOnHover
+                />
               </button>
               {active ? (
                 <button

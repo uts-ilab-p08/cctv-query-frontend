@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { QueryListSkeleton } from "@/components/ui/QueryListSkeleton";
 import { ApiError } from "@/lib/api/client";
 import { deleteSavedQuery, getSavedQueries } from "@/lib/api/endpoints";
 import { resultsHref } from "@/lib/routes";
@@ -14,9 +15,6 @@ type LoadStatus = "loading" | "ready" | "error";
 
 /** Why a delete failed, in the investigator's terms. 404 never gets here: gone is gone. */
 function deleteErrorMessage(reason: unknown): string {
-  if (reason instanceof ApiError && (reason.status === 405 || reason.status === 501)) {
-    return "Deleting saved queries isn't available yet — the backend doesn't support it.";
-  }
   return `Couldn't delete this query${reason instanceof Error ? `: ${reason.message}` : "."}`;
 }
 
@@ -76,9 +74,7 @@ export function SavedQueriesScreen() {
       <p className="text-ink-2 mb-7 text-sm">Bookmarked searches for quick re-run.</p>
 
       {status === "loading" ? (
-        <p aria-busy="true" className="text-ink-3 text-sm">
-          Loading saved queries…
-        </p>
+        <QueryListSkeleton label="Loading saved queries" detailed className="gap-3" />
       ) : null}
 
       {status === "error" ? (
