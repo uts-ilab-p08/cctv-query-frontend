@@ -147,6 +147,21 @@ describe("LandingPage", () => {
     expect(questions.length).toBeGreaterThanOrEqual(6);
   });
 
+  it("gives each author their confirmed role", () => {
+    render(<LandingPage />);
+
+    const team = screen.getByRole("region", { name: /team/i });
+    const roleOf = (name: string) => within(team).getByText(name).closest("li")?.textContent ?? "";
+    expect(roleOf("Abhishek Chopda")).toContain("RAG Lead");
+    expect(roleOf("Abhishek Chopda")).not.toContain("Backend support");
+    expect(roleOf("Maria Jose Bustamante")).toContain("Evaluation Lead");
+    expect(roleOf("Maria Jose Bustamante")).not.toContain("Backend support");
+    expect(roleOf("Saurabh Sabharwal")).toContain("Video Annotation Researcher · Evaluation Lead");
+    expect(roleOf("Saurabh Sabharwal")).not.toContain("RAG support");
+    expect(roleOf("Nelkit Chavez")).toContain("Frontend Lead · Backend support");
+    expect(roleOf("Nelkit Chavez")).not.toContain("RAG Researcher");
+  });
+
   it("credits the six authors, each linking to their GitHub profile", () => {
     render(<LandingPage />);
 
