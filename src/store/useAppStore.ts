@@ -144,6 +144,9 @@ function assistantContext(
 }
 
 const THINKING: ChatMessage = { role: "agent", text: "", status: "pending" };
+/** The search's own placeholder. `/search` reports no progress (no stream yet), so this is
+ *  one fixed line that is true for the whole wait, not made-up steps. */
+const SEARCHING: ChatMessage = { ...THINKING, progress: "Searching indexed footage…" };
 const ASSISTANT_FAILED = "The assistant couldn't answer that. Try again.";
 
 /** Swap a thread's pending placeholder for the real answer. If the thread was reset
@@ -332,7 +335,7 @@ export const useAppStore = create<AppState>()(
             lastSearch: trimmed,
             searchPending: true,
             searchError: null,
-            chats: { ...s.chats, results: [{ role: "user", text: trimmed }, THINKING] },
+            chats: { ...s.chats, results: [{ role: "user", text: trimmed }, SEARCHING] },
           }));
           // A newer search started meanwhile: its answer wins, this one is dropped.
           const superseded = () => get().lastSearch !== trimmed;

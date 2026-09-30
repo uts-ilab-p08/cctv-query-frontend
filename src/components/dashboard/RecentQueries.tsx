@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,6 +21,9 @@ export function RecentQueries() {
   const runSearch = useAppStore((state) => state.runSearch);
   const [recentQueries, setRecentQueries] = useState<RecentQuery[]>([]);
   const [loading, setLoading] = useState(true);
+  /** The query picked: it spins until Results replaces this page (loading that route can
+   *  take a moment), and the others wait, so a double click can't start two searches. */
+  const [runningId, setRunningId] = useState<string | null>(null);
   // Re-render every minute so "1 min ago" doesn't go stale while Home stays open.
   const now = useNow(60_000);
 
@@ -61,15 +65,28 @@ export function RecentQueries() {
             <button
               type="button"
               onClick={() => {
+                if (runningId) return;
+                setRunningId(query.id);
                 void runSearch(query.text);
                 router.push(resultsHref(query.text));
               }}
-              className="rounded-card glass-card-flat hover:border-hairline-strong flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-left transition-colors duration-150"
+              aria-busy={runningId === query.id || undefined}
+              disabled={runningId !== null}
+              className="rounded-card glass-card-flat hover:border-hairline-strong aria-busy:border-accent-line flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3.5 text-left transition-[border-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100"
             >
               <span className="text-ink text-sm">{query.text}</span>
-              <span className="text-ink-3 shrink-0 font-mono text-xs">
-                {formatRelativeTime(query.ts, now)}
-              </span>
+              {runningId === query.id ? (
+                <Loader2
+                  size={15}
+                  strokeWidth={2.2}
+                  className="text-accent-strong shrink-0 animate-spin"
+                  aria-hidden
+                />
+              ) : (
+                <span className="text-ink-3 shrink-0 font-mono text-xs">
+                  {formatRelativeTime(query.ts, now)}
+                </span>
+              )}
             </button>
           </li>
         ))}

@@ -223,6 +223,22 @@ describe("Dashboard", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("spins the recent query that was picked while Results loads, and blocks the others", async () => {
+    const user = userEvent.setup();
+    pushMock.mockClear();
+    render(<RecentQueries />);
+    const items = await screen.findAllByRole("button");
+
+    await user.click(items[0]);
+
+    expect(items[0]).toHaveAttribute("aria-busy", "true");
+    expect(items[0].querySelector(".animate-spin")).not.toBeNull();
+    items.forEach((item) => expect(item).toBeDisabled());
+
+    await user.click(items[1]);
+    expect(pushMock).toHaveBeenCalledTimes(1);
+  });
+
   it("drops the section once loading finds no recent queries", async () => {
     vi.mocked(getRecentQueries).mockResolvedValueOnce([]);
     render(<RecentQueries />);
@@ -325,9 +341,15 @@ describe("Results — while the search runs", () => {
     render(<ResultsScreen urlQuery="red car" />);
 
     expect(await screen.findByText("YOUR QUERY")).toBeInTheDocument();
-    expect(screen.queryByText("Searching indexed footage…")).not.toBeInTheDocument();
+    // No full-screen loader: the only "Searching indexed footage…" is the chat's line.
+    const searching = screen.getAllByText("Searching indexed footage…");
+    expect(searching).toHaveLength(1);
+    expect(searching[0].closest('[role="status"]')).toHaveAccessibleName(/^Assistant is thinking/);
     expect(screen.getAllByText("red car").length).toBeGreaterThan(0);
-    expect(screen.getByRole("status", { name: "Assistant is thinking" })).toBeInTheDocument();
+    // /search has no progress stream (yet): one fixed, true line instead of made-up steps.
+    expect(
+      screen.getByRole("status", { name: "Assistant is thinking: Searching indexed footage…" }),
+    ).toHaveTextContent("Searching indexed footage…");
     expect(screen.getByRole("status", { name: "Loading footage" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Loading matching moments" })).toBeInTheDocument();
   });
@@ -869,10 +891,14 @@ describe("Results — assistant", () => {
     const buttons = await screen.findAllByRole("button", {
       name: (name) => resultsSuggestedQuestions.includes(name),
     });
-    const glowing = buttons.filter((button) => button.classList.contains("suggestion-glow"));
-    // Exactly one: which one depends on timing (it moves every lap); the order is covered
-    // by useSequentialGlow's own tests with fake timers.
-    expect(glowing).toHaveLength(1);
+    // Exactly one: which one depends on timing (it moves every lap; the order is covered
+    // by useSequentialGlow's own tests). The glow starts in an effect after the buttons
+    // render, so wait for it rather than checking the very first frame.
+    await vi.waitFor(() =>
+      expect(buttons.filter((button) => button.classList.contains("suggestion-glow"))).toHaveLength(
+        1,
+      ),
+    );
   });
 
   it("puts the answer on the chat's own background and the question in a bubble pointing at the thread", async () => {
@@ -1810,10 +1836,14 @@ describe("Query Assistant", () => {
     const buttons = await screen.findAllByRole("button", {
       name: (name) => resultsSuggestedQuestions.includes(name),
     });
-    const glowing = buttons.filter((button) => button.classList.contains("suggestion-glow"));
-    // Exactly one: which one depends on timing (it moves every lap); the order is covered
-    // by useSequentialGlow's own tests with fake timers.
-    expect(glowing).toHaveLength(1);
+    // Exactly one: which one depends on timing (it moves every lap; the order is covered
+    // by useSequentialGlow's own tests). The glow starts in an effect after the buttons
+    // render, so wait for it rather than checking the very first frame.
+    await vi.waitFor(() =>
+      expect(buttons.filter((button) => button.classList.contains("suggestion-glow"))).toHaveLength(
+        1,
+      ),
+    );
   });
 
   it("puts the answer on the chat's own background and the question in a bubble pointing at the thread", async () => {
