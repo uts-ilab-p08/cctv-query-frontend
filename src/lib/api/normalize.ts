@@ -1,4 +1,6 @@
 import { fmtElapsed } from "@/lib/time";
+
+import { apiBaseUrl } from "./client";
 import type { Clip, ClipTag } from "@/types";
 
 import type {
@@ -96,7 +98,20 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
     videoId: item.video_id,
     startSeconds: item.start_seconds,
     endSeconds: item.end_seconds,
+    // The RAG numbers its sources in response order. Until the backend sends the
+    // number itself, the position stands in: right unless the backend dropped a source.
+    ref: item.citation_index ?? order + 1,
   };
+}
+
+/**
+ * `GET /clips/{id}/thumbnail.jpg`: public (no token), so a plain `<img>` loads it and
+ * the browser caches it. `/search` already sends this URL as `thumbnail_url`;
+ * `/clips/{id}` and `/related` still send `null`, so it is built from the event id.
+ */
+function clipThumbnailUrl(eventId: string): string | undefined {
+  const base = apiBaseUrl();
+  return base ? `${base}/api/v1/clips/${encodeURIComponent(eventId)}/thumbnail.jpg` : undefined;
 }
 
 export function apiClipToClip(clip: ApiClip): Clip {
@@ -111,7 +126,7 @@ export function apiClipToClip(clip: ApiClip): Clip {
     tags: toClipTags(clip.tags),
     objects: clip.objects,
     action: clip.action,
-    thumbnailUrl: clip.thumbnailUrl ?? undefined,
+    thumbnailUrl: clip.thumbnailUrl ?? clipThumbnailUrl(clip.id),
     videoUrl: clip.videoUrl ?? undefined,
     scene: clip.scene ?? undefined,
     startSeconds: clip.startSeconds ?? undefined,

@@ -5,6 +5,7 @@ import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
 import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
 import { clipToAssistantMoment } from "@/lib/api/normalize";
+import { citedRefs } from "@/lib/citations";
 import { emptyFilters } from "@/lib/filters";
 import { topMatches } from "@/lib/matches";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
@@ -80,6 +81,8 @@ interface AppState {
   /** Opening questions per thread context (see `startersKey`), from
    *  `/assistant/suggestions`. Empty while loading. */
   starters: Record<string, string[]>;
+  /** Contexts (see `startersKey`) whose opening questions are still being fetched. */
+  startersPending: Record<string, true>;
   /** Fetch the opening questions for a context once; cached by `startersKey`. */
   loadStarters: (key: string, focusId: string | null) => Promise<void>;
   /** Shared by both scopes; `focusId` null means the whole result set. */
@@ -246,21 +249,35 @@ export const useAppStore = create<AppState>()(
           set({ query: text });
           return;
         }
-        set({ query: trimmed, lastSearch: trimmed, searchPending: true, searchError: null });
+        // The thread opens right away with the query and a thinking bubble, so Results
+        // can lay itself out while the RAG searches.
+        set((s) => ({
+          query: trimmed,
+          lastSearch: trimmed,
+          searchPending: true,
+          searchError: null,
+          chats: { ...s.chats, results: [{ role: "user", text: trimmed }, THINKING] },
+        }));
+        // A newer search started meanwhile: its answer wins, this one is dropped.
+        const superseded = () => get().lastSearch !== trimmed;
         try {
           const { clips, summary } = await searchClips(trimmed);
+          if (superseded()) return;
+          // The summary cites its sources as [n]: list them under it, in citation order.
+          const citations = citedRefs(summary)
+            .map((ref) => clips.find((clip) => clip.ref === ref)?.id)
+            .filter((id): id is string => id !== undefined);
           set((s) => ({
             results: clips,
             searchPending: false,
-            chats: {
-              ...s.chats,
-              results: [
-                { role: "user", text: trimmed },
-                { role: "agent", text: summary },
-              ],
-            },
+            chats: settlePending(s.chats, "results", {
+              role: "agent",
+              text: summary,
+              ...(citations.length ? { citations } : {}),
+            }),
           }));
         } catch (error) {
+          if (superseded()) return;
           set({
             searchPending: false,
             searchError: error instanceof Error ? error.message : "Search failed.",
@@ -269,15 +286,26 @@ export const useAppStore = create<AppState>()(
       },
 
       starters: {},
+      startersPending: {},
 
       loadStarters: async (key, focusId) => {
         const state = get();
+        // Mid-search, `results` still holds the previous search: wait for the new one.
+        if (state.searchPending) return;
         const id = startersKey(key, focusId, state.query);
         if (id in state.starters) return;
         const context = assistantContext(state, key, focusId);
         if (!context) return;
         // Mark in flight: nothing to show yet, and no duplicate request.
-        set((s) => ({ starters: { ...s.starters, [id]: [] } }));
+        set((s) => ({
+          starters: { ...s.starters, [id]: [] },
+          startersPending: { ...s.startersPending, [id]: true },
+        }));
+        const settled = (pending: Record<string, true>) => {
+          const rest = { ...pending };
+          delete rest[id];
+          return rest;
+        };
         try {
           const { suggested_questions } = await suggestQuestions({
             query: state.query,
@@ -286,13 +314,16 @@ export const useAppStore = create<AppState>()(
             moments: context.moments.map(clipToAssistantMoment),
             history: context.history,
           });
-          set((s) => ({ starters: { ...s.starters, [id]: suggested_questions } }));
+          set((s) => ({
+            starters: { ...s.starters, [id]: suggested_questions },
+            startersPending: settled(s.startersPending),
+          }));
         } catch {
           // Forget the failed attempt so the next visit to this context retries.
           set((s) => {
             const starters = { ...s.starters };
             delete starters[id];
-            return { starters };
+            return { starters, startersPending: settled(s.startersPending) };
           });
         }
       },

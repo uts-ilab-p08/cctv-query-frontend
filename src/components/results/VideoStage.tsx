@@ -12,7 +12,6 @@ import type { Clip } from "@/types";
 
 interface VideoStageProps {
   clip: Clip;
-  activeCamera: string;
   currentTime: number;
   playing: boolean;
   muted: boolean;
@@ -42,7 +41,6 @@ interface VideoStageProps {
  */
 export function VideoStage({
   clip,
-  activeCamera,
   currentTime,
   playing,
   muted,
@@ -93,9 +91,13 @@ export function VideoStage({
             </>
           )}
 
-          <div className="absolute top-3 left-3 flex items-center gap-2">
+          <div
+            role="group"
+            aria-label="Camera on the player"
+            className="absolute top-3 left-3 flex items-center gap-2"
+          >
             <span className="rounded-md border border-white/[0.16] bg-[rgba(12,15,19,0.82)] px-[9px] py-1 font-mono text-[11px] text-white">
-              {activeCamera}
+              {clip.camera}
             </span>
             {clip.scene ? (
               <span className="rounded-md border border-white/[0.12] bg-[rgba(12,15,19,0.68)] px-[9px] py-1 font-mono text-[11px] text-white/80">

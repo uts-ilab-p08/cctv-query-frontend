@@ -20,6 +20,9 @@ export interface RagResultItem {
   scene?: string | null;
   thumbnail_url?: string | null;
   tags?: string[] | null;
+  /** Requested (spec §2): the number `answer` cites this result by, as in `[2]`. Kept
+   *  when other results are dropped, so citations never shift. */
+  citation_index?: number | null;
 }
 
 export interface RagQueryResult {

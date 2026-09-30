@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { ChatMessage } from "@/components/assistant/ChatMessage";
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
 import { SuggestedQuestions } from "@/components/assistant/SuggestedQuestions";
+import { useStickToBottom } from "@/lib/useStickToBottom";
 import { startersKey, useAppStore } from "@/store/useAppStore";
 import type { ChatKey, ChatMessage as ChatMessageData } from "@/types";
 
@@ -66,10 +67,9 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
         ? last.suggestions
         : starters.filter((question) => !asked.has(question));
 
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [messages.length, last?.status]);
+  // Each new message or answer brings the thread to the bottom, then follows the answer
+  // as it streams in, unless the investigator scrolled up to read.
+  useStickToBottom(scrollRef, `${messages.length}:${last?.status ?? ""}`);
 
   if (!open) return null;
 
@@ -115,7 +115,11 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
             />
           );
         })}
-        {suggestions.length ? <SuggestedQuestions questions={suggestions} onAsk={ask} /> : null}
+        {suggestions.length ? (
+          // `mt-auto`: pinned down by the input while the thread is short; once it
+          // overflows the margin collapses and the block scrolls with the thread.
+          <SuggestedQuestions questions={suggestions} onAsk={ask} className="mt-auto" />
+        ) : null}
       </div>
 
       <form

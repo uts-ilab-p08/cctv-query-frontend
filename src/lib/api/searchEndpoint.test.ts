@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "./client";
 import { searchClips } from "./endpoints";
 
-vi.mock("./client", () => ({ apiFetch: vi.fn() }));
+vi.mock("./client", () => ({ apiFetch: vi.fn(), apiBaseUrl: () => "" }));
 
 const base = {
   video_id: "vid-1",

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { QueryListSkeleton } from "@/components/ui/QueryListSkeleton";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { getRecentQueries } from "@/lib/api/endpoints";
 import { formatRelativeTime } from "@/lib/time";
@@ -18,6 +19,7 @@ export function RecentQueries() {
   const router = useRouter();
   const runSearch = useAppStore((state) => state.runSearch);
   const [recentQueries, setRecentQueries] = useState<RecentQuery[]>([]);
+  const [loading, setLoading] = useState(true);
   // Re-render every minute so "1 min ago" doesn't go stale while Home stays open.
   const now = useNow(60_000);
 
@@ -29,12 +31,25 @@ export function RecentQueries() {
       })
       .catch(() => {
         if (!cancelled) setRecentQueries([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  if (loading) {
+    return (
+      <section className="mt-14 w-full">
+        <SectionLabel>RECENT QUERIES</SectionLabel>
+        <QueryListSkeleton label="Loading recent queries" rows={RECENT_LIMIT} className="gap-2.5" />
+      </section>
+    );
+  }
+
+  // Nothing to show, or the request failed: Home stays clean rather than showing an error.
   if (recentQueries.length === 0) return null;
 
   return (

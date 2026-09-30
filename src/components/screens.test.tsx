@@ -1,6 +1,6 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { pushMock } from "@/test/setup-router";
 import { resetStore } from "@/test/utils";
@@ -40,7 +40,7 @@ import type {
   AssistantAskResponse,
   AssistantSuggestionsRequest,
 } from "@/lib/api/types";
-import type { Clip } from "@/types";
+import type { Clip, RecentQuery, SavedQuery } from "@/types";
 
 /** The questions the simulated assistant can suggest (it picks those that fit). */
 const resultsSuggestedQuestions: string[] = Object.values(RESULTS_QUESTIONS);
@@ -101,6 +101,23 @@ vi.mock("@/lib/api/endpoints", () => ({
   })),
 }));
 
+/** jsdom has no matchMedia, which the app reads as "reduced motion": opt a test into motion. */
+function allowMotion() {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query.includes("no-preference"),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 beforeEach(() => {
   resetStore();
   pushMock.mockClear();
@@ -157,6 +174,36 @@ describe("Dashboard", () => {
     expect(await screen.findByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
   });
 
+  it("holds the recent queries' place with a skeleton while they load", async () => {
+    let resolve: (queries: RecentQuery[]) => void = () => {};
+    vi.mocked(getRecentQueries).mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    render(<RecentQueries />);
+
+    expect(screen.getByRole("heading", { name: "RECENT QUERIES" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading recent queries" })).toBeInTheDocument();
+
+    resolve(recentQueries);
+
+    expect(await screen.findAllByRole("listitem")).not.toHaveLength(0);
+    expect(
+      screen.queryByRole("status", { name: "Loading recent queries" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("drops the section once loading finds no recent queries", async () => {
+    vi.mocked(getRecentQueries).mockResolvedValueOnce([]);
+    render(<RecentQueries />);
+
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("heading", { name: "RECENT QUERIES" })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("shows at most three recent queries, timed relative to now", async () => {
     const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
     vi.mocked(getRecentQueries).mockResolvedValueOnce([
@@ -210,6 +257,181 @@ describe("Dashboard", () => {
   });
 });
 
+describe("Results — while the search runs", () => {
+  type Search = Awaited<ReturnType<typeof searchClips>>;
+  let finishSearch: (result: Search) => void = () => {};
+
+  beforeEach(() => {
+    vi.mocked(searchClips).mockReturnValueOnce(
+      new Promise((done) => {
+        finishSearch = done;
+      }),
+    );
+  });
+
+  const searchResult = (): Search => ({
+    clips: getAllClips(),
+    summary: "Found the red car at two gates.",
+  });
+
+  it("lays out the workspace at once, with the query in the thread and placeholders elsewhere", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+
+    expect(await screen.findByText("YOUR QUERY")).toBeInTheDocument();
+    expect(screen.queryByText("Searching indexed footage…")).not.toBeInTheDocument();
+    expect(screen.getAllByText("red car").length).toBeGreaterThan(0);
+    expect(screen.getByRole("status", { name: "Assistant is thinking" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading footage" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading matching moments" })).toBeInTheDocument();
+  });
+
+  it("spins in the middle of the player's placeholder, like a loading video", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+
+    const stage = await screen.findByRole("status", { name: "Loading footage" });
+    const spinner = stage.querySelector(".animate-spin");
+    expect(spinner).not.toBeNull();
+    // Not inside the pulsing layer: the spinner stays fully opaque.
+    expect(spinner!.closest(".animate-pulse")).toBeNull();
+  });
+
+  it("fills the thread, the player and the strip once the search answers", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+
+    await act(async () => finishSearch(searchResult()));
+
+    expect(await screen.findByText("Found the red car at two gates.")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading footage" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("status", { name: "Loading matching moments" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /MATCHING MOMENTS/ })).toBeInTheDocument();
+  });
+
+  it("does not fetch opening questions for the previous results while searching", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+
+    expect(suggestQuestions).not.toHaveBeenCalled();
+
+    await act(async () => finishSearch(searchResult()));
+    await vi.waitFor(() => expect(suggestQuestions).toHaveBeenCalledTimes(1));
+  });
+
+  it("holds the suggested questions' place until they arrive", async () => {
+    let finishSuggestions: (response: { suggested_questions: string[] }) => void = () => {};
+    vi.mocked(suggestQuestions).mockReturnValueOnce(
+      new Promise((done) => {
+        finishSuggestions = done;
+      }),
+    );
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+    await act(async () => finishSearch(searchResult()));
+
+    const loading = await screen.findByRole("status", { name: "Loading suggested questions" });
+    // Its placeholder sits where the questions will appear: down by the input.
+    expect(loading).toHaveClass("mt-auto");
+
+    await act(async () => finishSuggestions({ suggested_questions: ["Which gate was first?"] }));
+
+    expect(
+      await screen.findByRole("button", { name: "Which gate was first?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("status", { name: "Loading suggested questions" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("drops an answer that arrives after a newer search started", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+    vi.mocked(searchClips).mockResolvedValueOnce({
+      clips: getAllClips(),
+      summary: "Answer for the newer search.",
+    });
+
+    await act(() => useAppStore.getState().runSearch("blue van"));
+    await act(async () => finishSearch(searchResult()));
+
+    expect(screen.getByText("Answer for the newer search.")).toBeInTheDocument();
+    expect(screen.queryByText("Found the red car at two gates.")).not.toBeInTheDocument();
+  });
+});
+
+describe("Results — sources cited by the answer", () => {
+  // The RAG numbers its sources [1], [2]… in the order /search returns them.
+  const clips = () => getAllClips().map((clip, index) => ({ ...clip, ref: index + 1 }));
+  const label = (clip: Clip) => `${clip.eventName ?? clip.action} · ${clip.camera} · ${clip.ts}`;
+
+  beforeEach(async () => {
+    vi.mocked(searchClips).mockResolvedValueOnce({
+      clips: clips(),
+      summary: "The car passes the gate [1] and then parks [3].",
+    });
+    await act(() => useAppStore.getState().runSearch("red car"));
+  });
+
+  it("turns each [n] in the answer into a chip for that source", () => {
+    render(<ResultsScreen />);
+    const [first, , third] = clips();
+
+    expect(screen.getByRole("button", { name: `Source 1: ${label(first)}` })).toHaveTextContent(
+      "1",
+    );
+    expect(screen.getByRole("button", { name: `Source 3: ${label(third)}` })).toBeInTheDocument();
+    expect(screen.queryByText(/\[1\]/)).not.toBeInTheDocument();
+  });
+
+  it("opens the cited moment from its chip", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    const third = clips()[2];
+
+    await user.click(screen.getByRole("button", { name: `Source 3: ${label(third)}` }));
+
+    expect(screen.getByText(`${third.camera} · ${third.ts}`)).toBeInTheDocument();
+  });
+
+  it("lists the cited sources under the answer, numbered like the text", () => {
+    render(<ResultsScreen />);
+    const [first, , third] = clips();
+
+    const sources = screen.getByRole("group", { name: "Sources" });
+    const items = within(sources).getAllByRole("button");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveAccessibleName(`Jump to source 1: ${label(first)}`);
+    expect(items[1]).toHaveAccessibleName(`Jump to source 3: ${label(third)}`);
+  });
+
+  it("lays the sources out as one row of pills that scrolls sideways", () => {
+    render(<ResultsScreen />);
+
+    const row = within(screen.getByRole("group", { name: "Sources" })).getByRole("list");
+    expect(row).toHaveClass("flex-nowrap", "overflow-x-auto");
+    within(row)
+      .getAllByRole("button")
+      .forEach((pill) => {
+        expect(pill.closest("li")).toHaveClass("shrink-0");
+        expect(pill).toHaveClass("rounded-full", "whitespace-nowrap");
+      });
+  });
+
+  it("keeps the source pills muted, in the palette's neutral tones rather than its accent", () => {
+    render(<ResultsScreen />);
+
+    const pills = within(screen.getByRole("group", { name: "Sources" })).getAllByRole("button");
+    pills.forEach((pill) => {
+      expect(pill).toHaveClass("border-hairline", "text-ink-3");
+      expect(pill.className).not.toMatch(/(^|\s)(text|bg|border)-accent/);
+      pill
+        .querySelectorAll("span")
+        .forEach((part) => expect(part.className).not.toMatch(/(^|\s)(text|bg)-accent/));
+    });
+  });
+});
+
 describe("Results", () => {
   it("renders the query panel, video stage and matching-moments strip", async () => {
     await act(() => useAppStore.getState().runSearch("red car"));
@@ -218,6 +440,46 @@ describe("Results", () => {
     expect(screen.getByText("YOUR QUERY")).toBeInTheDocument();
     expect(screen.getByText(/MATCHING/)).toBeInTheDocument();
     expect(screen.getByText("Top 5 matches")).toBeInTheDocument();
+  });
+
+  it("highlights a matching moment's border on hover, and marks the picked one with the accent", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    const strip = screen
+      .getByRole("heading", { name: /MATCHING MOMENTS/ })
+      .closest("div")!.parentElement!;
+    const cards = within(strip)
+      .getAllByRole("button")
+      .filter((button) => button.textContent?.includes("%"));
+    cards.forEach((card) => {
+      // Styles are classes, not inline, so the hover can override them.
+      expect(card.style.borderColor).toBe("");
+      expect(card).toHaveClass("group", "hover:border-accent", "hover:bg-accent-soft");
+      // Everything stays inside the card: a lift or a bigger shadow gets clipped by the strip.
+      expect(card.className).not.toMatch(/hover:(-?translate|shadow)/);
+    });
+
+    await user.click(cards[0]);
+
+    const picked = within(strip)
+      .getAllByRole("button")
+      .filter((button) => button.textContent?.includes("%"))[0];
+    expect(picked).toHaveClass("border-accent", "shadow-action");
+  });
+
+  it("brings a matching moment's thumbnail back to full colour on hover", async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+    const [first, ...rest] = useAppStore.getState().results;
+    useAppStore.setState({
+      results: [{ ...first, thumbnailUrl: "https://cdn.test/t.jpg" }, ...rest],
+    });
+    render(<ResultsScreen />);
+
+    const card = screen.getByText(first.ts, { selector: "div" }).closest("button")!;
+    const thumbnail = card.querySelector("img")!;
+    expect(thumbnail).toHaveClass("thumb-filter", "group-hover:[filter:none]");
   });
 
   it("labels the matching-moments strip and explains what picking one does", async () => {
@@ -297,9 +559,9 @@ describe("Results", () => {
     await user.click(screen.getByRole("button", { name: "Show chunk metadata" }));
 
     const panel = screen.getByRole("region", { name: "Chunk metadata" });
-    expect(panel).toHaveClass("glass-panel");
+    expect(panel).toHaveClass("glass-overlay");
     expect(panel.className).not.toMatch(/rgba\(|bg-\[/);
-    expect(within(panel).getByText("CHUNK METADATA")).toHaveClass("text-ink-2");
+    expect(within(panel).getByText("CHUNK METADATA")).toHaveClass("text-ink");
   });
 
   it("shows each moment's scene with its camera, and in the chunk metadata", async () => {
@@ -440,6 +702,95 @@ describe("Results — assistant", () => {
     expect(request.history.map((turn) => turn.text)).toContain("red car");
     const { suggested_questions } = await vi.mocked(suggestQuestions).mock.results[0].value;
     expect(buttons.map((button) => button.textContent)).toEqual(suggested_questions);
+  });
+
+  it("runs a glow around the border of one suggested question at a time, starting at the first", async () => {
+    allowMotion();
+    render(<ResultsScreen />);
+
+    const buttons = await screen.findAllByRole("button", {
+      name: (name) => resultsSuggestedQuestions.includes(name),
+    });
+    const glowing = buttons.filter((button) => button.classList.contains("suggestion-glow"));
+    expect(glowing).toEqual([buttons[0]]);
+  });
+
+  it("puts the answer on the chat's own background and the question in a bubble pointing at the thread", async () => {
+    render(<ResultsScreen />);
+    await screen.findAllByRole("button", {
+      name: (name) => resultsSuggestedQuestions.includes(name),
+    });
+
+    const answer = document.querySelector('[data-bubble="agent"]')!;
+    expect(answer).not.toHaveClass("border");
+    expect(answer.className).not.toMatch(/(^|\s)bg-/);
+
+    const question = document.querySelector('[data-bubble="user"]')!;
+    expect(question).toHaveClass("border", "rounded-br-none");
+  });
+
+  it("lights up a suggested question on hover and shows an arrow to send it", async () => {
+    render(<ResultsScreen />);
+
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    within(group)
+      .getAllByRole("button")
+      .forEach((button) => {
+        expect(button).toHaveClass("group");
+        expect(button.className).toMatch(/(^|\s)hover:bg-/);
+        // The arrow is decorative, hidden until the question is hovered or focused.
+        const arrow = button.querySelector("svg")!;
+        expect(arrow).toHaveAttribute("aria-hidden", "true");
+        expect(arrow).toHaveClass(
+          "opacity-0",
+          "group-hover:opacity-100",
+          "group-focus-visible:opacity-100",
+        );
+      });
+  });
+
+  it("keeps the suggested questions down by the input while the thread is short", async () => {
+    render(<ResultsScreen />);
+
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    // An auto top margin in the scrolling column: it takes up the free space while the
+    // thread is short, and collapses to 0 once it overflows, so the block scrolls with it.
+    const block = group.parentElement!;
+    expect(block).toHaveClass("mt-auto");
+    expect(block.parentElement).toHaveClass("flex-col", "overflow-y-auto");
+  });
+
+  it("groups the suggested questions into one block, with no space between them", async () => {
+    render(<ResultsScreen />);
+
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    expect(group.className).not.toMatch(/(^|\s)gap-/);
+    const buttons = within(group).getAllByRole("button");
+    expect(buttons.length).toBeGreaterThan(1);
+    buttons.slice(1).forEach((button) => expect(button).toHaveClass("-mt-px"));
+  });
+
+  it("renders the assistant's markdown in the thread instead of showing the markup", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockResolvedValueOnce({
+      // A camera name no mock clip uses, so it can only come from this answer.
+      answer: "**Camera Z9** has the most matches:\n\n- 3 at the gate\n- 1 in the lot",
+      citations: [],
+      suggested_questions: [],
+    });
+    render(<ResultsScreen />);
+
+    await user.click(
+      (
+        await screen.findAllByRole("button", {
+          name: (name) => resultsSuggestedQuestions.includes(name),
+        })
+      )[0],
+    );
+
+    expect((await screen.findByText("Camera Z9")).tagName).toBe("STRONG");
+    expect(screen.getByText("3 at the gate").tagName).toBe("LI");
+    expect(screen.queryByText(/\*\*Camera Z9\*\*/)).not.toBeInTheDocument();
   });
 
   it("sends the search, the question and the moments on screen as context", async () => {
@@ -712,6 +1063,36 @@ describe("Results with real footage", () => {
       video.dispatchEvent(new Event("loadedmetadata"));
     });
 
+  it("labels the player with the camera of the video it opened on", () => {
+    // clipC comes first in the response, but the player opens on clipA.
+    useAppStore.setState({
+      results: [{ ...clipC, camera: "G330" }, { ...clipA, camera: "G328" }, clipB],
+    });
+    render(<ResultsScreen />);
+
+    const chip = screen.getByRole("group", { name: "Camera on the player" });
+    expect(within(chip).getByText("G328")).toBeInTheDocument();
+    expect(within(chip).queryByText("G330")).not.toBeInTheDocument();
+  });
+
+  it("labels the player with the camera even when the page opened before the search answered", async () => {
+    let finish: (result: Awaited<ReturnType<typeof searchClips>>) => void = () => {};
+    vi.mocked(searchClips).mockReturnValueOnce(
+      new Promise((done) => {
+        finish = done;
+      }),
+    );
+    render(<ResultsScreen urlQuery="blue van" />);
+    await screen.findByText("YOUR QUERY");
+
+    await act(async () =>
+      finish({ clips: [{ ...clipA, camera: "G328" }, clipB, clipC], summary: "Found it." }),
+    );
+
+    const chip = await screen.findByRole("group", { name: "Camera on the player" });
+    expect(within(chip).getByText("G328")).toBeInTheDocument();
+  });
+
   it("opens on the first top match's video, cued to its moment", async () => {
     render(<ResultsScreen />);
 
@@ -918,6 +1299,26 @@ describe("Saved queries", () => {
     expect(useAppStore.getState().query).toMatch(/red car/);
   });
 
+  it("holds the list's place with a skeleton while the saved queries load", async () => {
+    let resolve: (queries: SavedQuery[]) => void = () => {};
+    vi.mocked(getSavedQueries).mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    render(<SavedQueriesScreen />);
+
+    expect(screen.getByRole("status", { name: "Loading saved queries" })).toBeInTheDocument();
+    expect(screen.queryByText(/No saved queries yet/)).not.toBeInTheDocument();
+
+    resolve(savedQueries);
+
+    expect(await screen.findAllByRole("button", { name: "Run again" })).toHaveLength(
+      savedQueries.length,
+    );
+    expect(screen.queryByRole("status", { name: "Loading saved queries" })).not.toBeInTheDocument();
+  });
+
   const firstRow = async () => (await screen.findAllByRole("listitem"))[0];
 
   it("deletes a saved query after confirming", async () => {
@@ -1076,6 +1477,94 @@ describe("Query Assistant", () => {
     );
 
     expect(await screen.findByText(/has the most matches with/)).toBeInTheDocument();
+  });
+
+  it("runs the same border glow over its suggested questions, one at a time", async () => {
+    allowMotion();
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    const buttons = await screen.findAllByRole("button", {
+      name: (name) => resultsSuggestedQuestions.includes(name),
+    });
+    const glowing = buttons.filter((button) => button.classList.contains("suggestion-glow"));
+    expect(glowing).toEqual([buttons[0]]);
+  });
+
+  it("puts the answer on the chat's own background and the question in a bubble pointing at the thread", async () => {
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+    await screen.findAllByRole("button", {
+      name: (name) => resultsSuggestedQuestions.includes(name),
+    });
+
+    const answer = document.querySelector('[data-bubble="agent"]')!;
+    expect(answer).not.toHaveClass("border");
+    expect(answer.className).not.toMatch(/(^|\s)bg-/);
+
+    const question = document.querySelector('[data-bubble="user"]')!;
+    expect(question).toHaveClass("border", "rounded-br-none");
+  });
+
+  it("lights up a suggested question on hover and shows an arrow to send it", async () => {
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    within(group)
+      .getAllByRole("button")
+      .forEach((button) => {
+        expect(button).toHaveClass("group");
+        expect(button.className).toMatch(/(^|\s)hover:bg-/);
+        // The arrow is decorative, hidden until the question is hovered or focused.
+        const arrow = button.querySelector("svg")!;
+        expect(arrow).toHaveAttribute("aria-hidden", "true");
+        expect(arrow).toHaveClass(
+          "opacity-0",
+          "group-hover:opacity-100",
+          "group-focus-visible:opacity-100",
+        );
+      });
+  });
+
+  it("keeps the suggested questions down by the input while the thread is short", async () => {
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    // An auto top margin in the scrolling column: it takes up the free space while the
+    // thread is short, and collapses to 0 once it overflows, so the block scrolls with it.
+    const block = group.parentElement!;
+    expect(block).toHaveClass("mt-auto");
+    expect(block.parentElement).toHaveClass("flex-col", "overflow-y-auto");
+  });
+
+  it("groups the suggested questions into one block, with no space between them", async () => {
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    expect(group.className).not.toMatch(/(^|\s)gap-/);
+    const buttons = within(group).getAllByRole("button");
+    expect(buttons.length).toBeGreaterThan(1);
+    buttons.slice(1).forEach((button) => expect(button).toHaveClass("-mt-px"));
+  });
+
+  it("renders markdown in Clip Detail's thread too", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockResolvedValueOnce({
+      answer: "Seen on **two** cameras.",
+      citations: [],
+      suggested_questions: [],
+    });
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Which camera has the most matches?" }),
+    );
+
+    expect((await screen.findByText("two")).tagName).toBe("STRONG");
   });
 
   it("offers follow-up questions under the latest answer", async () => {

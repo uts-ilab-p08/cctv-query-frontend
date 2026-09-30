@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { apiClipToClip, clipToAssistantMoment, ragResultItemToClip } from "./normalize";
 import type { ApiClip } from "./types";
@@ -27,6 +27,11 @@ describe("ragResultItemToClip", () => {
     const first = ragResultItemToClip(item, 0);
     const second = ragResultItemToClip({ ...item, start_seconds: 40, end_seconds: 48 }, 1);
     expect(first.id).not.toBe(second.id);
+  });
+
+  it("numbers each moment as the answer cites it: the backend's index, else its position", () => {
+    expect(ragResultItemToClip({ ...item, citation_index: 4 }, 1).ref).toBe(4);
+    expect(ragResultItemToClip(item, 1).ref).toBe(2);
   });
 
   it("uses the event name when the RAG provides one", () => {
@@ -122,6 +127,27 @@ describe("apiClipToClip", () => {
     const clip = apiClipToClip(apiClip);
     expect(clip.startSeconds).toBeUndefined();
     expect(clip.endSeconds).toBeUndefined();
+  });
+
+  describe("thumbnail", () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("points at the public thumbnail endpoint while /clips/{id} sends none", () => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.test/");
+      const clip = apiClipToClip({ ...apiClip, id: "evt 1/a" });
+      expect(clip.thumbnailUrl).toBe("https://api.test/api/v1/clips/evt%201%2Fa/thumbnail.jpg");
+    });
+
+    it("uses the backend's thumbnail once it sends one", () => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.test");
+      const clip = apiClipToClip({ ...apiClip, thumbnailUrl: "https://cdn.test/t.jpg" });
+      expect(clip.thumbnailUrl).toBe("https://cdn.test/t.jpg");
+    });
+
+    it("has no thumbnail when the API base URL isn't configured", () => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+      expect(apiClipToClip(apiClip).thumbnailUrl).toBeUndefined();
+    });
   });
 });
 

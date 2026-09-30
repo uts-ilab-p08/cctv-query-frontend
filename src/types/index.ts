@@ -43,6 +43,8 @@ export interface Clip {
   /** Where the moment starts/ends inside `videoUrl`, in seconds. */
   startSeconds?: number;
   endSeconds?: number;
+  /** The number the search's answer cites this moment by, as in `[2]`. */
+  ref?: number;
 }
 
 export interface CameraDirectoryEntry {

@@ -4,7 +4,7 @@ import { apiFetch } from "./client";
 import { getCameras, getRecentQueries, getRelatedClips } from "./endpoints";
 import type { ApiClip } from "./types";
 
-vi.mock("./client", () => ({ apiFetch: vi.fn() }));
+vi.mock("./client", () => ({ apiFetch: vi.fn(), apiBaseUrl: () => "" }));
 
 const clip: ApiClip = {
   id: "evt-1",

@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { QueryListSkeleton } from "@/components/ui/QueryListSkeleton";
 import { ApiError } from "@/lib/api/client";
 import { deleteSavedQuery, getSavedQueries } from "@/lib/api/endpoints";
 import { resultsHref } from "@/lib/routes";
@@ -73,9 +74,7 @@ export function SavedQueriesScreen() {
       <p className="text-ink-2 mb-7 text-sm">Bookmarked searches for quick re-run.</p>
 
       {status === "loading" ? (
-        <p aria-busy="true" className="text-ink-3 text-sm">
-          Loading saved queries…
-        </p>
+        <QueryListSkeleton label="Loading saved queries" detailed className="gap-3" />
       ) : null}
 
       {status === "error" ? (
