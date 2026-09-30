@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { ChatMessage } from "@/components/assistant/ChatMessage";
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
-import { SuggestedQuestions } from "@/components/assistant/SuggestedQuestions";
+import { SuggestedQuestions, SuggestionsSkeleton } from "@/components/assistant/SuggestedQuestions";
+import { useLatchedSuggestions } from "@/lib/useLatchedSuggestions";
 import { useStickToBottom } from "@/lib/useStickToBottom";
 import { startersKey, useAppStore } from "@/store/useAppStore";
 import type { ChatKey, ChatMessage as ChatMessageData } from "@/types";
@@ -35,12 +36,16 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
   const askInResults = useAppStore((state) => state.askInResults);
   const askAboutClip = useAppStore((state) => state.askAboutClip);
   const resetChat = useAppStore((state) => state.resetChat);
+  const retryLast = useAppStore((state) => state.retryLast);
   const query = useAppStore((state) => state.query);
   const key = String(chatKey);
   const focusId = chatKey === "results" ? null : key;
   const loadStarters = useAppStore((state) => state.loadStarters);
-  const starters =
-    useAppStore((state) => state.starters[startersKey(key, focusId, query)]) ?? NO_QUESTIONS;
+  const contextKey = startersKey(key, focusId, query);
+  const starters = useAppStore((state) => state.starters[contextKey]) ?? NO_QUESTIONS;
+  const startersLoading = useAppStore((state) => contextKey in state.startersPending);
+  // Not requested yet (it is, in an effect, right after this render) also means loading.
+  const startersRequested = useAppStore((state) => contextKey in state.starters);
   // A clip opened from the API is registered by its page after this child mounts;
   // retry once it is known.
   const focusKnown = useAppStore((state) => (focusId ? focusId in state.knownClips : true));
@@ -66,6 +71,16 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
       : last?.role === "agent" && !last.status && last.suggestions?.length
         ? last.suggestions
         : starters.filter((question) => !asked.has(question));
+
+  // Drawn questions stay until the next ones arrive; only the first load gets a placeholder.
+  const latched = useLatchedSuggestions(
+    suggestions,
+    startersLoading || !startersRequested || last?.status === "pending",
+  );
+  // While stale, drop what was just asked: it already shows as the question bubble.
+  const shown = latched.stale
+    ? { ...latched, questions: latched.questions.filter((question) => !asked.has(question)) }
+    : latched;
 
   // Each new message or answer brings the thread to the bottom, then follows the answer
   // as it streams in, unless the investigator scrolled up to read.
@@ -107,6 +122,12 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
             <ChatMessage
               key={`${message.role}-${index}`}
               message={message}
+              // Only the latest answer can be retried: an older one would reorder the thread.
+              onRetry={
+                message.status === "error" && index === messages.length - 1
+                  ? () => void retryLast(key)
+                  : undefined
+              }
               action={
                 isOriginalQuery ? (
                   <SaveQueryButton text={message.text} className="mt-1" />
@@ -115,10 +136,17 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
             />
           );
         })}
-        {suggestions.length ? (
+        {shown.firstLoad ? (
+          <SuggestionsSkeleton corners="chip" rowClassName="glass-card-flat" className="mt-auto" />
+        ) : shown.questions.length ? (
           // `mt-auto`: pinned down by the input while the thread is short; once it
           // overflows the margin collapses and the block scrolls with the thread.
-          <SuggestedQuestions questions={suggestions} onAsk={ask} className="mt-auto" />
+          <SuggestedQuestions
+            questions={shown.questions}
+            onAsk={ask}
+            stale={shown.stale}
+            className="mt-auto"
+          />
         ) : null}
       </div>
 

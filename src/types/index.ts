@@ -142,6 +142,8 @@ export interface ChatMessage {
   focus?: string;
   /** `pending` while the assistant is answering; `error` when it failed. */
   status?: "pending" | "error";
+  /** While pending: the step the backend last reported, e.g. "Generating answer…". */
+  progress?: string;
 }
 
 /** Chat threads are keyed by clip id, or by the literal `results` scope. */

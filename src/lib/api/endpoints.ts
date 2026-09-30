@@ -1,7 +1,8 @@
 import { parseIsoTime } from "@/lib/time";
 import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
 
-import { apiFetch } from "./client";
+import { ApiError, apiFetch, apiStream } from "./client";
+import { SseParser } from "./sse";
 import {
   apiCameraToCameraDirectoryEntry,
   apiClipToClip,
@@ -113,17 +114,65 @@ export async function saveQuery(text: string): Promise<SavedQuery> {
   return apiSavedQueryToSavedQuery(saved);
 }
 
+export interface AskOptions {
+  /** Each step the backend reports while preparing the answer, e.g. "Generating answer…". */
+  onStatus?: (message: string) => void;
+}
+
 /**
- * `POST /api/v1/assistant/ask` — the RAG answers a question about the moments on
- * screen. Stateless: every call carries the whole context (query, scope, focus,
- * moments, history); see `AssistantAskRequest` in ./types.ts. `scope: "moment"`
- * needs a `focus_moment_id` that is among `moments`, or the backend answers 422.
+ * The RAG answers a question about the moments on screen. Stateless: every call carries
+ * the whole context (query, scope, focus, moments, history); see `AssistantAskRequest`.
+ * `scope: "moment"` needs a `focus_moment_id` that is among `moments`, or the backend
+ * answers 422.
+ *
+ * Asks `POST /assistant/ask/stream` first, which reports progress as Server-Sent Events
+ * (`status` steps, then one `result` or `error`) — coarse steps, not the answer's text.
+ * A backend without that route (404/405) gets the plain `POST /assistant/ask` instead.
  */
-export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
-  return apiFetch<AssistantAskResponse>("/api/v1/assistant/ask", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+export async function askAssistant(
+  request: AssistantAskRequest,
+  options: AskOptions = {},
+): Promise<AssistantAskResponse> {
+  const body = JSON.stringify(request);
+  let response: Response;
+  try {
+    response = await apiStream("/api/v1/assistant/ask/stream", { method: "POST", body });
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 405)) {
+      return apiFetch<AssistantAskResponse>("/api/v1/assistant/ask", { method: "POST", body });
+    }
+    throw error;
+  }
+  return readAskStream(response, options);
+}
+
+/** Reads `/assistant/ask/stream` to its terminal event: `result` or `error`. */
+async function readAskStream(
+  response: Response,
+  { onStatus }: AskOptions,
+): Promise<AssistantAskResponse> {
+  if (!response.body) throw new Error("The assistant's stream had no body.");
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  const parser = new SseParser();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    for (const { event, data } of parser.push(value)) {
+      const payload = JSON.parse(data) as Record<string, unknown>;
+      if (event === "status" && typeof payload.message === "string") {
+        onStatus?.(payload.message);
+      } else if (event === "result") {
+        void reader.cancel();
+        return payload as unknown as AssistantAskResponse;
+      } else if (event === "error") {
+        void reader.cancel();
+        throw new Error(
+          typeof payload.message === "string" ? payload.message : "The assistant failed.",
+        );
+      }
+    }
+  }
+  throw new Error("The assistant's stream ended without an answer.");
 }
 
 /**

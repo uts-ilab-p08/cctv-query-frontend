@@ -60,19 +60,74 @@ export function SuggestionLabel({ text }: { text: string }) {
   );
 }
 
+/** Widths of the placeholder "text" lines, so the rows don't look identical. */
+const SKELETON_WIDTHS = ["w-[72%]", "w-[58%]", "w-[66%]"];
+
+/**
+ * Placeholder for the suggested questions on their very first load: the same grouped rows,
+ * each with a pulsing line where the question will be (see `useLatchedSuggestions`).
+ */
+export function SuggestionsSkeleton({
+  corners,
+  rowClassName,
+  className,
+}: {
+  corners: Parameters<typeof groupedItemClass>[2];
+  /** The rows' own look, matching the questions they stand in for. */
+  rowClassName: string;
+  className?: string;
+}) {
+  return (
+    <div
+      role="status"
+      aria-label="Loading suggested questions"
+      className={cn("flex flex-col gap-2", className)}
+    >
+      <p className="text-ink-3 text-[12px]">Suggested questions</p>
+      <div aria-hidden className="flex flex-col">
+        {SKELETON_WIDTHS.map((width, index) => (
+          <div
+            key={width}
+            data-skeleton-row
+            className={cn(
+              "flex items-center px-3 py-3",
+              rowClassName,
+              groupedItemClass(index, SKELETON_WIDTHS.length, corners),
+            )}
+          >
+            <span className={cn("bg-ink-3/25 h-3 animate-pulse rounded-full", width)} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface SuggestedQuestionsProps {
-  questions: string[];
+  questions: readonly string[];
   onAsk: (question: string) => void;
+  /** The previous questions, kept on screen (disabled) while the next ones load. */
+  stale?: boolean;
   className?: string;
 }
 
 /** SPEC §6 — the empty state: four left-aligned buttons. */
-export function SuggestedQuestions({ questions, onAsk, className }: SuggestedQuestionsProps) {
-  const glowing = useSequentialGlow(questions.length);
+export function SuggestedQuestions({
+  questions,
+  onAsk,
+  stale = false,
+  className,
+}: SuggestedQuestionsProps) {
+  const glowing = useSequentialGlow(stale ? 0 : questions.length);
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <p className="text-ink-3 text-xs">Suggested questions</p>
-      <div role="group" aria-label="Suggested questions" className="flex flex-col">
+      <div
+        role="group"
+        aria-label="Suggested questions"
+        aria-busy={stale || undefined}
+        className="flex flex-col"
+      >
         {questions.map((question, index) => {
           const glow = glowProps(index === glowing);
           return (
@@ -80,9 +135,10 @@ export function SuggestedQuestions({ questions, onAsk, className }: SuggestedQue
               key={question}
               type="button"
               onClick={() => onAsk(question)}
+              disabled={stale}
               style={glow.style}
               className={cn(
-                "group glass-card-flat text-ink-2 hover:border-accent-line hover:bg-accent-soft hover:text-ink flex cursor-pointer items-center gap-2 px-3 py-2.5 text-left font-sans text-[13px] transition-colors duration-150",
+                "group glass-card-flat text-ink-2 hover:border-accent-line hover:bg-accent-soft hover:text-ink disabled:hover:text-ink-2 flex cursor-pointer items-center gap-2 px-3 py-2.5 text-left font-sans text-[13px] transition-[color,background-color,border-color,opacity] duration-150 disabled:cursor-default disabled:opacity-55 disabled:hover:bg-transparent",
                 groupedItemClass(index, questions.length, "chip"),
                 glow.className,
               )}

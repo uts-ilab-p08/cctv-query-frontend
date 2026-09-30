@@ -117,6 +117,8 @@ function clipThumbnailUrl(eventId: string): string | undefined {
 export function apiClipToClip(clip: ApiClip): Clip {
   return {
     id: clip.id,
+    // /clips/{id} is keyed by the bronze event id.
+    eventId: clip.id,
     camera: clip.camera,
     code: clip.code,
     ts: clip.ts,
@@ -166,5 +168,6 @@ export function clipToAssistantMoment(clip: Clip): AssistantMoment {
     caption: clip.caption ?? clip.eventName ?? clip.action,
     score: clip.confidence / 100,
     camera: clip.camera === "Unknown" ? null : clip.camera,
+    event_id: clip.eventId ?? null,
   };
 }
