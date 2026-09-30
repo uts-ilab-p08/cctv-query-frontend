@@ -105,6 +105,14 @@ vi.mock("@/lib/api/endpoints", () => ({
   })),
 }));
 
+/** Waits until the Results thread has no answer pending. */
+const waitForAnswer = () =>
+  vi.waitFor(() =>
+    expect(
+      (useAppStore.getState().chats.results ?? []).some((message) => message.status === "pending"),
+    ).toBe(false),
+  );
+
 /** jsdom has no matchMedia, which the app reads as "reduced motion": opt a test into motion. */
 function allowMotion() {
   vi.stubGlobal(
@@ -372,6 +380,10 @@ describe("Results — while the search runs", () => {
     const loading = await screen.findByRole("status", { name: "Loading suggested questions" });
     // Its placeholder sits where the questions will appear: down by the input.
     expect(loading).toHaveClass("mt-auto");
+    // Rows shaped like the questions, each with a line of pulsing "text", not empty boxes.
+    const rows = loading.querySelectorAll("[data-skeleton-row]");
+    expect(rows.length).toBe(3);
+    rows.forEach((row) => expect(row.querySelector(".animate-pulse")).not.toBeNull());
 
     await act(async () => finishSuggestions({ suggested_questions: ["Which gate was first?"] }));
 
@@ -941,6 +953,67 @@ describe("Results — assistant", () => {
     expect(screen.queryByText(/\*\*Camera Z9\*\*/)).not.toBeInTheDocument();
   });
 
+  it("keeps the questions on screen, disabled, while the assistant answers, then shows the follow-ups", async () => {
+    const user = userEvent.setup();
+    let reply: (value: AssistantAskResponse) => void = () => {};
+    vi.mocked(askAssistant).mockImplementationOnce(
+      () => new Promise((resolve) => (reply = resolve)),
+    );
+    render(<ResultsScreen />);
+    const group = () => screen.getByRole("group", { name: "Suggested questions" });
+
+    await user.click(
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
+    );
+
+    // Still drawn while the answer is prepared: no skeleton, no empty boxes.
+    expect(screen.queryByRole("status", { name: "Loading suggested questions" })).toBeNull();
+    const waiting = within(group()).getAllByRole("button");
+    expect(waiting.length).toBeGreaterThan(0);
+    waiting.forEach((button) => expect(button).toBeDisabled());
+    expect(group()).toHaveAttribute("aria-busy", "true");
+
+    await act(async () =>
+      reply({ answer: "Done.", citations: [], suggested_questions: ["What happened next?"] }),
+    );
+
+    const next = within(group()).getAllByRole("button");
+    expect(next.map((button) => button.textContent)).toEqual(["What happened next?"]);
+    expect(next[0]).toBeEnabled();
+  });
+
+  it("keeps the previous questions while a picked moment's questions load", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    const before = (
+      await within(await screen.findByRole("group", { name: "Suggested questions" })).findAllByRole(
+        "button",
+      )
+    ).map((button) => button.textContent);
+    let finish: (response: { suggested_questions: string[] }) => void = () => {};
+    vi.mocked(suggestQuestions).mockReturnValueOnce(
+      new Promise((done) => {
+        finish = done;
+      }),
+    );
+
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+
+    const shown = within(screen.getByRole("group", { name: "Suggested questions" })).getAllByRole(
+      "button",
+    );
+    expect(shown.map((button) => button.textContent)).toEqual(before);
+    expect(screen.queryByRole("status", { name: "Loading suggested questions" })).toBeNull();
+
+    await act(async () => finish({ suggested_questions: ["Who else was near this location?"] }));
+
+    expect(
+      within(screen.getByRole("group", { name: "Suggested questions" }))
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Who else was near this location?"]);
+  });
+
   it("sends the search, the question and the moments on screen as context", async () => {
     const user = userEvent.setup();
     render(<ResultsScreen />);
@@ -958,6 +1031,36 @@ describe("Results — assistant", () => {
     });
     expect(request.moments.map((m) => m.moment_id)).toContain(topMatch().id);
     expect(request.history.at(-1)).toMatchObject({ role: "assistant" });
+  });
+
+  it("shows what the assistant is doing while it prepares the answer", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockImplementationOnce((_request, options) => {
+      options?.onStatus?.("Reading 5 moments…");
+      options?.onStatus?.("Generating answer…");
+      return new Promise(() => {});
+    });
+    render(<ResultsScreen />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
+    );
+
+    const thinking = await screen.findByRole("status", { name: /Assistant is thinking/ });
+    expect(thinking).toHaveTextContent("Generating answer…");
+    expect(thinking).not.toHaveTextContent("Reading 5 moments…");
+  });
+
+  it("sends each moment's event id, so suggestions can use its real detections", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
+    );
+
+    const request = vi.mocked(askAssistant).mock.calls[0][0];
+    request.moments.forEach((moment) => expect(moment).toHaveProperty("event_id"));
   });
 
   it("shows the question, a thinking state, then the answer with its cited moment", async () => {
@@ -1085,6 +1188,46 @@ describe("Results — assistant", () => {
     );
 
     expect(await screen.findByText(/couldn't answer/)).toBeInTheDocument();
+  });
+
+  it("retries the same question, in the same context, without repeating it", async () => {
+    const user = userEvent.setup();
+    const question = "Show only the highest-confidence event";
+    vi.mocked(askAssistant).mockRejectedValueOnce(new Error("503"));
+    render(<ResultsScreen />);
+
+    await user.click(await screen.findByRole("button", { name: question }));
+    await user.click(await screen.findByRole("button", { name: "Retry" }));
+
+    expect(askAssistant).toHaveBeenCalledTimes(2);
+    const [first, second] = vi.mocked(askAssistant).mock.calls.map(([request]) => request);
+    expect(second).toEqual(first);
+    await waitForAnswer();
+    expect(screen.queryByText(/couldn't answer/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    const thread = useAppStore.getState().chats.results;
+    expect(
+      thread.filter((message) => message.role === "user" && message.text === question),
+    ).toHaveLength(1);
+  });
+
+  it("offers a retry only on the latest answer", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockRejectedValueOnce(new Error("503"));
+    render(<ResultsScreen />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Show only the highest-confidence event" }),
+    );
+    await screen.findByRole("button", { name: "Retry" });
+    await user.type(
+      screen.getByPlaceholderText("Ask a follow-up question…"),
+      "Which camera?{Enter}",
+    );
+    await waitForAnswer();
+
+    expect(screen.getByText(/couldn't answer/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
 });
 
@@ -1730,6 +1873,43 @@ describe("Query Assistant", () => {
     const buttons = within(group).getAllByRole("button");
     expect(buttons.length).toBeGreaterThan(1);
     buttons.slice(1).forEach((button) => expect(button).toHaveClass("-mt-px"));
+  });
+
+  it("keeps its questions on screen, disabled, while it answers", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockImplementationOnce(() => new Promise(() => {}));
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Which camera has the most matches?" }),
+    );
+
+    const group = screen.getByRole("group", { name: "Suggested questions" });
+    expect(group).toHaveAttribute("aria-busy", "true");
+    const waiting = within(group).getAllByRole("button");
+    expect(waiting.length).toBeGreaterThan(0);
+    waiting.forEach((button) => expect(button).toBeDisabled());
+    // The question just asked isn't repeated below its own bubble.
+    expect(
+      within(group).queryByRole("button", { name: "Which camera has the most matches?" }),
+    ).toBeNull();
+  });
+
+  it("retries a failed answer in Clip Detail's thread too", async () => {
+    const user = userEvent.setup();
+    vi.mocked(askAssistant).mockRejectedValueOnce(new Error("503"));
+    useAppStore.setState({ chatOpen: true });
+    render(<QueryAssistant chatKey="results" />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Which camera has the most matches?" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Retry" }));
+
+    expect(askAssistant).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText(/has the most matches with/)).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't answer/)).not.toBeInTheDocument();
   });
 
   it("renders markdown in Clip Detail's thread too", async () => {

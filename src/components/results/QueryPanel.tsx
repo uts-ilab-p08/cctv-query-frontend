@@ -3,6 +3,7 @@
 import { Play, Plus, Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { RetryButton } from "@/components/assistant/RetryButton";
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
 import { ChatMarkdown, type CitedSource } from "@/components/assistant/ChatMarkdown";
 import { StreamedText } from "@/components/assistant/StreamedText";
@@ -10,11 +11,13 @@ import {
   glowProps,
   groupedItemClass,
   SuggestionLabel,
+  SuggestionsSkeleton,
 } from "@/components/assistant/SuggestedQuestions";
 import { ThinkingDots } from "@/components/assistant/ThinkingDots";
 import { MomentCardContent } from "@/components/results/MomentCard";
 import { NewQueryModal } from "@/components/results/NewQueryModal";
 import { cn } from "@/lib/cn";
+import { useLatchedSuggestions } from "@/lib/useLatchedSuggestions";
 import { useSequentialGlow } from "@/lib/useSequentialGlow";
 import { useStickToBottom } from "@/lib/useStickToBottom";
 import { startersKey, useAppStore } from "@/store/useAppStore";
@@ -59,6 +62,7 @@ export function QueryPanel({
 
   const chat = useAppStore((state) => state.chats.results) ?? EMPTY_THREAD;
   const askInResults = useAppStore((state) => state.askInResults);
+  const retryLast = useAppStore((state) => state.retryLast);
   const results = useAppStore((state) => state.results);
 
   const storeQuery = useAppStore((state) => state.query);
@@ -67,6 +71,9 @@ export function QueryPanel({
   const contextKey = startersKey("results", selectedClipId, storeQuery);
   const starters = useAppStore((state) => state.starters[contextKey]) ?? NO_QUESTIONS;
   const startersLoading = useAppStore((state) => contextKey in state.startersPending);
+  // A context whose questions weren't requested yet (they are, in an effect, right after
+  // this render) is loading too — not "loaded with none", which would clear the old ones.
+  const startersRequested = useAppStore((state) => contextKey in state.starters);
 
   // The opening questions for this context come from the RAG (/assistant/suggestions);
   // fetched once per search + selected moment, after the search has answered.
@@ -89,8 +96,18 @@ export function QueryPanel({
         ? answerFollowUps
         : starters.filter((question) => !asked.has(question));
 
-  // One suggested question at a time gets a light running around its border.
-  const glowing = useSequentialGlow(suggestions.length);
+  // Drawn questions stay until the next ones arrive (a new context, or an answer's
+  // follow-ups); only the very first load shows a placeholder.
+  const refreshing = startersLoading || !startersRequested || last?.status === "pending";
+  const latched = useLatchedSuggestions(suggestions, refreshing);
+  // While stale, drop what was just asked: it already shows as the question bubble.
+  const shown = latched.stale
+    ? { ...latched, questions: latched.questions.filter((question) => !asked.has(question)) }
+    : latched;
+
+  // One suggested question at a time gets a light running around its border — not on
+  // the stale ones waiting to be replaced.
+  const glowing = useSequentialGlow(shown.stale ? 0 : shown.questions.length);
 
   // Each new message or answer brings the thread to the bottom; it then follows the
   // answer as it streams in, unless the investigator scrolled up to read.
@@ -212,7 +229,7 @@ export function QueryPanel({
                     style={{ textWrap: "pretty" }}
                   >
                     {message.status === "pending" ? (
-                      <ThinkingDots />
+                      <ThinkingDots label={message.progress} />
                     ) : isUser || message.status ? (
                       message.text
                     ) : (
@@ -221,6 +238,11 @@ export function QueryPanel({
                   </div>
                 </div>
               )}
+
+              {/* Only the latest answer can be retried: an older one would reorder the thread. */}
+              {message.status === "error" && index === chat.length - 1 ? (
+                <RetryButton onRetry={() => void retryLast("results")} className="mt-1.5" />
+              ) : null}
 
               {message.citations?.length ? (
                 // One row of pills, scrolled sideways, so many sources never push the
@@ -278,38 +300,36 @@ export function QueryPanel({
           );
         })}
 
-        {startersLoading && !answerFollowUps?.length && last?.status !== "pending" ? (
-          <div
-            role="status"
-            aria-label="Loading suggested questions"
-            className="mt-auto flex flex-col gap-2"
-          >
-            <p className="text-ink-3 text-[12px]">Suggested questions</p>
-            {[0, 1, 2].map((row) => (
-              <span
-                key={row}
-                aria-hidden
-                className="border-accent-line bg-accent-soft h-[41px] animate-pulse rounded-lg border"
-              />
-            ))}
-          </div>
-        ) : suggestions.length ? (
+        {shown.firstLoad ? (
+          <SuggestionsSkeleton
+            corners="lg"
+            rowClassName="border-accent-line bg-accent-soft border"
+            className="mt-auto"
+          />
+        ) : shown.questions.length ? (
           // `mt-auto`: pinned down by the input while the thread is short; once it
           // overflows the margin collapses and the block scrolls with the thread.
           <div className="mt-auto flex flex-col gap-2">
             <p className="text-ink-3 text-[12px]">Suggested questions</p>
-            <div role="group" aria-label="Suggested questions" className="flex flex-col">
-              {suggestions.map((suggestion, index) => {
+            <div
+              role="group"
+              aria-label="Suggested questions"
+              aria-busy={shown.stale || undefined}
+              className="flex flex-col"
+            >
+              {shown.questions.map((suggestion, index) => {
                 const glow = glowProps(index === glowing);
                 return (
                   <button
                     key={suggestion}
                     type="button"
                     onClick={() => ask(suggestion)}
+                    // The previous questions, kept on screen while the next ones load.
+                    disabled={shown.stale}
                     style={glow.style}
                     className={cn(
-                      "group border-accent-line bg-accent-soft text-ink-2 hover:bg-accent-line/45 hover:text-ink hover:border-accent flex cursor-pointer items-center gap-2 border px-3 py-2.5 text-left text-[13px] transition-colors duration-150",
-                      groupedItemClass(index, suggestions.length, "lg"),
+                      "group border-accent-line bg-accent-soft text-ink-2 hover:bg-accent-line/45 hover:text-ink hover:border-accent disabled:hover:bg-accent-soft disabled:hover:text-ink-2 disabled:hover:border-accent-line flex cursor-pointer items-center gap-2 border px-3 py-2.5 text-left text-[13px] transition-[color,background-color,border-color,opacity] duration-150 disabled:cursor-default disabled:opacity-55",
+                      groupedItemClass(index, shown.questions.length, "lg"),
                       glow.className,
                     )}
                   >

@@ -44,7 +44,8 @@ interface AuthedInit extends RequestInit {
   authToken?: string | null;
 }
 
-export async function apiFetch<T>(path: string, init: AuthedInit = {}): Promise<T> {
+/** An authed request to the API; throws `ApiError` unless the response is 2xx. */
+async function authedFetch(path: string, init: AuthedInit, accept: string): Promise<Response> {
   const baseUrl = apiBaseUrl();
   if (!baseUrl) {
     throw new Error(
@@ -55,7 +56,7 @@ export async function apiFetch<T>(path: string, init: AuthedInit = {}): Promise<
   const { authToken, ...requestInit } = init;
   const token = authToken !== undefined ? authToken : await getBrowserAuthToken();
   const headers = new Headers(requestInit.headers);
-  headers.set("Accept", "application/json");
+  headers.set("Accept", accept);
   if (requestInit.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
@@ -68,7 +69,20 @@ export async function apiFetch<T>(path: string, init: AuthedInit = {}): Promise<
       .catch(() => undefined);
     throw new ApiError(response.status, detail ?? `Request to ${path} failed (${response.status})`);
   }
+  return response;
+}
 
+export async function apiFetch<T>(path: string, init: AuthedInit = {}): Promise<T> {
+  const response = await authedFetch(path, init, "application/json");
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+/**
+ * A Server-Sent Events request (e.g. `POST /assistant/ask/stream`): same auth and errors as
+ * `apiFetch`, but returns the response for its body to be read as a stream. Browsers'
+ * EventSource can't send a body or the bearer token, hence fetch.
+ */
+export async function apiStream(path: string, init: AuthedInit = {}): Promise<Response> {
+  return authedFetch(path, init, "text/event-stream");
 }

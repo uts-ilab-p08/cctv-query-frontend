@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { renderChatMarkdown } from "@/components/assistant/ChatMarkdown";
+import { RetryButton } from "@/components/assistant/RetryButton";
 import { StreamedText } from "@/components/assistant/StreamedText";
 import { ThinkingDots } from "@/components/assistant/ThinkingDots";
 import type { ReactNode } from "react";
@@ -14,9 +15,11 @@ interface ChatMessageProps {
   message: ChatMessageData;
   /** Rendered beside the bubble, on the side facing the thread (e.g. a save bookmark). */
   action?: ReactNode;
+  /** A failed answer that can be asked again; shows a Retry button under it. */
+  onRetry?: () => void;
 }
 
-export function ChatMessage({ message, action }: ChatMessageProps) {
+export function ChatMessage({ message, action, onRetry }: ChatMessageProps) {
   const isUser = message.role === "user";
 
   return (
@@ -36,7 +39,7 @@ export function ChatMessage({ message, action }: ChatMessageProps) {
           )}
         >
           {message.status === "pending" ? (
-            <ThinkingDots />
+            <ThinkingDots label={message.progress} />
           ) : isUser || message.status ? (
             message.text
           ) : (
@@ -44,6 +47,8 @@ export function ChatMessage({ message, action }: ChatMessageProps) {
           )}
         </div>
       </div>
+
+      {onRetry ? <RetryButton onRetry={onRetry} className="mt-1.5" /> : null}
 
       {message.relatedId ? (
         <Link

@@ -97,6 +97,9 @@ export interface AssistantMoment {
   score: number;
   /** `null` while the RAG doesn't return cameras (see the /search gaps). */
   camera: string | null;
+  /** bronze.events.event_id, so the backend can read the event's real detections for
+   *  its suggestions; `null` falls back to the caption. Ignored by older backends. */
+  event_id?: string | null;
 }
 
 export interface AssistantAskRequest {

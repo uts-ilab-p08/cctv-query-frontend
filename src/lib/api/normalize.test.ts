@@ -152,6 +152,31 @@ describe("apiClipToClip", () => {
 });
 
 describe("clipToAssistantMoment", () => {
+  it("passes the event id through, so the backend can read the event's real detections", () => {
+    const clip = ragResultItemToClip({ ...item, event_id: "evt-9" }, 0);
+    expect(clipToAssistantMoment(clip).event_id).toBe("evt-9");
+    expect(clipToAssistantMoment(ragResultItemToClip(item, 0)).event_id).toBeNull();
+  });
+
+  it("uses the event id of a clip opened from /clips/{id}, whose id is that event", () => {
+    const clip = apiClipToClip({
+      id: "evt-7",
+      camera: "G328",
+      code: "G328",
+      ts: "0:12",
+      date: "",
+      order: 1,
+      confidence: 90,
+      tags: [],
+      objects: "",
+      action: "A car parks",
+      thumbnailUrl: null,
+      videoUrl: null,
+    });
+    expect(clip.eventId).toBe("evt-7");
+    expect(clipToAssistantMoment(clip).event_id).toBe("evt-7");
+  });
+
   it("never invents a start from the old demo window when the clip has none", () => {
     const clip = ragResultItemToClip(item, 0);
     // A clip from GET /clips/{id}: wall-clock `ts`, no offset into its video.
