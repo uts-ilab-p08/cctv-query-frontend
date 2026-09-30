@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {
-      getUser: async () => ({ data: { user: { email: "l.ortiz@precinct.gov" } } }),
+      getUser: async () => ({ data: { user: { email: "sam.rivera@example.com" } } }),
       signOut: async () => ({}),
     },
   }),
@@ -21,7 +21,7 @@ describe("Sidebar", () => {
   it("collapses to icons while every destination keeps its accessible name", async () => {
     const user = userEvent.setup();
     render(<Sidebar />);
-    await screen.findByText("l.ortiz@precinct.gov");
+    await screen.findByText("sam.rivera@example.com");
 
     await user.click(screen.getByRole("button", { name: "Collapse menu" }));
 
@@ -32,7 +32,8 @@ describe("Sidebar", () => {
     }
     // Labels are hidden visually, not removed: screen readers still get them.
     expect(within(nav).getByText("Saved Queries")).toHaveClass("sr-only");
-    expect(screen.queryByText("l.ortiz@precinct.gov")).not.toBeInTheDocument();
+    expect(screen.queryByText("sam.rivera@example.com")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sam")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toBeInTheDocument();
   });
@@ -40,8 +41,37 @@ describe("Sidebar", () => {
   it("shows the signed-in user without a precinct", async () => {
     render(<Sidebar />);
 
-    expect(await screen.findByText("l.ortiz@precinct.gov")).toBeInTheDocument();
+    expect(await screen.findByText("sam.rivera@example.com")).toBeInTheDocument();
     expect(screen.queryByText(/^Precinct/)).not.toBeInTheDocument();
+  });
+
+  it("wraps the user in a card that opens their profile", async () => {
+    render(<Sidebar />);
+
+    const card = await screen.findByRole("link", { name: /Sam.*sam\.rivera@example\.com/ });
+    expect(card).toHaveAttribute("href", "/profile");
+    expect(within(card).getByText("SR")).toBeInTheDocument();
+  });
+
+  it("keeps the profile link as the avatar alone when collapsed", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+    await screen.findByText("sam.rivera@example.com");
+
+    await user.click(screen.getByRole("button", { name: "Collapse menu" }));
+
+    const avatar = screen.getByRole("link", { name: "Profile: sam.rivera@example.com" });
+    expect(avatar).toHaveAttribute("href", "/profile");
+    expect(within(avatar).getByText("SR")).toBeInTheDocument();
+  });
+
+  it("greets the user by the first name in their email, with the email below", async () => {
+    render(<Sidebar />);
+
+    const email = await screen.findByText("sam.rivera@example.com");
+    const name = screen.getByText("Sam");
+    // Name first, then the email.
+    expect(name.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("expands back", async () => {
