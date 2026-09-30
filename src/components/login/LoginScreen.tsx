@@ -1,8 +1,9 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { BrandLockup } from "@/components/brand/BrandMark";
 import { createClient } from "@/lib/supabase/client";
@@ -20,9 +21,13 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   const [reveal, setReveal] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  /** Set synchronously on submit, so a second submit in the same tick can't slip through
+   *  before `pending` re-renders the form as locked. */
+  const inFlight = useRef(false);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (inFlight.current) return;
     // Email addresses are case-insensitive: send one canonical form, whatever was typed
     // (normalized on submit, not while typing, so the text never shifts under the caret).
     // The password is sent as typed.
@@ -32,6 +37,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
       return;
     }
     setError("");
+    inFlight.current = true;
     setPending(true);
 
     const supabase = createClient();
@@ -40,11 +46,14 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
       password,
     });
 
-    setPending(false);
     if (authError) {
+      inFlight.current = false;
+      setPending(false);
       setError(authError.message);
       return;
     }
+    // Stays locked on success: the dashboard can take a moment to load, and the button
+    // must not come back as "Sign in" in the meantime.
     router.push(redirectTo);
     router.refresh();
   };
@@ -103,6 +112,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
               </label>
               <input
                 id="login-email"
+                disabled={pending}
                 type="email"
                 autoComplete="username"
                 // Mobile keyboards capitalize the first letter; an email shouldn't be.
@@ -136,6 +146,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
               <div className="relative flex items-center">
                 <input
                   id="login-pass"
+                  disabled={pending}
                   type={reveal ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
@@ -148,6 +159,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                 />
                 <button
                   type="button"
+                  disabled={pending}
                   onClick={() => setReveal((r) => !r)}
                   className="text-accent-strong absolute right-1.5 h-9 px-3 text-[12px]"
                 >
@@ -159,9 +171,17 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
             <button
               type="submit"
               disabled={pending}
-              className="surface-action h-[50px] w-full rounded-[11px] text-[15px] font-semibold disabled:opacity-60"
+              aria-busy={pending || undefined}
+              className="surface-action flex h-[50px] w-full items-center justify-center gap-2 rounded-[11px] text-[15px] font-semibold disabled:cursor-progress disabled:opacity-80"
             >
-              {pending ? "Signing in…" : "Sign in"}
+              {pending ? (
+                <>
+                  <Loader2 size={17} strokeWidth={2.2} className="animate-spin" aria-hidden />
+                  Signing in…
+                </>
+              ) : (
+                "Sign in"
+              )}
             </button>
 
             {error ? (

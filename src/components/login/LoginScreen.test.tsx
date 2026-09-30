@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -95,5 +95,66 @@ describe("LoginScreen", () => {
       "Ask your camera archive a question. Get the moment, not the tape.",
     );
     expect(screen.getByRole("heading", { level: 2, name: "Sign in" })).toBeInTheDocument();
+  });
+
+  describe("while signing in", () => {
+    const fill = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.type(screen.getByLabelText("EMAIL"), "sam@example.com");
+      await user.type(screen.getByLabelText("PASSWORD"), "hunter22");
+    };
+
+    it("spins the button and locks the form until the answer comes back", async () => {
+      const user = userEvent.setup();
+      signInWithPassword.mockReturnValue(new Promise(() => {}));
+      render(<LoginScreen />);
+      await fill(user);
+
+      await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+      const button = screen.getByRole("button", { name: "Signing in…" });
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute("aria-busy", "true");
+      expect(button.querySelector(".animate-spin")).not.toBeNull();
+      expect(screen.getByLabelText("EMAIL")).toBeDisabled();
+      expect(screen.getByLabelText("PASSWORD")).toBeDisabled();
+    });
+
+    it("sends one request however many times it is submitted", async () => {
+      signInWithPassword.mockReturnValue(new Promise(() => {}));
+      const { container } = render(<LoginScreen />);
+      const user = userEvent.setup();
+      await fill(user);
+      const form = container.querySelector("form")!;
+
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+
+      expect(signInWithPassword).toHaveBeenCalledTimes(1);
+    });
+
+    it("stays locked after success, until the dashboard replaces the page", async () => {
+      const user = userEvent.setup();
+      render(<LoginScreen />);
+      await fill(user);
+
+      await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+      expect(pushMock).toHaveBeenCalledWith("/dashboard");
+      expect(screen.getByRole("button", { name: "Signing in…" })).toBeDisabled();
+    });
+
+    it("unlocks again when the credentials are rejected", async () => {
+      const user = userEvent.setup();
+      signInWithPassword.mockResolvedValue({ error: { message: "Invalid login credentials" } });
+      render(<LoginScreen />);
+      await fill(user);
+
+      await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Invalid login credentials");
+      expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
+      expect(screen.getByLabelText("EMAIL")).toBeEnabled();
+    });
   });
 });
