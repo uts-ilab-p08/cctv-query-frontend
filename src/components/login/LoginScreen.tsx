@@ -23,7 +23,11 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!email || !password) {
+    // Email addresses are case-insensitive: send one canonical form, whatever was typed
+    // (normalized on submit, not while typing, so the text never shifts under the caret).
+    // The password is sent as typed.
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password) {
       setError("Enter your email and password to continue.");
       return;
     }
@@ -31,7 +35,10 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
     setPending(true);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
 
     setPending(false);
     if (authError) {
@@ -98,6 +105,10 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                 id="login-email"
                 type="email"
                 autoComplete="username"
+                // Mobile keyboards capitalize the first letter; an email shouldn't be.
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);

@@ -30,6 +30,29 @@ describe("LoginScreen", () => {
     expect(pushMock).toHaveBeenCalledWith("/dashboard");
   });
 
+  it("sends the email in lowercase, without surrounding spaces, however it was typed", async () => {
+    const user = userEvent.setup();
+    render(<LoginScreen />);
+
+    await user.type(screen.getByLabelText("EMAIL"), "  Sam.Rivera@Example.COM ");
+    await user.type(screen.getByLabelText("PASSWORD"), "Hunter22{Enter}");
+
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: "sam.rivera@example.com",
+      // The password is sent exactly as typed: it is case-sensitive.
+      password: "Hunter22",
+    });
+  });
+
+  it("keeps mobile keyboards from capitalizing or correcting the email", () => {
+    render(<LoginScreen />);
+
+    const email = screen.getByLabelText("EMAIL");
+    expect(email).toHaveAttribute("autocapitalize", "none");
+    expect(email).toHaveAttribute("autocorrect", "off");
+    expect(email).toHaveAttribute("spellcheck", "false");
+  });
+
   it("signs in when Enter is pressed in the email field", async () => {
     const user = userEvent.setup();
     render(<LoginScreen />);
