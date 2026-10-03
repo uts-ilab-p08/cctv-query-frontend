@@ -31,6 +31,10 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const searchError = useAppStore((state) => state.searchError);
   /** The last submitted search — unlike `query`, not the draft being edited. */
   const lastSearch = useAppStore((state) => state.lastSearch);
+  /** The step the running search reports (`/search/stream`), on its thinking bubble. */
+  const searchStep = useAppStore(
+    (state) => state.chats.results?.find((message) => message.status === "pending")?.progress,
+  );
 
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -154,33 +158,36 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
           {!activeClip ? (
             <VideoStageSkeleton />
           ) : (
-            <VideoStage
-              clip={activeClip}
-              currentTime={currentTime}
-              playing={playing}
-              muted={muted}
-              metaOpen={metaOpen}
-              ticks={ticks}
-              duration={duration}
-              cueKey={`${activeClip.id}#${cueCount}`}
-              seekRequest={seekRequest}
-              onTimeUpdate={setCurrentTime}
-              onDuration={setDuration}
-              onStop={stopPlayback}
-              tracks={tracks}
-              onTogglePlay={() => setPlaying((p) => !p)}
-              onToggleMute={() => setMuted((m) => !m)}
-              onToggleMeta={() => setMetaOpen((m) => !m)}
-              onSeek={seekTo}
-              videoExpanded={videoExpanded}
-              onToggleExpand={() => setVideoExpanded((expanded) => !expanded)}
-            />
+            // Mounts when the results arrive: the player fades in once, not on every pick.
+            <div className="reveal-in flex min-h-0 flex-1 flex-col">
+              <VideoStage
+                clip={activeClip}
+                currentTime={currentTime}
+                playing={playing}
+                muted={muted}
+                metaOpen={metaOpen}
+                ticks={ticks}
+                duration={duration}
+                cueKey={`${activeClip.id}#${cueCount}`}
+                seekRequest={seekRequest}
+                onTimeUpdate={setCurrentTime}
+                onDuration={setDuration}
+                onStop={stopPlayback}
+                tracks={tracks}
+                onTogglePlay={() => setPlaying((p) => !p)}
+                onToggleMute={() => setMuted((m) => !m)}
+                onToggleMeta={() => setMetaOpen((m) => !m)}
+                onSeek={seekTo}
+                videoExpanded={videoExpanded}
+                onToggleExpand={() => setVideoExpanded((expanded) => !expanded)}
+              />
+            </div>
           )}
         </div>
       </div>
 
       {searchPending ? (
-        <MatchStripSkeleton />
+        <MatchStripSkeleton step={searchStep} />
       ) : (
         <MatchStrip
           matches={matches}

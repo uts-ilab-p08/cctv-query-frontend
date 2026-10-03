@@ -3,6 +3,7 @@
 import {
   Bookmark,
   Layers,
+  Loader2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { BrandLockup, BrandMark } from "@/components/brand/BrandMark";
@@ -19,7 +20,6 @@ import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 import { nameFromEmail } from "@/lib/displayName";
 import { useCurrentUserEmail } from "@/lib/useCurrentUserEmail";
-import { createClient } from "@/lib/supabase/client";
 
 interface NavItem {
   href: string;
@@ -59,7 +59,6 @@ const COLLAPSED_STORAGE_KEY = "cctvai.sidebar";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { email: userEmail } = useCurrentUserEmail();
   // Starts expanded to match the server render; the stored choice applies after mount.
   const [collapsed, setCollapsed] = useState(false);
@@ -90,11 +89,9 @@ export function Sidebar() {
 
   const label = (text: string) => <span className={cn(collapsed && "sr-only")}>{text}</span>;
 
-  const signOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+  /** The form posts to `/auth/signout` (see its route): the browser navigates on its own,
+   *  so nothing in this tab can hold it up. This only locks the button meanwhile. */
+  const [signingOut, setSigningOut] = useState(false);
 
   return (
     <aside
@@ -192,18 +189,24 @@ export function Sidebar() {
             </span>
           </Link>
         )}
-        <button
-          type="button"
-          onClick={signOut}
-          title={collapsed ? "Sign out" : undefined}
-          className={cn(
-            "text-flag border-flag/45 bg-flag/10 hover:bg-flag/20 hover:border-flag flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 font-sans text-[13px] font-semibold transition-colors duration-150",
-            collapsed ? "px-0" : "mt-3 px-3",
-          )}
-        >
-          <LogOut size={15} strokeWidth={2.2} aria-hidden />
-          {label("Sign out")}
-        </button>
+        <form action="/auth/signout" method="post" onSubmit={() => setSigningOut(true)}>
+          <button
+            type="submit"
+            disabled={signingOut}
+            title={collapsed ? "Sign out" : undefined}
+            className={cn(
+              "text-flag border-flag/45 bg-flag/10 hover:bg-flag/20 hover:border-flag flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 font-sans text-[13px] font-semibold transition-colors duration-150 disabled:cursor-wait disabled:opacity-70",
+              collapsed ? "px-0" : "mt-3 px-3",
+            )}
+          >
+            {signingOut ? (
+              <Loader2 size={15} strokeWidth={2.2} className="animate-spin" aria-hidden />
+            ) : (
+              <LogOut size={15} strokeWidth={2.2} aria-hidden />
+            )}
+            {label(signingOut ? "Signing out…" : "Sign out")}
+          </button>
+        </form>
       </div>
     </aside>
   );

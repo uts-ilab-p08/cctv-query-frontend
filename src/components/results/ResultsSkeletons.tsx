@@ -32,14 +32,19 @@ export function VideoStageSkeleton() {
   );
 }
 
+interface MatchStripSkeletonProps {
+  /** The step the search is on, as the backend reports it (`/search/stream`). */
+  step?: string;
+}
+
 /** Placeholder cards in the Matching Moments strip, shaped like `MomentCardContent`. */
-export function MatchStripSkeleton() {
+export function MatchStripSkeleton({ step }: MatchStripSkeletonProps) {
   return (
     <div className="border-hairline flex shrink-0 items-stretch gap-3 border-t px-[18px] pt-2 pb-2.5">
       <div className="flex w-[184px] shrink-0 flex-col justify-center gap-1.5 pr-1">
         <h2 className="text-ink font-mono text-[11px] leading-[1.3] font-bold tracking-[1px]">
           <span className="block">MATCHING MOMENTS</span>{" "}
-          <span className="text-ink-3">SEARCHING…</span>
+          <span className="text-ink-3 uppercase">{step ?? "Searching…"}</span>
         </h2>
         <p className="text-ink-3 text-[11px] leading-[1.35]">
           The moments that best match your query will appear here.

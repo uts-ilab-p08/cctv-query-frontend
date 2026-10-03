@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import { MomentCardContent } from "@/components/results/MomentCard";
 import { cn } from "@/lib/cn";
@@ -13,7 +14,11 @@ interface MatchStripProps {
   onClearSelection: () => void;
 }
 
-/** Bottom carousel of matching moments: top-N by confidence, chronologically ordered. */
+/** Gap between two cards' entrances as the strip draws in. */
+const REVEAL_STEP_MS = 70;
+
+/** Bottom carousel of matching moments: top-N by confidence, chronologically ordered.
+ *  The cards draw in one after another, left to right, when the results arrive. */
 export function MatchStrip({
   matches,
   selectedClipId,
@@ -21,7 +26,10 @@ export function MatchStrip({
   onClearSelection,
 }: MatchStripProps) {
   return (
-    <div className="border-hairline flex shrink-0 items-stretch gap-3 border-t px-[18px] pt-2 pb-2.5">
+    <div
+      data-match-strip
+      className="border-hairline flex shrink-0 items-stretch gap-3 border-t px-[18px] pt-2 pb-2.5"
+    >
       {/* Plain label, deliberately not a card, so it never reads as one of the moments. */}
       <div className="flex w-[184px] shrink-0 flex-col justify-center gap-1.5 pr-1">
         <h2 className="text-ink font-mono text-[11px] leading-[1.3] font-bold tracking-[1px]">
@@ -34,13 +42,17 @@ export function MatchStrip({
       </div>
 
       <div className="flex min-w-0 flex-1 items-stretch gap-2.5 overflow-x-auto overflow-y-hidden pb-1.5">
-        {matches.map((match) => {
+        {matches.map((match, index) => {
           const active = match.id === selectedClipId;
           const title = match.eventName ?? match.action;
           return (
             // Deselect is a sibling of the card button, not a child: nested buttons are invalid
             // HTML and the click would also re-select the card.
-            <div key={match.id} className="relative flex max-w-[320px] min-w-[228px] flex-1">
+            <div
+              key={match.id}
+              className="reveal-in relative flex max-w-[320px] min-w-[228px] flex-1"
+              style={{ "--reveal-delay": `${index * REVEAL_STEP_MS}ms` } as CSSProperties}
+            >
               <button
                 type="button"
                 onClick={() => onSelect(match)}

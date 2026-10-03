@@ -33,7 +33,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublicRoute = pathname === "/" || pathname === "/login";
+  // `/auth/signout` answers even without a session: it always ends at /login.
+  const isPublicRoute = pathname === "/" || pathname === "/login" || pathname === "/auth/signout";
   const isAuthOnlyRoute = pathname === "/login";
 
   if (!user && !isPublicRoute) {

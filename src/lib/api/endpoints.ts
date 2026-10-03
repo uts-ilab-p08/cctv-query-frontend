@@ -38,10 +38,33 @@ export interface SearchResult {
   summary: string;
 }
 
-/** `GET /api/v1/search` — thin pass-through to the RAG service (see normalize.ts). */
-export async function searchClips(query: string, limit = 10): Promise<SearchResult> {
-  const params = new URLSearchParams({ q: query, limit: String(limit) });
-  const result = await apiFetch<RagQueryResult>(`/api/v1/search?${params.toString()}`);
+export interface SearchOptions {
+  /** Each step the backend reports while searching, e.g. "Preparing thumbnails…". */
+  onStatus?: (message: string) => void;
+}
+
+/**
+ * Searches the footage through the RAG (see normalize.ts). Asks `GET /search/stream` first,
+ * which reports each step as Server-Sent Events (`status`, then one `result` with the same
+ * `RagQueryResult` as `/search`, or `error`). Read with fetch, not EventSource: the route
+ * needs the bearer token. A backend without that route (404/405) gets `GET /search`.
+ */
+export async function searchClips(
+  query: string,
+  limit = 10,
+  { onStatus }: SearchOptions = {},
+): Promise<SearchResult> {
+  const params = new URLSearchParams({ q: query, limit: String(limit) }).toString();
+  let result: RagQueryResult;
+  try {
+    const response = await apiStream(`/api/v1/search/stream?${params}`);
+    result = await readSseResult<RagQueryResult>(response, "The search", onStatus);
+  } catch (error) {
+    if (!(error instanceof ApiError && (error.status === 404 || error.status === 405))) {
+      throw error;
+    }
+    result = await apiFetch<RagQueryResult>(`/api/v1/search?${params}`);
+  }
   // Two results can fall in the same event; suffix the start so ids stay unique.
   const seen = new Set<string>();
   const clips = result.results.map((item, index) => {
@@ -143,15 +166,20 @@ export async function askAssistant(
     }
     throw error;
   }
-  return readAskStream(response, options);
+  return readSseResult<AssistantAskResponse>(response, "The assistant", options.onStatus);
 }
 
-/** Reads `/assistant/ask/stream` to its terminal event: `result` or `error`. */
-async function readAskStream(
+/**
+ * Reads one of the API's progress streams (`/search/stream`, `/assistant/ask/stream`) to its
+ * terminal event: `result`, returned as-is, or `error`, thrown with the backend's message.
+ * `status` steps go to `onStatus`. `subject` names the caller in the errors.
+ */
+async function readSseResult<T>(
   response: Response,
-  { onStatus }: AskOptions,
-): Promise<AssistantAskResponse> {
-  if (!response.body) throw new Error("The assistant's stream had no body.");
+  subject: string,
+  onStatus?: (message: string) => void,
+): Promise<T> {
+  if (!response.body) throw new Error(`${subject}'s stream had no body.`);
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   const parser = new SseParser();
   for (;;) {
@@ -163,16 +191,16 @@ async function readAskStream(
         onStatus?.(payload.message);
       } else if (event === "result") {
         void reader.cancel();
-        return payload as unknown as AssistantAskResponse;
+        return payload as unknown as T;
       } else if (event === "error") {
         void reader.cancel();
         throw new Error(
-          typeof payload.message === "string" ? payload.message : "The assistant failed.",
+          typeof payload.message === "string" ? payload.message : `${subject} failed.`,
         );
       }
     }
   }
-  throw new Error("The assistant's stream ended without an answer.");
+  throw new Error(`${subject}'s stream ended without an answer.`);
 }
 
 /**
