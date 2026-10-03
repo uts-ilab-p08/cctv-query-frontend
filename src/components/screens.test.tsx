@@ -341,12 +341,13 @@ describe("Results — while the search runs", () => {
     render(<ResultsScreen urlQuery="red car" />);
 
     expect(await screen.findByText("YOUR QUERY")).toBeInTheDocument();
-    // No full-screen loader: the only "Searching indexed footage…" is the chat's line.
+    // No full-screen loader: the step shows on the chat's line, mirrored over the strip.
     const searching = screen.getAllByText("Searching indexed footage…");
-    expect(searching).toHaveLength(1);
+    expect(searching).toHaveLength(2);
     expect(searching[0].closest('[role="status"]')).toHaveAccessibleName(/^Assistant is thinking/);
+    expect(searching[1].closest("h2")).toHaveTextContent(/MATCHING MOMENTS/);
     expect(screen.getAllByText("red car").length).toBeGreaterThan(0);
-    // /search has no progress stream (yet): one fixed, true line instead of made-up steps.
+    // Until the stream reports its first step, one fixed, true line.
     expect(
       screen.getByRole("status", { name: "Assistant is thinking: Searching indexed footage…" }),
     ).toHaveTextContent("Searching indexed footage…");
@@ -362,6 +363,58 @@ describe("Results — while the search runs", () => {
     expect(spinner).not.toBeNull();
     // Not inside the pulsing layer: the spinner stays fully opaque.
     expect(spinner!.closest(".animate-pulse")).toBeNull();
+  });
+
+  /** The `onStatus` the store passed to the pending `searchClips` call. */
+  const reportStep = (message: string) =>
+    act(async () => vi.mocked(searchClips).mock.lastCall?.[2]?.onStatus?.(message));
+
+  it("shows each step the backend reports, in the thread and over the strip", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+
+    await reportStep("Searching the video archive…");
+    expect(
+      screen.getByRole("status", { name: "Assistant is thinking: Searching the video archive…" }),
+    ).toBeInTheDocument();
+
+    await reportStep("Preparing thumbnails…");
+    expect(
+      screen.getByRole("status", { name: "Assistant is thinking: Preparing thumbnails…" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /MATCHING MOMENTS/ })).toHaveTextContent(
+      "Preparing thumbnails…",
+    );
+  });
+
+  it("ignores the steps of a search a newer one replaced", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+    const staleStatus = vi.mocked(searchClips).mock.lastCall?.[2]?.onStatus;
+
+    vi.mocked(searchClips).mockReturnValueOnce(new Promise(() => {}));
+    await act(async () => void useAppStore.getState().runSearch("blue van"));
+    await act(async () => staleStatus?.("Saving to your search history…"));
+
+    expect(
+      screen.getByRole("status", { name: "Assistant is thinking: Searching indexed footage…" }),
+    ).toBeInTheDocument();
+  });
+
+  it("draws the moments in one after another once the search answers", async () => {
+    render(<ResultsScreen urlQuery="red car" />);
+    await screen.findByText("YOUR QUERY");
+
+    await act(async () => finishSearch(searchResult()));
+
+    const cards = (await screen.findAllByRole("button", { name: /.+/ }))
+      .map((button) => button.closest(".reveal-in"))
+      .filter((card, index, all): card is HTMLElement => !!card && all.indexOf(card) === index)
+      .filter((card) => card.closest("[data-match-strip]"));
+    expect(cards.length).toBeGreaterThan(1);
+    const delays = cards.map((card) => parseInt(card.style.getPropertyValue("--reveal-delay")));
+    expect(delays).toEqual([...delays].sort((a, b) => a - b));
+    expect(new Set(delays).size).toBe(delays.length);
   });
 
   it("fills the thread, the player and the strip once the search answers", async () => {
@@ -468,7 +521,7 @@ describe("Results — no matches", () => {
     await user.click(within(empty).getByRole("button", { name: "Search" }));
 
     expect(pushMock).toHaveBeenCalledWith(resultsHref("a person gets out of a car"));
-    expect(searchClips).toHaveBeenLastCalledWith("a person gets out of a car");
+    expect(vi.mocked(searchClips).mock.lastCall?.[0]).toBe("a person gets out of a car");
   });
 
   it("offers ready-made searches that are known to find footage", () => {
@@ -840,7 +893,8 @@ describe("Results — query in the URL", () => {
   it("re-runs the search from ?q= when the page is loaded directly (refresh, shared link)", async () => {
     render(<ResultsScreen urlQuery="red car" />);
 
-    expect(searchClips).toHaveBeenCalledExactlyOnceWith("red car");
+    expect(searchClips).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(searchClips).mock.lastCall?.[0]).toBe("red car");
     const box = await screen.findByRole("group", { name: "Your query" });
     expect(within(box).getByText("red car")).toBeInTheDocument();
   });
@@ -860,7 +914,7 @@ describe("Results — query in the URL", () => {
 
     rerender(<ResultsScreen urlQuery="loitering" />);
 
-    expect(searchClips).toHaveBeenLastCalledWith("loitering");
+    expect(vi.mocked(searchClips).mock.lastCall?.[0]).toBe("loitering");
   });
 });
 
@@ -1303,7 +1357,7 @@ describe("Results — new query", () => {
     await user.click(screen.getByRole("button", { name: "New Query" }));
     await user.keyboard("loitering at night{Enter}");
 
-    expect(searchClips).toHaveBeenLastCalledWith("loitering at night");
+    expect(vi.mocked(searchClips).mock.lastCall?.[0]).toBe("loitering at night");
     expect(pushMock).toHaveBeenCalledWith("/results?q=loitering+at+night");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(await within(queryBox()).findByText("loitering at night")).toBeInTheDocument();

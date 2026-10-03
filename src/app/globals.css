@@ -837,6 +837,13 @@ body {
     animation: toast-in 180ms ease-out;
   }
 
+  /* Results draw in as they arrive, one after another: set `--reveal-delay` per element.
+     `both` keeps a delayed element hidden until its turn. */
+  .reveal-in {
+    animation: reveal-in 320ms ease-out both;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+
   /* SPEC §4 — clip thumbnails read as archived footage, never as product imagery. */
   .thumb-filter {
     filter: grayscale(0.55) contrast(1.05) brightness(0.85);
@@ -851,6 +858,13 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Reduced motion shortens animations but keeps their delays: show every result at once. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-in {
+    animation-delay: 0ms;
   }
 }
 
@@ -874,6 +888,13 @@ body {
   100% {
     --glow-angle: 360deg;
     opacity: 0;
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
   }
 }
 

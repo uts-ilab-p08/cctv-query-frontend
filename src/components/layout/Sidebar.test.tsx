@@ -8,7 +8,6 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {
       getUser: async () => ({ data: { user: { email: "sam.rivera@example.com" } } }),
-      signOut: async () => ({}),
     },
   }),
 }));
@@ -36,6 +35,28 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Sam")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toBeInTheDocument();
+  });
+
+  it("signs out through the server, which clears the session and redirects to login", async () => {
+    render(<Sidebar />);
+
+    const button = screen.getByRole("button", { name: "Sign out" });
+    const form = button.closest("form");
+    expect(form).toHaveAttribute("action", "/auth/signout");
+    expect(form).toHaveAttribute("method", "post");
+    expect(button).toHaveAttribute("type", "submit");
+  });
+
+  it("locks the button while signing out, so a second click can't stack up", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+    const button = screen.getByRole("button", { name: "Sign out" });
+    // jsdom can't navigate: stop the browser's own submission, React still sees the event.
+    button.closest("form")!.addEventListener("submit", (event) => event.preventDefault());
+
+    await user.click(button);
+
+    expect(screen.getByRole("button", { name: "Signing out…" })).toBeDisabled();
   });
 
   it("shows the signed-in user without a precinct", async () => {

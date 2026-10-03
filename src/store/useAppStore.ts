@@ -144,8 +144,8 @@ function assistantContext(
 }
 
 const THINKING: ChatMessage = { role: "agent", text: "", status: "pending" };
-/** The search's own placeholder. `/search` reports no progress (no stream yet), so this is
- *  one fixed line that is true for the whole wait, not made-up steps. */
+/** The search's own placeholder, until `/search/stream` reports its first step (or for the
+ *  whole wait on a backend without the stream). */
 const SEARCHING: ChatMessage = { ...THINKING, progress: "Searching indexed footage…" };
 const ASSISTANT_FAILED = "The assistant couldn't answer that. Try again.";
 
@@ -340,7 +340,14 @@ export const useAppStore = create<AppState>()(
           // A newer search started meanwhile: its answer wins, this one is dropped.
           const superseded = () => get().lastSearch !== trimmed;
           try {
-            const { clips, summary } = await searchClips(trimmed);
+            const { clips, summary } = await searchClips(trimmed, undefined, {
+              // A superseded search's steps would land on the newer search's placeholder.
+              onStatus: (progress) => {
+                if (!superseded()) {
+                  set((s) => ({ chats: updatePending(s.chats, "results", { progress }) }));
+                }
+              },
+            });
             if (superseded()) return;
             // The summary cites its sources as [n]: list them under it, in citation order.
             const citations = citedRefs(summary)
