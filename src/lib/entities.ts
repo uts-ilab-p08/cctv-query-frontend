@@ -3,6 +3,7 @@
 // the whole query, so nothing is sent as a separate filter.
 
 import { CAMERA_CODE_SOURCE } from "@/lib/cameraQuery";
+import { TIME_SOURCE } from "@/lib/timeQuery";
 
 export type EntityKind = "subject" | "event" | "time" | "camera" | "confidence";
 
@@ -40,8 +41,11 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
   {
     id: "time",
     title: "Time range",
-    pattern:
-      /\b(after \d{1,2}(:\d{2})?\s?(am|pm)?|before \d{1,2}(:\d{2})?\s?(am|pm)?|last night|last 24 hours|yesterday|today|this week|after hours)\b/,
+    // A clock time the query names ("at 7:00 pm", "19:00", "between 7 and 9 pm"; the
+    // time picker writes these too), or a relative period.
+    pattern: new RegExp(
+      String.raw`${TIME_SOURCE}|\b(?:last night|last 24 hours|yesterday|today|this week|after hours)\b`,
+    ),
     options: [
       "today",
       "yesterday",

@@ -34,8 +34,8 @@ export function QueryComposer() {
         className="text-ink-2 mb-9 max-w-[56ch] text-center text-[15px] leading-[1.55]"
         style={{ textWrap: "pretty" }}
       >
-        Describe the moment in plain words. Name the cameras to search, like G328, or pick them with
-        the camera button. Detected terms can be retuned inline.
+        Describe the moment in plain words. Name the cameras and the time, like G328 at 7pm, or pick
+        them with the camera and clock buttons. Detected terms can be retuned inline.
       </p>
 
       <QueryField

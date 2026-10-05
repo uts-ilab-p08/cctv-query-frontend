@@ -94,13 +94,27 @@ describe("findEntities — overlap resolution", () => {
     expect(kinds).toEqual(["subject", "event", "camera", "time", "time", "confidence"]);
   });
 
-  // The time pattern's trailing `\s?(am|pm)?` consumes the separating space when
-  // no meridiem follows, so the hit ends one character past the phrase. Choosing a
-  // replacement for it would otherwise swallow the space and fuse two words.
-  it("documents the trailing-space overshoot in bare clock times", () => {
+  // The old pattern's trailing `\s?(am|pm)?` swallowed the space after a bare clock
+  // time; a replacement chosen for it then fused two words.
+  it("ends a clock time at the time itself, not the space after it", () => {
     const query = "after 14:00 yesterday";
     const [first] = findEntities(query);
-    expect(query.slice(first.start, first.end)).toBe("after 14:00 ");
+    expect(query.slice(first.start, first.end)).toBe("after 14:00");
+  });
+
+  it("detects clock times written in natural language", () => {
+    expect(detect("At 7:00 pm which events occurred in the hospital cameras")).toContainEqual([
+      "At 7:00 pm",
+      "time",
+    ]);
+    expect(detect("anything at 7pm")).toContainEqual(["at 7pm", "time"]);
+    expect(detect("cars around 19:00")).toContainEqual(["around 19:00", "time"]);
+    expect(detect("between 7 and 9 pm")).toEqual([["between 7 and 9 pm", "time"]]);
+  });
+
+  it("detects a time and a camera side by side", () => {
+    const kinds = findEntities("who left on camera G328 at 7:00 pm").map((hit) => hit.def.id);
+    expect(kinds).toEqual(["event", "camera", "time"]);
   });
 });
 

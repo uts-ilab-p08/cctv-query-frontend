@@ -1,12 +1,19 @@
 "use client";
 
-import { Cctv, Check, Loader2, Search, X } from "lucide-react";
+import { Cctv, Check, Clock, Loader2, Search, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { getCameras } from "@/lib/api/endpoints";
 import { camerasInQuery, withCamera, withoutCamera } from "@/lib/cameraQuery";
 import { cn } from "@/lib/cn";
 import { replaceRange, toSegments, type EntityHit } from "@/lib/entities";
+import {
+  timeInQuery,
+  withoutTime,
+  withTime,
+  type TimeFilter,
+  type TimeMode,
+} from "@/lib/timeQuery";
 import { useAppStore } from "@/store/useAppStore";
 import type { CameraDirectoryEntry } from "@/types";
 
@@ -38,6 +45,14 @@ export interface QueryFieldProps {
 /** Characters typed before the clear button appears — below this it is noise. */
 const CLEAR_MIN_LENGTH = 3;
 
+/** The time picker's modes, in the words the query gets. */
+const TIME_MODES: ReadonlyArray<{ value: TimeMode; label: string }> = [
+  { value: "at", label: "At" },
+  { value: "after", label: "After" },
+  { value: "before", label: "Before" },
+  { value: "between", label: "Between" },
+];
+
 /** The indexed cameras, loaded the first time a camera list is opened. */
 type Directory =
   { status: "idle" | "loading" | "error" } | { status: "ready"; cameras: CameraDirectoryEntry[] };
@@ -51,7 +66,9 @@ type Directory =
  *
  * Cameras are part of the text too: a typed code (`G328`) is a token that swaps for any
  * indexed camera, and the camera picker writes or removes "on cameras …" in the query.
- * The RAG reads them from there; nothing is sent as a separate filter.
+ * The time picker does the same with "at 7:00 pm" / "between … and …", replacing the
+ * time the query already names. The RAG reads both from there; nothing is sent as a
+ * separate filter, and the text is the pickers' only state.
  */
 export function QueryField({
   variant = "hero",
@@ -65,7 +82,9 @@ export function QueryField({
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [picker, setPicker] = useState<"cameras" | "time" | null>(null);
+  /** A time being picked that the query can't hold yet (a range missing its end). */
+  const [timeDraft, setTimeDraft] = useState<TimeFilter | null>(null);
   const [directory, setDirectory] = useState<Directory>({ status: "idle" });
 
   const storeQuery = useAppStore((s) => s.query);
@@ -77,7 +96,7 @@ export function QueryField({
   const hero = variant === "hero";
   // Right padding reserves room for the overlaid buttons. It is fixed — not per
   // clear-button visibility — so the text never reflows when the clear button appears.
-  const pad = hero ? "py-5 pr-[160px] pl-7" : "py-4 pr-[146px] pl-6";
+  const pad = hero ? "py-5 pr-[212px] pl-7" : "py-4 pr-[192px] pl-6";
   const showClear = query.length >= CLEAR_MIN_LENGTH;
 
   /** Fetch the indexed cameras once; a failed load retries on the next open. */
@@ -95,16 +114,35 @@ export function QueryField({
     inputRef.current?.focus();
   };
 
-  const togglePicker = (event: MouseEvent<HTMLButtonElement>) => {
+  const togglePicker = (which: "cameras" | "time") => (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     setMenu(null);
-    setPickerOpen((open) => !open);
-    loadDirectory();
+    setTimeDraft(null);
+    setPicker((open) => (open === which ? null : which));
+    if (which === "cameras") loadDirectory();
   };
 
   const selectedCameras = camerasInQuery(query);
   const toggleCamera = (code: string) => () =>
     setQuery(selectedCameras.includes(code) ? withoutCamera(query, code) : withCamera(query, code));
+
+  const timeInText = timeInQuery(query);
+  const shownTime: TimeFilter = timeDraft ?? timeInText ?? { mode: "at", from: "" };
+  /** Write a picked time into the query, once it is complete; until then keep it here. */
+  const pickTime = (change: Partial<TimeFilter>) => {
+    const next = { ...shownTime, ...change };
+    const complete = next.from && (next.mode !== "between" || next.to);
+    if (complete) {
+      setQuery(withTime(query, next));
+      setTimeDraft(null);
+    } else {
+      setTimeDraft(next);
+    }
+  };
+  const clearTime = () => {
+    setQuery(withoutTime(query));
+    setTimeDraft(null);
+  };
 
   const cameraCodes = directory.status === "ready" ? directory.cameras.map((c) => c.code) : [];
   const directoryNote =
@@ -123,7 +161,7 @@ export function QueryField({
     if (!field) return;
     const r = event.currentTarget.getBoundingClientRect();
     const fr = field.getBoundingClientRect();
-    setPickerOpen(false);
+    setPicker(null);
     if (hit.def.id === "camera") loadDirectory();
     setMenu({
       hit,
@@ -159,7 +197,7 @@ export function QueryField({
         onClick={() => {
           inputRef.current?.focus();
           setMenu(null);
-          setPickerOpen(false);
+          setPicker(null);
         }}
         className={cn(
           "rounded-field relative z-20 w-full cursor-text",
@@ -244,7 +282,7 @@ export function QueryField({
           </div>
         ) : null}
 
-        {pickerOpen ? (
+        {picker === "cameras" ? (
           <div
             role="group"
             aria-label="Search in cameras"
@@ -294,6 +332,75 @@ export function QueryField({
           </div>
         ) : null}
 
+        {picker === "time" ? (
+          <div
+            role="group"
+            aria-label="Search at a time"
+            onClick={(event) => event.stopPropagation()}
+            className={cn(
+              "glass-panel rounded-chip absolute right-3 z-40 w-[272px] p-2",
+              hero ? "top-[64px]" : "top-[56px]",
+            )}
+          >
+            <div className="text-ink-3 px-2 pt-1 pb-1 font-mono text-[10px] tracking-[1px]">
+              SEARCH AT A TIME
+            </div>
+            <p className="text-ink-3 px-2 pb-2 text-[11px] leading-[1.45]">
+              Added to your question, on the cameras&apos; clock.
+            </p>
+            <div role="group" aria-label="When" className="grid grid-cols-4 gap-1 px-1 pb-2">
+              {TIME_MODES.map((mode) => {
+                const active = shownTime.mode === mode.value;
+                return (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => pickTime({ mode: mode.value })}
+                    className={cn(
+                      "cursor-pointer rounded-lg px-1 py-1.5 text-[12px]",
+                      active ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-accent-soft",
+                    )}
+                  >
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2 px-1 pb-1">
+              <input
+                type="time"
+                aria-label={shownTime.mode === "between" ? "From" : "Time"}
+                value={shownTime.from}
+                onChange={(event) => pickTime({ from: event.target.value })}
+                className="border-hairline text-ink bg-panel-solid min-w-0 flex-1 rounded-lg border px-2 py-1.5 font-mono text-[13px] outline-none focus:border-[var(--accent)]"
+              />
+              {shownTime.mode === "between" ? (
+                <>
+                  <span className="text-ink-3 text-[12px]">and</span>
+                  <input
+                    type="time"
+                    aria-label="To"
+                    value={shownTime.to ?? ""}
+                    onChange={(event) => pickTime({ to: event.target.value })}
+                    className="border-hairline text-ink bg-panel-solid min-w-0 flex-1 rounded-lg border px-2 py-1.5 font-mono text-[13px] outline-none focus:border-[var(--accent)]"
+                  />
+                </>
+              ) : null}
+            </div>
+            {timeInText ? (
+              <button
+                type="button"
+                onClick={clearTime}
+                className="text-ink-2 hover:bg-accent-soft mt-1 flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-[13px]"
+              >
+                <X size={13} strokeWidth={2.4} aria-hidden />
+                Clear time
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         <div
           className={cn(
             "absolute z-[3] flex items-center gap-2",
@@ -316,9 +423,9 @@ export function QueryField({
           ) : null}
           <button
             type="button"
-            onClick={togglePicker}
+            onClick={togglePicker("cameras")}
             aria-label="Choose cameras"
-            aria-expanded={pickerOpen}
+            aria-expanded={picker === "cameras"}
             title="Choose cameras"
             className={cn(
               "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",
@@ -327,6 +434,20 @@ export function QueryField({
             )}
           >
             <Cctv size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={togglePicker("time")}
+            aria-label="Choose a time"
+            aria-expanded={picker === "time"}
+            title="Choose a time"
+            className={cn(
+              "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",
+              timeInText ? "text-accent-strong border-accent-line" : "text-ink-2",
+              hero ? "size-11" : "size-[38px]",
+            )}
+          >
+            <Clock size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
           </button>
           <button
             type="button"
