@@ -1395,6 +1395,85 @@ describe("Results — new query", () => {
     expect(await within(queryBox()).findByText("loitering at night")).toBeInTheDocument();
   });
 
+  it("offers an icon-only Edit query button right before New Query", () => {
+    render(<ResultsScreen />);
+
+    const edit = within(queryBox()).getByRole("button", { name: "Edit query" });
+    expect(edit).toHaveAttribute("title", "Edit query");
+    expect(edit).toHaveTextContent("");
+    expect(edit.nextElementSibling).toBe(
+      within(queryBox()).getByRole("button", { name: "New Query" }),
+    );
+  });
+
+  it("opens the same dialog filled with the current query, cameras and time included", async () => {
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("who left on camera G328 at 7:00 pm"));
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Edit query" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Edit query" });
+    const input = within(dialog).getByRole("textbox", { name: "Search the camera network" });
+    expect(input).toHaveValue("who left on camera G328 at 7:00 pm");
+    expect(input).toHaveFocus();
+    expect((input as HTMLTextAreaElement).selectionStart).toBe(
+      "who left on camera G328 at 7:00 pm".length,
+    );
+    expect(within(dialog).getByRole("button", { name: "Choose a time" }).className).toContain(
+      "text-accent-strong",
+    );
+    expect(within(dialog).getByRole("button", { name: "Choose cameras" }).className).toContain(
+      "text-accent-strong",
+    );
+  });
+
+  it("re-runs the edited search and updates the query box", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    pushMock.mockClear();
+
+    await user.click(screen.getByRole("button", { name: "Edit query" }));
+    await user.keyboard(" at 7pm{Enter}");
+
+    expect(vi.mocked(searchClips).mock.lastCall?.[0]).toBe("red car at 7pm");
+    expect(pushMock).toHaveBeenCalledWith(resultsHref("red car at 7pm"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await within(queryBox()).findByText("red car at 7pm")).toBeInTheDocument();
+  });
+
+  it("changes nothing when the edit is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    vi.mocked(searchClips).mockClear();
+
+    await user.click(screen.getByRole("button", { name: "Edit query" }));
+    await user.keyboard(" loitering{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(useAppStore.getState().query).toBe("red car");
+    expect(within(queryBox()).getByText("red car")).toBeInTheDocument();
+    expect(searchClips).not.toHaveBeenCalled();
+  });
+
+  it("won't send an edited query that was emptied", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    vi.mocked(searchClips).mockClear();
+    pushMock.mockClear();
+
+    await user.click(screen.getByRole("button", { name: "Edit query" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit query" });
+    await user.click(within(dialog).getByRole("button", { name: "Clear search" }));
+    await user.keyboard("   {Enter}");
+    await user.click(within(dialog).getByRole("button", { name: "Search" }));
+
+    expect(screen.getByRole("dialog", { name: "Edit query" })).toBeInTheDocument();
+    expect(searchClips).not.toHaveBeenCalled();
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(useAppStore.getState().query).toBe("red car");
+  });
+
   it("drops a clip selection from the previous search", async () => {
     const user = userEvent.setup();
     render(<ResultsScreen />);

@@ -1,7 +1,14 @@
 "use client";
 
 import { Cctv, Check, Clock, Loader2, Search, X } from "lucide-react";
-import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 
 import { getCameras } from "@/lib/api/endpoints";
 import { camerasInQuery, withCamera, withoutCamera } from "@/lib/cameraQuery";
@@ -40,6 +47,8 @@ export interface QueryFieldProps {
   submitting?: boolean;
   /** `view-transition-name` of the field's box, for it to morph across screens. */
   transitionName?: string;
+  /** Opens on text to edit: the caret starts after it, not before it. */
+  caretAtEnd?: boolean;
 }
 
 /** Characters typed before the clear button appears — below this it is noise. */
@@ -78,6 +87,7 @@ export function QueryField({
   onSubmit,
   submitting = false,
   transitionName,
+  caretAtEnd = false,
 }: QueryFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -92,6 +102,14 @@ export function QueryField({
   const controlled = value !== undefined && onChange !== undefined;
   const query = controlled ? value : storeQuery;
   const setQuery = controlled ? onChange : setStoreQuery;
+
+  // Before the dialog's focus lands (a parent's effect runs after this one).
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (caretAtEnd && input) input.setSelectionRange(input.value.length, input.value.length);
+    // Only on opening: later the caret is the user's.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const hero = variant === "hero";
   // Right padding reserves room for the overlaid buttons. It is fixed — not per
