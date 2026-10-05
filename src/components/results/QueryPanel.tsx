@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Plus, Send } from "lucide-react";
+import { Pencil, Play, Plus, Send } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
@@ -65,7 +65,9 @@ export function QueryPanel({
   hidden = false,
 }: QueryPanelProps) {
   const [draft, setDraft] = useState("");
-  const [newQueryOpen, setNewQueryOpen] = useState(false);
+  /** The New Query dialog: empty for a new search, or starting from this one to edit it. */
+  const [queryDialog, setQueryDialogState] = useState<"new" | "edit" | null>(null);
+  const newQueryOpen = queryDialog !== null;
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,8 +76,8 @@ export function QueryPanel({
 
   /** The dialog opens and closes as a view transition: YOUR QUERY grows into its field
    *  and back. `flushSync`, so the browser captures the new state right away. */
-  const setNewQuery = (open: boolean) =>
-    withViewTransition(() => flushSync(() => setNewQueryOpen(open)));
+  const setQueryDialog = (dialog: "new" | "edit" | null) =>
+    withViewTransition(() => flushSync(() => setQueryDialogState(dialog)));
 
   const chat = useAppStore((state) => state.chats.results) ?? EMPTY_THREAD;
   const askInResults = useAppStore((state) => state.askInResults);
@@ -180,7 +182,16 @@ export function QueryPanel({
           </div>
           <button
             type="button"
-            onClick={() => setNewQuery(true)}
+            onClick={() => setQueryDialog("edit")}
+            aria-label="Edit query"
+            title="Edit query"
+            className="glass-card-flat text-ink-2 hover:text-ink flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full"
+          >
+            <Pencil size={14} strokeWidth={2.2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => setQueryDialog("new")}
             className="surface-action shadow-action flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full pr-3.5 pl-2.5 font-sans text-[12px]"
           >
             <Plus size={14} strokeWidth={2.2} aria-hidden />
@@ -189,7 +200,12 @@ export function QueryPanel({
         </div>
       </div>
 
-      {newQueryOpen ? <NewQueryModal onClose={() => setNewQuery(false)} /> : null}
+      {queryDialog ? (
+        <NewQueryModal
+          onClose={() => setQueryDialog(null)}
+          initialQuery={queryDialog === "edit" ? query : undefined}
+        />
+      ) : null}
 
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         {chat.map((message, index) => {

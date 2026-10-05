@@ -1408,6 +1408,88 @@ describe("Results — new query", () => {
   });
 });
 
+describe("Results — edit query", () => {
+  beforeEach(async () => {
+    await act(() => useAppStore.getState().runSearch("who left on camera G328 at 7:00 pm"));
+  });
+
+  const queryBox = () => screen.getByRole("group", { name: "Your query" });
+  const editButton = () => within(queryBox()).getByRole("button", { name: "Edit query" });
+
+  it("puts an icon-only Edit query button right before New Query", () => {
+    render(<ResultsScreen />);
+
+    expect(editButton()).toHaveAttribute("title", "Edit query");
+    expect(editButton()).toHaveTextContent("");
+    expect(editButton().nextElementSibling).toBe(
+      within(queryBox()).getByRole("button", { name: "New Query" }),
+    );
+  });
+
+  it("opens the New Query dialog with the current query, cameras and time included", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(editButton());
+
+    const dialog = screen.getByRole("dialog", { name: "Edit query" });
+    const input = within(dialog).getByRole("textbox", { name: "Search the camera network" });
+    expect(input).toHaveValue("who left on camera G328 at 7:00 pm");
+    expect(input).toHaveFocus();
+    expect((input as HTMLTextAreaElement).selectionStart).toBe(
+      "who left on camera G328 at 7:00 pm".length,
+    );
+  });
+
+  it("re-runs the edited search and updates the bar", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    pushMock.mockClear();
+
+    await user.click(editButton());
+    const dialog = screen.getByRole("dialog", { name: "Edit query" });
+    const input = within(dialog).getByRole("textbox", { name: "Search the camera network" });
+    await user.clear(input);
+    await user.type(input, "who left on camera G420 after 8:00 pm{Enter}");
+
+    expect(vi.mocked(searchClips).mock.lastCall?.[0]).toBe("who left on camera G420 after 8:00 pm");
+    expect(pushMock).toHaveBeenCalledWith(resultsHref("who left on camera G420 after 8:00 pm"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      await within(queryBox()).findByText("who left on camera G420 after 8:00 pm"),
+    ).toBeInTheDocument();
+  });
+
+  it("changes nothing when cancelled", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    const searches = vi.mocked(searchClips).mock.calls.length;
+
+    await user.click(editButton());
+    await user.keyboard(" yesterday");
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(useAppStore.getState().query).toBe("who left on camera G328 at 7:00 pm");
+    expect(vi.mocked(searchClips).mock.calls.length).toBe(searches);
+  });
+
+  it("does not send an empty query", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    const searches = vi.mocked(searchClips).mock.calls.length;
+
+    await user.click(editButton());
+    const dialog = screen.getByRole("dialog", { name: "Edit query" });
+    const input = within(dialog).getByRole("textbox", { name: "Search the camera network" });
+    await user.clear(input);
+    await user.type(input, "   {Enter}");
+
+    expect(screen.getByRole("dialog", { name: "Edit query" })).toBeInTheDocument();
+    expect(vi.mocked(searchClips).mock.calls.length).toBe(searches);
+  });
+});
+
 describe("Results with real footage", () => {
   const moment = (overrides: Partial<Clip>): Clip => ({
     id: "",
