@@ -353,7 +353,8 @@ export function LandingPage() {
               <ul className="text-ink-2 flex list-disc flex-col gap-2 pl-5 text-[15px] leading-[1.6]">
                 <li>No query syntax: describe the event in plain words.</li>
                 <li>
-                  Detected terms, like people or vehicles, become filters you can retune inline.
+                  Name the cameras in the question, like G328, or pick them. Detected terms can be
+                  retuned inline.
                 </li>
                 <li>Recent and saved queries run again in one click.</li>
               </ul>

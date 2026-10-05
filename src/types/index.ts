@@ -54,22 +54,9 @@ export interface CameraDirectoryEntry {
   scene?: string;
 }
 
-export type SearchMode = "nlq" | "classic";
-
 /** Dark-mode accent palette; has no effect while the active theme is light. */
 export type Palette =
   "violet" | "slate" | "amber" | "linen" | "lavender" | "magic" | "sea" | "blues";
-
-export interface Filters {
-  cameras: string[];
-  /** Sites within the facility (`bronze.videos.scene`). */
-  scenes: string[];
-  tags: ClipTag[];
-  /** Minimum confidence, 0-100. */
-  confidence: number;
-  dateFrom: string;
-  dateTo: string;
-}
 
 export type KeywordKind = "tag" | "time" | "camera";
 

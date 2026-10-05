@@ -3,7 +3,6 @@
 import { DEFAULT_PALETTE, PALETTES, usePalette } from "@/components/theme/ThemeProvider";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
-import type { SearchMode } from "@/types";
 
 /** The palettes as Settings lists them: the default first, the rest in their usual order.
  *  Derived from DEFAULT_PALETTE, so changing the default updates the list too. */
@@ -16,31 +15,8 @@ const SECTION = "rounded-card glass-card-flat mb-4 p-5";
 const HEADING = "text-ink mb-1 text-[15px] font-semibold";
 const HINT = "text-ink-2 mb-3.5 text-xs";
 
-interface ModeOption {
-  value: SearchMode;
-  title: string;
-  description: string;
-}
-
-const modeOptions: ModeOption[] = [
-  {
-    value: "nlq",
-    title: "Natural language query",
-    description:
-      "Type freely — the assistant detects keywords and surfaces filters inline as you type.",
-  },
-  {
-    value: "classic",
-    title: "Classic filters",
-    description:
-      "Use the Filters button to set camera, date range, confidence and event type manually.",
-  },
-];
-
-/** Settings as its own page (was a modal): search mode and appearance. */
+/** Settings as its own page (was a modal): appearance. Search is natural language only. */
 export function SettingsScreen() {
-  const searchMode = useAppStore((state) => state.searchMode);
-  const setSearchMode = useAppStore((state) => state.setSearchMode);
   const theme = useAppStore((state) => state.theme);
   const { palette, setPalette } = usePalette();
 
@@ -49,45 +25,7 @@ export function SettingsScreen() {
   return (
     <div className="mx-auto w-full max-w-[760px] px-8 pt-12 pb-15">
       <h1 className="mb-1.5 text-2xl font-bold">Settings</h1>
-      <p className="text-ink-2 mb-7 text-sm">
-        How you search the camera network, and how it looks.
-      </p>
-
-      <section aria-labelledby="settings-mode" className={SECTION}>
-        <h2 id="settings-mode" className={HEADING}>
-          Search mode
-        </h2>
-        <p className={HINT}>Choose how you search the camera network.</p>
-        <div role="radiogroup" aria-label="Search mode" className="flex flex-col gap-2.5">
-          {modeOptions.map((option) => {
-            const active = searchMode === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setSearchMode(option.value)}
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-md border p-3.5 text-left transition-colors duration-150",
-                  active ? "border-accent-line bg-accent-soft" : "border-hairline bg-transparent",
-                )}
-              >
-                <span
-                  aria-hidden
-                  className="border-accent-line mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
-                >
-                  {active ? <span className="bg-accent size-2 rounded-full" /> : null}
-                </span>
-                <span>
-                  <span className="mb-[3px] block text-sm font-semibold">{option.title}</span>
-                  <span className="text-ink-2 block text-xs">{option.description}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <p className="text-ink-2 mb-7 text-sm">How the app looks.</p>
 
       <section aria-labelledby="settings-appearance" className={SECTION}>
         <h2 id="settings-appearance" className={HEADING}>

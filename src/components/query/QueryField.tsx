@@ -1,19 +1,14 @@
 "use client";
 
-import { Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import { Cctv, Check, Loader2, Search, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
+import { getCameras } from "@/lib/api/endpoints";
+import { camerasInQuery, withCamera, withoutCamera } from "@/lib/cameraQuery";
 import { cn } from "@/lib/cn";
-import {
-  CAMERA_FOR_PHRASE,
-  CONFIDENCE_FOR_PHRASE,
-  TAG_FOR_PHRASE,
-  replaceRange,
-  toSegments,
-  type EntityHit,
-} from "@/lib/entities";
+import { replaceRange, toSegments, type EntityHit } from "@/lib/entities";
 import { useAppStore } from "@/store/useAppStore";
-import type { ClipTag } from "@/types";
+import type { CameraDirectoryEntry } from "@/types";
 
 interface MenuState {
   hit: EntityHit;
@@ -43,19 +38,9 @@ export interface QueryFieldProps {
 /** Characters typed before the clear button appears — below this it is noise. */
 const CLEAR_MIN_LENGTH = 3;
 
-/** The phrase map is authored as plain strings; narrow it back to the domain union. */
-const CLIP_TAGS: readonly ClipTag[] = [
-  "Person",
-  "Vehicle",
-  "Entry",
-  "Exit",
-  "Loitering",
-  "Object Left",
-];
-
-function asClipTag(value: string | undefined): ClipTag | undefined {
-  return CLIP_TAGS.find((tag) => tag === value);
-}
+/** The indexed cameras, loaded the first time a camera list is opened. */
+type Directory =
+  { status: "idle" | "loading" | "error" } | { status: "ready"; cameras: CameraDirectoryEntry[] };
 
 /**
  * The tokenized query field: a highlight overlay (z-2, pointer-events-none except tokens)
@@ -63,6 +48,10 @@ function asClipTag(value: string | undefined): ClipTag | undefined {
  * Detected terms are dashed-underlined in --token-ink and open a dropdown on click. Their
  * emphasis is a text stroke, NOT font-weight: bold glyphs are wider than the textarea's
  * regular ones, which would push the visible text ahead of the (textarea-owned) caret.
+ *
+ * Cameras are part of the text too: a typed code (`G328`) is a token that swaps for any
+ * indexed camera, and the camera picker writes or removes "on cameras …" in the query.
+ * The RAG reads them from there; nothing is sent as a separate filter.
  */
 export function QueryField({
   variant = "hero",
@@ -76,32 +65,56 @@ export function QueryField({
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [directory, setDirectory] = useState<Directory>({ status: "idle" });
 
   const storeQuery = useAppStore((s) => s.query);
   const setStoreQuery = useAppStore((s) => s.setQuery);
   const controlled = value !== undefined && onChange !== undefined;
   const query = controlled ? value : storeQuery;
   const setQuery = controlled ? onChange : setStoreQuery;
-  const classicMode = useAppStore((s) => s.searchMode === "classic");
-  const openFilters = useAppStore((s) => s.openFilters);
-  const setCameras = useAppStore((s) => s.setCameras);
-  const addTag = useAppStore((s) => s.addTag);
-  const setConfidence = useAppStore((s) => s.setConfidence);
 
   const hero = variant === "hero";
-  // Right padding reserves room for the overlaid buttons. Classic mode adds Filters, so
-  // it reserves more. It is fixed per mode — not per clear-button visibility — so the
-  // text never reflows when the clear button appears.
-  const pad = hero
-    ? cn("py-5 pl-7", classicMode ? "pr-[160px]" : "pr-[130px]")
-    : cn("py-4 pl-6", classicMode ? "pr-[146px]" : "pr-[118px]");
+  // Right padding reserves room for the overlaid buttons. It is fixed — not per
+  // clear-button visibility — so the text never reflows when the clear button appears.
+  const pad = hero ? "py-5 pr-[160px] pl-7" : "py-4 pr-[146px] pl-6";
   const showClear = query.length >= CLEAR_MIN_LENGTH;
+
+  /** Fetch the indexed cameras once; a failed load retries on the next open. */
+  const loadDirectory = () => {
+    if (directory.status === "ready" || directory.status === "loading") return;
+    setDirectory({ status: "loading" });
+    getCameras()
+      .then((cameras) => setDirectory({ status: "ready", cameras }))
+      .catch(() => setDirectory({ status: "error" }));
+  };
 
   const clear = () => {
     setQuery("");
     setMenu(null);
     inputRef.current?.focus();
   };
+
+  const togglePicker = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setMenu(null);
+    setPickerOpen((open) => !open);
+    loadDirectory();
+  };
+
+  const selectedCameras = camerasInQuery(query);
+  const toggleCamera = (code: string) => () =>
+    setQuery(selectedCameras.includes(code) ? withoutCamera(query, code) : withCamera(query, code));
+
+  const cameraCodes = directory.status === "ready" ? directory.cameras.map((c) => c.code) : [];
+  const directoryNote =
+    directory.status === "error"
+      ? "Couldn't load the cameras."
+      : directory.status === "ready" && cameraCodes.length === 0
+        ? "No cameras indexed yet."
+        : directory.status !== "ready"
+          ? "Loading cameras…"
+          : null;
   const text = hero ? "text-base leading-[1.7]" : "text-[15px] leading-[1.6]";
 
   const openMenu = (hit: EntityHit) => (event: MouseEvent<HTMLSpanElement>) => {
@@ -110,6 +123,8 @@ export function QueryField({
     if (!field) return;
     const r = event.currentTarget.getBoundingClientRect();
     const fr = field.getBoundingClientRect();
+    setPickerOpen(false);
+    if (hit.def.id === "camera") loadDirectory();
     setMenu({
       hit,
       top: r.bottom - fr.top + 8,
@@ -117,27 +132,10 @@ export function QueryField({
     });
   };
 
-  const applyFilter = (kind: EntityHit["def"]["id"], phrase: string) => {
-    const key = phrase.toLowerCase();
-    if (kind === "camera") {
-      const code = CAMERA_FOR_PHRASE[key];
-      if (code) setCameras([code]);
-      return;
-    }
-    if (kind === "confidence") {
-      const value = CONFIDENCE_FOR_PHRASE[key];
-      if (value !== undefined) setConfidence(value);
-      return;
-    }
-    const tag = asClipTag(TAG_FOR_PHRASE[key]);
-    if (tag) addTag(tag);
-  };
-
   const choose = (label: string) => () => {
     if (!menu) return;
     const { hit } = menu;
     setQuery(replaceRange(query, hit.start, hit.end, label));
-    applyFilter(hit.def.id, label);
     setMenu(null);
     const caret = hit.start + label.length;
     requestAnimationFrame(() => {
@@ -161,6 +159,7 @@ export function QueryField({
         onClick={() => {
           inputRef.current?.focus();
           setMenu(null);
+          setPickerOpen(false);
         }}
         className={cn(
           "rounded-field relative z-20 w-full cursor-text",
@@ -222,7 +221,10 @@ export function QueryField({
             <div className="text-ink-3 px-2 pt-1 pb-2 font-mono text-[10px] tracking-[1px]">
               {menu.hit.def.title}
             </div>
-            {menu.hit.def.options.map((option) => {
+            {menu.hit.def.id === "camera" && directoryNote ? (
+              <p className="text-ink-3 px-2.5 py-2 text-[13px]">{directoryNote}</p>
+            ) : null}
+            {(menu.hit.def.id === "camera" ? cameraCodes : menu.hit.def.options).map((option) => {
               const current =
                 query.slice(menu.hit.start, menu.hit.end).toLowerCase() === option.toLowerCase();
               return (
@@ -239,6 +241,56 @@ export function QueryField({
                 </button>
               );
             })}
+          </div>
+        ) : null}
+
+        {pickerOpen ? (
+          <div
+            role="group"
+            aria-label="Search in cameras"
+            onClick={(event) => event.stopPropagation()}
+            className={cn(
+              "glass-panel rounded-chip absolute right-3 z-40 w-[248px] p-2",
+              hero ? "top-[64px]" : "top-[56px]",
+            )}
+          >
+            <div className="text-ink-3 px-2 pt-1 pb-1 font-mono text-[10px] tracking-[1px]">
+              SEARCH IN CAMERAS
+            </div>
+            <p className="text-ink-3 px-2 pb-2 text-[11px] leading-[1.45]">
+              Added to your question, so the assistant searches only these.
+            </p>
+            {directoryNote ? (
+              <p className="text-ink-3 px-2.5 py-2 text-[13px]">{directoryNote}</p>
+            ) : null}
+            <div className="max-h-[220px] overflow-y-auto">
+              {directory.status === "ready"
+                ? directory.cameras.map((camera) => {
+                    const picked = selectedCameras.includes(camera.code);
+                    return (
+                      <button
+                        key={camera.code}
+                        type="button"
+                        aria-pressed={picked}
+                        aria-label={camera.code}
+                        onClick={toggleCamera(camera.code)}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px]",
+                          picked ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-accent-soft",
+                        )}
+                      >
+                        <span className="font-mono font-semibold">{camera.code}</span>
+                        {camera.scene ? (
+                          <span className="text-ink-3 font-mono text-[11px]">{camera.scene}</span>
+                        ) : null}
+                        {picked ? (
+                          <Check size={14} strokeWidth={2.4} aria-hidden className="ml-auto" />
+                        ) : null}
+                      </button>
+                    );
+                  })
+                : null}
+            </div>
           </div>
         ) : null}
 
@@ -262,19 +314,20 @@ export function QueryField({
               <X size={hero ? 17 : 15} strokeWidth={2.2} aria-hidden />
             </button>
           ) : null}
-          {classicMode ? (
-            <button
-              type="button"
-              onClick={openFilters}
-              aria-label="Filters"
-              className={cn(
-                "glass-card-flat text-ink-2 flex cursor-pointer items-center justify-center rounded-full",
-                hero ? "size-11" : "size-[38px]",
-              )}
-            >
-              <SlidersHorizontal size={hero ? 18 : 16} strokeWidth={2} />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={togglePicker}
+            aria-label="Choose cameras"
+            aria-expanded={pickerOpen}
+            title="Choose cameras"
+            className={cn(
+              "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",
+              selectedCameras.length > 0 ? "text-accent-strong border-accent-line" : "text-ink-2",
+              hero ? "size-11" : "size-[38px]",
+            )}
+          >
+            <Cctv size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
+          </button>
           <button
             type="button"
             onClick={onSubmit}
