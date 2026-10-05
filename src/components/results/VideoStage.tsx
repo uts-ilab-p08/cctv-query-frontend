@@ -20,6 +20,8 @@ interface VideoStageProps {
   /** Loaded video's length; unused when the moment has no footage. */
   duration: number;
   cueKey: string;
+  /** Second to cue on `cueKey` changes; the moment's start when omitted. */
+  cueAt?: number;
   seekRequest: SeekRequest | null;
   onTimeUpdate: (sec: number) => void;
   onDuration: (sec: number) => void;
@@ -48,6 +50,7 @@ export function VideoStage({
   ticks,
   duration,
   cueKey,
+  cueAt,
   seekRequest,
   onTimeUpdate,
   onDuration,
@@ -71,7 +74,7 @@ export function VideoStage({
           {clip.videoUrl ? (
             <MatchVideo
               src={clip.videoUrl}
-              cueAt={clip.startSeconds ?? 0}
+              cueAt={cueAt ?? clip.startSeconds ?? 0}
               cueKey={cueKey}
               seekRequest={seekRequest}
               playing={playing}

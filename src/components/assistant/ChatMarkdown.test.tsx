@@ -51,6 +51,54 @@ describe("ChatMarkdown", () => {
     expect(opened).toEqual(["b"]);
   });
 
+  it("turns a time the answer names into a link that plays its moment there", async () => {
+    const played: Array<[string, number]> = [];
+    const moments = [
+      {
+        id: "evt-1",
+        camera: "G638",
+        code: "G638",
+        ts: "1:12",
+        date: "",
+        order: 0,
+        confidence: 90,
+        tags: [],
+        objects: "",
+        action: "Person stands",
+        ref: 1,
+        videoId: "v638",
+        captureStartLocal: "2018-03-05T16:50:00",
+        startSeconds: 72,
+        endSeconds: 82,
+      },
+    ];
+    render(
+      <ChatMarkdown
+        text="A person stands at 16:51:12–16:51:22 [1]."
+        source={(ref) =>
+          ref === 1 ? { id: "evt-1", label: "Person stands · G638 · 1:12" } : undefined
+        }
+        moments={moments}
+        onOpenTime={(id, sec) => played.push([id, sec])}
+      />,
+    );
+
+    const link = screen.getByRole("button", { name: "Play G638 at 16:51:12–16:51:22" });
+    expect(link).toHaveTextContent("16:51:12–16:51:22");
+    link.click();
+    expect(played).toEqual([["evt-1", 72]]);
+    // The citation after it is still its own chip.
+    expect(
+      screen.getByRole("button", { name: "Source 1: Person stands · G638 · 1:12" }),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves times as text when the chat can't play them", () => {
+    render(<ChatMarkdown text="Seen at 16:51:12." />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText("Seen at 16:51:12.")).toBeInTheDocument();
+  });
+
   it("leaves a citation as plain text when no moment matches it", () => {
     const { container } = render(
       <ChatMarkdown text="Also seen [9]." source={() => undefined} onOpenSource={() => {}} />,

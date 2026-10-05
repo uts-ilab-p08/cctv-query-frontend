@@ -1567,6 +1567,55 @@ describe("Results with real footage", () => {
     expect(footage().getAttribute("src")).toBe("https://cdn.test/a.mp4");
     expect(footage().currentTime).toBe(40);
   });
+
+  describe("times the answer names", () => {
+    // Video a starts at 16:50:00 on its camera: 16:50:45 is 45 s in, near Moment B (40 s).
+    const clock = { captureStartLocal: "2018-03-05T16:50:00" };
+
+    beforeEach(async () => {
+      vi.mocked(searchClips).mockResolvedValueOnce({
+        clips: [
+          clipC,
+          { ...clipA, ...clock },
+          { ...clipB, ...clock, camera: "G328", code: "G328" },
+        ],
+        summary: "On G328, a person leaves at 16:50:45.",
+      });
+      await act(() => useAppStore.getState().runSearch("who left"));
+    });
+
+    it("plays the moment from the second the answer names", async () => {
+      const user = userEvent.setup();
+      render(<ResultsScreen />);
+      await loadMetadata(footage());
+
+      await user.click(await screen.findByRole("button", { name: "Play G328 at 16:50:45" }));
+
+      expect(footage().getAttribute("src")).toBe("https://cdn.test/a.mp4");
+      expect(footage().currentTime).toBe(45);
+      expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+      // The moment is selected, so the assistant narrows to it.
+      expect(screen.queryByText("Top 5 matches")).not.toBeInTheDocument();
+    });
+
+    it("loads another video first when the time is in it", async () => {
+      const user = userEvent.setup();
+      vi.mocked(searchClips).mockResolvedValueOnce({
+        clips: [{ ...clipC, captureStartLocal: "2018-03-05T09:00:00" }, clipA, clipB],
+        summary: "Seen at 09:00:07.",
+      });
+      await act(() => useAppStore.getState().runSearch("seen"));
+      render(<ResultsScreen />);
+      await loadMetadata(footage());
+
+      await user.click(await screen.findByRole("button", { name: /at 09:00:07/ }));
+
+      const video = footage();
+      expect(video.getAttribute("src")).toBe("https://cdn.test/b.mp4");
+      await loadMetadata(video);
+      expect(video.currentTime).toBe(7);
+    });
+  });
 });
 
 describe("Clip detail", () => {

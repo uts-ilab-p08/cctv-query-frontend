@@ -45,6 +45,8 @@ interface QueryPanelProps {
   contextLabel: string;
   onClearSelection: () => void;
   onJumpToClip: (id: string) => void;
+  /** Play a moment from a second of its video: a camera time the answer named. */
+  onPlayAt: (id: string, sec: number) => void;
   /** Collapsed for the expanded-video view. Hidden rather than unmounted, so the
    *  draft, the scroll position and the New Query dialog state survive. */
   hidden?: boolean;
@@ -59,6 +61,7 @@ export function QueryPanel({
   contextLabel,
   onClearSelection,
   onJumpToClip,
+  onPlayAt,
   hidden = false,
 }: QueryPanelProps) {
   const [draft, setDraft] = useState("");
@@ -135,9 +138,18 @@ export function QueryPanel({
     },
     [results],
   );
+  // Camera times it names (16:51:12) become links that play their moment from there.
   const formatAnswer = useCallback(
-    (text: string) => <ChatMarkdown text={text} source={sourceFor} onOpenSource={onJumpToClip} />,
-    [sourceFor, onJumpToClip],
+    (text: string) => (
+      <ChatMarkdown
+        text={text}
+        source={sourceFor}
+        onOpenSource={onJumpToClip}
+        moments={results}
+        onOpenTime={onPlayAt}
+      />
+    ),
+    [sourceFor, onJumpToClip, results, onPlayAt],
   );
 
   const ask = (text: string) => {
