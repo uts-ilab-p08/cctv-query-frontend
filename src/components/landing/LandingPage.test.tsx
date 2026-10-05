@@ -172,6 +172,8 @@ describe("LandingPage", () => {
       expect(link).toHaveAttribute("href", `https://github.com/${handle}`);
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      // The whole card is the link, not only the @handle line.
+      expect(link).toHaveTextContent(name);
     }
   });
 

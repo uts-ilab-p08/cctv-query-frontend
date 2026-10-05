@@ -61,9 +61,16 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
   return (
     <div className="bg-canvas text-ink flex min-h-screen flex-col lg:flex-row">
       <div className="bg-panel-solid border-hairline relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 lg:basis-[52%] lg:px-11">
+        {/* Same two glows as the landing hero. */}
         <div
-          className="pointer-events-none absolute -top-[140px] -left-[100px] h-[460px] w-[460px] rounded-full"
+          aria-hidden
+          className="pointer-events-none absolute -top-[340px] -left-[280px] h-[900px] w-[900px] rounded-full"
           style={{ background: "radial-gradient(circle, var(--glow-1), transparent 70%)" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[-240px] bottom-[-360px] h-[1000px] w-[1000px] rounded-full"
+          style={{ background: "radial-gradient(circle, var(--glow-2), transparent 70%)" }}
         />
 
         <Link href="/" className="relative self-start no-underline">

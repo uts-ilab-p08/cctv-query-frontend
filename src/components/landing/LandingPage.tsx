@@ -162,12 +162,12 @@ export function LandingPage() {
       <section className="relative overflow-hidden px-7 pt-16 pb-20 lg:pt-20 lg:pb-24">
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-[220px] -left-[160px] h-[560px] w-[560px] rounded-full"
+          className="pointer-events-none absolute -top-[340px] -left-[280px] h-[900px] w-[900px] rounded-full"
           style={{ background: "radial-gradient(circle, var(--glow-1), transparent 70%)" }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute right-[-120px] bottom-[-220px] h-[620px] w-[620px] rounded-full"
+          className="pointer-events-none absolute right-[-240px] bottom-[-360px] h-[1000px] w-[1000px] rounded-full"
           style={{ background: "radial-gradient(circle, var(--glow-2), transparent 70%)" }}
         />
         <div
@@ -469,29 +469,29 @@ export function LandingPage() {
           </p>
           <ul className="grid list-none [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] gap-[14px] p-0">
             {TEAM.map((member) => (
-              <li
-                key={member.handle}
-                className="glass-card-flat flex items-center gap-3.5 rounded-xl p-4"
-              >
-                <span
-                  aria-hidden
-                  className="border-accent-line bg-accent-soft text-accent-strong flex size-11 shrink-0 items-center justify-center rounded-full border font-mono text-[13px] font-semibold"
+              <li key={member.handle}>
+                {/* The whole card is the link, so any point on it opens the profile. */}
+                <a
+                  href={`https://github.com/${member.handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${member.name} on GitHub (@${member.handle})`}
+                  className="group/member glass-card-flat hover:border-accent-line flex h-full items-center gap-3.5 rounded-xl p-4 transition-colors duration-150"
                 >
-                  {initials(member.name)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-ink truncate text-[15px] font-semibold">{member.name}</p>
-                  <p className="text-ink-2 truncate text-[13px]">{member.role}</p>
-                  <a
-                    href={`https://github.com/${member.handle}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${member.name} on GitHub (@${member.handle})`}
-                    className="text-ink-3 hover:text-accent-strong mt-1 inline-flex items-center gap-1.5 font-mono text-[12px] transition-colors duration-150"
+                  <span
+                    aria-hidden
+                    className="border-accent-line bg-accent-soft text-accent-strong flex size-11 shrink-0 items-center justify-center rounded-full border font-mono text-[13px] font-semibold"
                   >
-                    <Github size={13} strokeWidth={2} aria-hidden />@{member.handle}
-                  </a>
-                </div>
+                    {initials(member.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-ink truncate text-[15px] font-semibold">{member.name}</p>
+                    <p className="text-ink-2 truncate text-[13px]">{member.role}</p>
+                    <span className="text-ink-3 group-hover/member:text-accent-strong mt-1 inline-flex items-center gap-1.5 font-mono text-[12px] transition-colors duration-150">
+                      <Github size={13} strokeWidth={2} aria-hidden />@{member.handle}
+                    </span>
+                  </div>
+                </a>
               </li>
             ))}
           </ul>

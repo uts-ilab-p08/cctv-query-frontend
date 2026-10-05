@@ -581,9 +581,9 @@
 /* ---------- light ---------- */
 [data-theme="light"] {
   --bg: #e9e9ec;
-  --glow-1: rgb(91 70 245 / 0.1);
-  --glow-2: rgb(249 106 58 / 0.1);
-  --glow-3: rgb(47 109 246 / 0.08);
+  --glow-1: rgb(4 102 200 / 0.22);
+  --glow-2: rgb(249 106 58 / 0.18);
+  --glow-3: rgb(47 109 246 / 0.16);
 
   --panel: linear-gradient(
     180deg,
@@ -600,8 +600,8 @@
   );
   --topbar: linear-gradient(0deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.72));
   --btn-bg: linear-gradient(0deg, #111114, #111114);
-  --brand-grad: linear-gradient(135deg, #5b46f5, #f96a3a);
-  --brand: #5b46f5;
+  --brand-grad: linear-gradient(135deg, #0466c8, #f96a3a);
+  --brand: #0466c8;
 
   --panel-strong: rgb(255 255 255 / 0.96);
   --panel-solid: #ffffff;
@@ -613,10 +613,10 @@
   --text-2: #55555f;
   /* #8a8a94 was 2.8:1 on --bg; this clears 4.5:1 on --bg and white (theme-contrast.test.ts). */
   --text-3: #65656f;
-  --accent: #5b46f5;
-  --accent-strong: #3a28c9;
-  --accent-soft: rgb(91 70 245 / 0.1);
-  --accent-line: rgb(91 70 245 / 0.28);
+  --accent: #0466c8;
+  --accent-strong: #034d9c;
+  --accent-soft: rgb(4 102 200 / 0.1);
+  --accent-line: rgb(4 102 200 / 0.28);
   --token-ink: #000000;
   --token-line: rgb(17 17 20 / 0.32);
   --btn-ink: #ffffff;
@@ -625,7 +625,7 @@
   --warn: #b45309;
   --bad: #be123c;
   --scrim: rgb(17 17 20 / 0.28);
-  --chat-user-bg: linear-gradient(135deg, rgb(91 70 245 / 0.12), rgb(249 106 58 / 0.08));
+  --chat-user-bg: linear-gradient(135deg, rgb(4 102 200 / 0.12), rgb(249 106 58 / 0.08));
   --nav-ink-active: #111114;
   --nav-ink: #5c5c66;
 
