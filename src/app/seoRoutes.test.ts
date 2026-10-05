@@ -13,6 +13,7 @@ const PRIVATE = [
   "/saved",
   "/settings",
   "/pipeline",
+  "/cameras",
   "/clips",
   "/profile",
 ];

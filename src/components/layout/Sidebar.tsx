@@ -2,7 +2,7 @@
 
 import {
   Bookmark,
-  Layers,
+  Cctv,
   Loader2,
   LogOut,
   PanelLeftClose,
@@ -38,7 +38,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     match: ["/dashboard", "/results", "/clips"],
   },
   { href: "/saved", label: "Saved Queries", icon: Bookmark, match: ["/saved"] },
-  { href: "/pipeline", label: "Annotation Pipeline", icon: Layers, match: ["/pipeline"] },
+  { href: "/cameras", label: "Indexed Cameras", icon: Cctv, match: ["/cameras"] },
   { href: "/settings", label: "Settings", icon: Settings, match: ["/settings"] },
 ];
 
