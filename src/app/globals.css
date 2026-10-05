@@ -295,10 +295,11 @@
   --token-line: rgb(238 233 225 / 0.45);
   --btn-ink: #3e4532;
   --btn-solid: #e1dcd1;
-  --ok: #7ac943;
+  /* Lighter than the other palettes' green and red: #7ac943 and #ff9d8f are under
+     4.5:1 on this panel, and #ff5a4d under 3.3:1 on this background. */
+  --ok: #93d86a;
   --warn: #ffc400;
-  /* Lighter than the other palettes' red: #ff5a4d is under 3.3:1 on this background. */
-  --bad: #ff9d8f;
+  --bad: #ffb4a8;
   --scrim: rgb(24 27 19 / 0.62);
   --chat-user-bg: linear-gradient(135deg, rgb(106 93 72 / 0.5), rgb(86 95 71 / 0.4));
   --nav-ink-active: #eee9e1;
@@ -621,9 +622,15 @@
   --token-line: rgb(17 17 20 / 0.32);
   --btn-ink: #ffffff;
   --btn-solid: #111114;
-  --ok: #15803d;
-  --warn: #b45309;
+  /* #15803d and #b45309 were 4.1:1 on --bg; these clear 4.5:1 on --bg and white. */
+  --ok: #166534;
+  --warn: #92400e;
   --bad: #be123c;
+  /* The inks above are for white surfaces and blur together on the dark score chip;
+     there it takes the dark palettes' status colours. */
+  --ok-on-media: #34d399;
+  --warn-on-media: #fbbf24;
+  --bad-on-media: #fb7185;
   --scrim: rgb(17 17 20 / 0.28);
   --chat-user-bg: linear-gradient(135deg, rgb(4 102 200 / 0.12), rgb(249 106 58 / 0.08));
   --nav-ink-active: #111114;
@@ -640,6 +647,18 @@
   --shadow-lg: 0 28px 70px rgb(17 17 20 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.7);
   --shadow-accent: 0 12px 28px rgb(17 17 20 / 0.2);
   color-scheme: light;
+}
+
+/* Status colours over footage: the score chip on a thumbnail is a fixed dark surface
+   (--media-chip), whatever the theme. Every dark palette's status colours read on it
+   as they are; the light theme's are inks for white surfaces and swaps in its own
+   (see [data-theme="light"]). Checked over a white and a black frame in
+   theme-contrast.test.ts. */
+html {
+  --ok-on-media: var(--ok);
+  --warn-on-media: var(--warn);
+  --bad-on-media: var(--bad);
+  --media-chip: rgb(12 15 19 / 0.9);
 }
 
 html,

@@ -98,3 +98,57 @@ describe("metadata overlay contrast over any frame", () => {
     }
   }
 });
+
+/**
+ * Confidence colours. On themed surfaces they are the status tokens; on a thumbnail's
+ * score chip (a fixed dark surface, --media-chip, over any frame) they are the
+ * `-on-media` tokens, which each dark palette resolves to its own status colours and
+ * the light theme overrides with colours made for a dark surface.
+ */
+describe("confidence colour contrast", () => {
+  const themes: Array<[string, string]> = [
+    ["light", '[data-theme="light"]'],
+    ...["violet", "slate", "amber", "linen", "lavender", "magic", "sea", "blues"].map(
+      (palette): [string, string] => [
+        `dark ${palette}`,
+        `[data-theme="dark"][data-palette="${palette}"]`,
+      ],
+    ),
+  ];
+
+  const chip = css.match(/--media-chip:\s*rgb\((\d+)\s+(\d+)\s+(\d+)\s*\/\s*([\d.]+)\)/);
+  if (!chip) throw new Error("no --media-chip in globals.css");
+  const [chipRgb, chipAlpha] = [chip.slice(1, 4).map(Number), Number(chip[4])];
+  const chipOver = (frame: string) =>
+    `#${chipRgb
+      .map((c, i) => {
+        const f = parseInt(frame.slice(1 + i * 2, 3 + i * 2), 16);
+        return Math.round(chipAlpha * c + (1 - chipAlpha) * f)
+          .toString(16)
+          .padStart(2, "0");
+      })
+      .join("")}`;
+
+  it("defaults every palette's over-footage colours to its own status colours", () => {
+    for (const status of ["ok", "warn", "bad"]) {
+      expect(css).toMatch(new RegExp(`--${status}-on-media:\\s*var\\(--${status}\\)`));
+    }
+  });
+
+  for (const [name, selector] of themes) {
+    const theme = tokens(selector);
+    for (const status of ["ok", "warn", "bad"]) {
+      for (const surface of ["bg", "panel-solid"]) {
+        it(`${name}: --${status} on --${surface} reaches 4.5:1`, () => {
+          expect(contrast(theme[status], theme[surface])).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+      for (const frame of ["#ffffff", "#000000"]) {
+        it(`${name}: --${status}-on-media on the score chip over a ${frame} frame reaches 4.5:1`, () => {
+          const color = theme[`${status}-on-media`] ?? theme[status];
+          expect(contrast(color, chipOver(frame))).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+    }
+  }
+});

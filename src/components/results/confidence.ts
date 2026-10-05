@@ -1,9 +1,22 @@
-type ConfidenceLevel = "high" | "mid" | "low";
+export type ConfidenceLevel = "high" | "mid" | "low";
 
-function getConfidenceLevel(confidence: number): ConfidenceLevel {
-  if (confidence >= 85) return "high";
-  if (confidence >= 65) return "mid";
+/** Confidence is a similarity (score × 100, 1–100): real matches often sit in the 50s
+ *  and 60s, so red is kept for really low scores. */
+export function confidenceLevel(confidence: number): ConfidenceLevel {
+  if (confidence >= 70) return "high";
+  if (confidence >= 40) return "mid";
   return "low";
+}
+
+const labels = {
+  high: "High confidence",
+  mid: "Medium confidence",
+  low: "Low confidence",
+} as const;
+
+/** The level in words — for a tooltip and screen readers, so it never rests on colour. */
+export function confidenceLabel(confidence: number): string {
+  return labels[confidenceLevel(confidence)];
 }
 
 /** SPEC §4 — the confidence scale maps to --match / --review / --flag. */
@@ -26,15 +39,15 @@ const bgClasses = {
 } as const;
 
 export function confidenceTextClass(confidence: number): string {
-  return textClasses[getConfidenceLevel(confidence)];
+  return textClasses[confidenceLevel(confidence)];
 }
 
 export function confidenceBorderClass(confidence: number): string {
-  return borderClasses[getConfidenceLevel(confidence)];
+  return borderClasses[confidenceLevel(confidence)];
 }
 
 export function confidenceBgClass(confidence: number): string {
-  return bgClasses[getConfidenceLevel(confidence)];
+  return bgClasses[confidenceLevel(confidence)];
 }
 
 const cssVars = {
@@ -44,11 +57,22 @@ const cssVars = {
 } as const;
 
 /**
- * Same 85/65 thresholds as the Tailwind helpers above, but returns the raw
- * `var(--ok|warn|bad)` token — for contexts that must set an inline `color`
- * (overlays drawn on top of video, where a fixed value is intentional and
- * cannot go through a Tailwind utility class).
+ * Same thresholds as the Tailwind helpers above, but returns the raw
+ * `var(--ok|warn|bad)` token — for contexts that must set an inline style
+ * (e.g. the metadata overlay's meter, drawn on a themed panel).
  */
 export function confidenceVar(confidence: number): string {
-  return cssVars[getConfidenceLevel(confidence)];
+  return cssVars[confidenceLevel(confidence)];
+}
+
+const onMediaVars = {
+  high: "var(--ok-on-media)",
+  mid: "var(--warn-on-media)",
+  low: "var(--bad-on-media)",
+} as const;
+
+/** The status colour for text on the dark score chip over footage (--media-chip),
+ *  which stays dark in every theme. */
+export function confidenceOnMediaVar(confidence: number): string {
+  return onMediaVars[confidenceLevel(confidence)];
 }
