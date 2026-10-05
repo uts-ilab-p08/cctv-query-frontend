@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { RecentQueries } from "@/components/dashboard/RecentQueries";
 import { QueryField } from "@/components/query/QueryField";
 import { Modal } from "@/components/ui/Modal";
 import { resultsHref } from "@/lib/routes";
@@ -15,7 +16,8 @@ interface NewQueryModalProps {
 
 /** The Home search field, floated over Results. It edits a local draft so the
  *  running query stays untouched until the new search is actually submitted.
- *  Rendered only while open, so every opening starts from an empty draft. Its field
+ *  Rendered only while open, so every opening starts from an empty draft and reloads
+ *  the recent queries. Its field
  *  takes over the query box's transition name from YOUR QUERY (see QueryPanel). */
 export function NewQueryModal({ onClose }: NewQueryModalProps) {
   const router = useRouter();
@@ -41,6 +43,8 @@ export function NewQueryModal({ onClose }: NewQueryModalProps) {
         onSubmit={submit}
         transitionName={QUERY_BOX_TRANSITION}
       />
+      {/* The same one-click re-runs as Home; picking one replaces the running search. */}
+      <RecentQueries floating onPick={onClose} className="mt-6" />
     </Modal>
   );
 }
