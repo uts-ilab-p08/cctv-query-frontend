@@ -50,6 +50,16 @@ describe("ragResultItemToClip", () => {
     expect(ragResultItemToClip({ ...item, start_seconds: 3725 }, 0).ts).toBe("1:02:05");
   });
 
+  it("keeps the video's local start, so the player can show camera time", () => {
+    expect(
+      ragResultItemToClip({ ...item, capture_start_local: "2018-03-05T13:15:00" }, 0)
+        .captureStartLocal,
+    ).toBe("2018-03-05T13:15:00");
+    expect(ragResultItemToClip({ ...item, capture_start_local: null }, 0).captureStartLocal).toBe(
+      undefined,
+    );
+  });
+
   it("keeps the camera's scene when the backend sends it", () => {
     expect(ragResultItemToClip({ ...item, scene: "admin" }, 0).scene).toBe("admin");
     expect(ragResultItemToClip(item, 0).scene).toBeUndefined();
@@ -121,6 +131,15 @@ describe("apiClipToClip", () => {
     const clip = apiClipToClip({ ...apiClip, startSeconds: 12, endSeconds: 20 });
     expect(clip.startSeconds).toBe(12);
     expect(clip.endSeconds).toBe(20);
+  });
+
+  it("keeps the video's local start from /clips/{id}", () => {
+    expect(
+      apiClipToClip({ ...apiClip, captureStartLocal: "2018-03-05T13:15:00" }).captureStartLocal,
+    ).toBe("2018-03-05T13:15:00");
+    expect(apiClipToClip({ ...apiClip, captureStartLocal: null }).captureStartLocal).toBe(
+      undefined,
+    );
   });
 
   it("leaves the bounds empty until the backend sends them", () => {

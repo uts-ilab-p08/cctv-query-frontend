@@ -1474,8 +1474,8 @@ describe("Results with real footage", () => {
     render(<ResultsScreen />);
 
     const chip = screen.getByRole("group", { name: "Camera on the player" });
-    expect(within(chip).getByText("G328")).toBeInTheDocument();
-    expect(within(chip).queryByText("G330")).not.toBeInTheDocument();
+    expect(within(chip).getByText("CAM G328")).toBeInTheDocument();
+    expect(within(chip).queryByText("CAM G330")).not.toBeInTheDocument();
   });
 
   it("labels the player with the camera even when the page opened before the search answered", async () => {
@@ -1493,7 +1493,7 @@ describe("Results with real footage", () => {
     );
 
     const chip = await screen.findByRole("group", { name: "Camera on the player" });
-    expect(within(chip).getByText("G328")).toBeInTheDocument();
+    expect(within(chip).getByText("CAM G328")).toBeInTheDocument();
   });
 
   it("opens on the first top match's video, cued to its moment", async () => {

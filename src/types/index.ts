@@ -45,6 +45,9 @@ export interface Clip {
   endSeconds?: number;
   /** The number the search's answer cites this moment by, as in `[2]`. */
   ref?: number;
+  /** The video's start on the camera's own clock, no offset (`2018-03-05T13:15:00`); the
+   *  player adds its playhead to show camera time (see `cameraDateTime`). */
+  captureStartLocal?: string;
 }
 
 export interface CameraDirectoryEntry {
