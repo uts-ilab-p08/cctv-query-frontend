@@ -1,4 +1,4 @@
-import { confidenceVar } from "@/components/results/confidence";
+import { confidenceLabel, confidenceMediaVar } from "@/components/results/confidence";
 import { cn } from "@/lib/cn";
 import { Thumbnail } from "@/components/ui/Thumbnail";
 import type { Clip } from "@/types";
@@ -24,11 +24,13 @@ export function MomentCardContent({ clip, textClassName, revealOnHover }: Moment
             revealOnHover && "transition-[filter,opacity] duration-200 group-hover:[filter:none]",
           )}
         />
+        {/* The number is always there; the colour only adds the level at a glance. */}
         <span
-          className="absolute right-1 bottom-1 rounded bg-[rgba(12,15,19,0.80)] px-1.5 py-[2px] font-mono text-[10px]"
-          style={{ color: confidenceVar(clip.confidence) }}
+          title={confidenceLabel(clip.confidence)}
+          className="absolute right-1 bottom-1 rounded bg-[var(--media-chip)] px-1.5 py-[2px] font-mono text-[10px]"
+          style={{ color: confidenceMediaVar(clip.confidence) }}
         >
-          {clip.confidence}%
+          {clip.confidence}%<span className="sr-only">, {confidenceLabel(clip.confidence)}</span>
         </span>
       </div>
       <div className={cn("flex min-w-0 flex-1 flex-col gap-0.5 pr-1", textClassName)}>

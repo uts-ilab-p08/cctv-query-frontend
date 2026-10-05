@@ -98,3 +98,59 @@ describe("metadata overlay contrast over any frame", () => {
     }
   }
 });
+
+const allThemes: Array<[string, string]> = [
+  ["light", '[data-theme="light"]'],
+  ...["violet", "slate", "amber", "linen", "lavender", "magic", "sea", "blues"].map(
+    (palette): [string, string] => [
+      `dark ${palette}`,
+      `[data-theme="dark"][data-palette="${palette}"]`,
+    ],
+  ),
+];
+
+/** The confidence scale (and errors, toasts) is text: it needs 4.5:1 on every surface. */
+describe("status colours contrast", () => {
+  for (const [name, selector] of allThemes) {
+    for (const status of ["ok", "warn", "bad"]) {
+      for (const surface of ["bg", "panel-solid"]) {
+        it(`${name}: --${status} on --${surface} reaches 4.5:1`, () => {
+          const theme = tokens(selector);
+          expect(contrast(theme[status], theme[surface])).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+    }
+  }
+});
+
+/**
+ * The score chip on a thumbnail: `--media-chip` with the frame showing through, so check
+ * it over a pure white and a pure black frame. A palette without its own `--*-on-media`
+ * uses its plain status colour (`var(--ok)` in the :root block).
+ */
+describe("score chip contrast over any thumbnail", () => {
+  const chip = css.match(/--media-chip:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
+  if (!chip) throw new Error("no --media-chip in globals.css");
+  const [r, g, b, alpha] = chip.slice(1).map(Number);
+
+  const over = (frame: number) =>
+    `#${[r, g, b]
+      .map((c) =>
+        Math.round(alpha * c + (1 - alpha) * frame)
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")}`;
+
+  for (const [name, selector] of allThemes) {
+    for (const status of ["ok", "warn", "bad"]) {
+      for (const frame of [255, 0]) {
+        it(`${name}: ${status} score over a ${frame ? "white" : "black"} frame reaches 4.5:1`, () => {
+          const theme = tokens(selector);
+          const color = theme[`${status}-on-media`] ?? theme[status];
+          expect(contrast(color, over(frame))).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+    }
+  }
+});
