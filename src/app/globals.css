@@ -919,3 +919,23 @@ body {
     opacity: 1;
   }
 }
+
+/* The query box morphs between Home, Results' YOUR QUERY and the New Query dialog
+   (see src/lib/viewTransition.ts). The two boxes differ in shape, so each snapshot
+   scales to fit, keeping its proportions: text shrinks or grows, never stretches. */
+::view-transition-group(query-box) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(query-box),
+::view-transition-new(query-box) {
+  height: 100%;
+  object-fit: contain;
+}
+
+/* The rest of the screen only cross-fades, quicker than the box moves. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+}

@@ -36,6 +36,8 @@ export interface QueryFieldProps {
   /** The search was sent and the next page is loading: the button spins and further
    *  submits (click or Enter) are ignored. */
   submitting?: boolean;
+  /** `view-transition-name` of the field's box, for it to morph across screens. */
+  transitionName?: string;
 }
 
 /** Characters typed before the clear button appears — below this it is noise. */
@@ -69,6 +71,7 @@ export function QueryField({
   floating = false,
   onSubmit,
   submitting = false,
+  transitionName,
 }: QueryFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -154,6 +157,7 @@ export function QueryField({
     <div className="relative w-full">
       <div
         ref={fieldRef}
+        style={transitionName ? { viewTransitionName: transitionName } : undefined}
         onClick={() => {
           inputRef.current?.focus();
           setMenu(null);

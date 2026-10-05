@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { QueryField } from "@/components/query/QueryField";
 import { resultsHref } from "@/lib/routes";
+import { navigateWithTransition, QUERY_BOX_TRANSITION } from "@/lib/viewTransition";
 import { useAppStore } from "@/store/useAppStore";
 
 const MODE_COPY = {
@@ -34,7 +35,8 @@ export function QueryComposer() {
     if (!query.trim() || submitting) return;
     setSubmitting(true);
     void runSearch(query);
-    router.push(resultsHref(query));
+    // The field morphs into Results' YOUR QUERY box.
+    navigateWithTransition(router, resultsHref(query));
   };
 
   const copy = MODE_COPY[searchMode];
@@ -61,7 +63,12 @@ export function QueryComposer() {
         {copy.label}
       </Link>
 
-      <QueryField variant="hero" onSubmit={submit} submitting={submitting} />
+      <QueryField
+        variant="hero"
+        onSubmit={submit}
+        submitting={submitting}
+        transitionName={QUERY_BOX_TRANSITION}
+      />
     </div>
   );
 }

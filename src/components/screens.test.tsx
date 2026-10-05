@@ -1337,6 +1337,25 @@ describe("Results — new query", () => {
     expect(input).toHaveFocus();
   });
 
+  it("hands the query box's transition name to the dialog's field and back", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    /** Elements carrying the name: the browser skips the morph if two do at once. */
+    const named = () =>
+      Array.from(document.querySelectorAll<HTMLElement>("[style]")).filter(
+        (element) => element.style.viewTransitionName === "query-box",
+      );
+
+    expect(named()).toEqual([queryBox()]);
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    expect(named()).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "New query" })).toContainElement(named()[0]);
+
+    await user.keyboard("{Escape}");
+    expect(named()).toEqual([queryBox()]);
+  });
+
   it("does not rewrite the current query while the draft is typed or cancelled", async () => {
     const user = userEvent.setup();
     render(<ResultsScreen />);

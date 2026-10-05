@@ -1,7 +1,8 @@
 "use client";
 
 import { Play, Plus, Send } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { RetryButton } from "@/components/assistant/RetryButton";
 import { SaveQueryButton } from "@/components/assistant/SaveQueryButton";
@@ -20,6 +21,11 @@ import { cn } from "@/lib/cn";
 import { useLatchedSuggestions } from "@/lib/useLatchedSuggestions";
 import { useSequentialGlow } from "@/lib/useSequentialGlow";
 import { useStickToBottom } from "@/lib/useStickToBottom";
+import {
+  markTransitionTarget,
+  QUERY_BOX_TRANSITION,
+  withViewTransition,
+} from "@/lib/viewTransition";
 import { startersKey, useAppStore } from "@/store/useAppStore";
 import type { ChatMessage, Clip } from "@/types";
 
@@ -59,6 +65,14 @@ export function QueryPanel({
   const [newQueryOpen, setNewQueryOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // YOUR QUERY is where Home's field lands: the navigation's transition can run now.
+  useLayoutEffect(markTransitionTarget, []);
+
+  /** The dialog opens and closes as a view transition: YOUR QUERY grows into its field
+   *  and back. `flushSync`, so the browser captures the new state right away. */
+  const setNewQuery = (open: boolean) =>
+    withViewTransition(() => flushSync(() => setNewQueryOpen(open)));
 
   const chat = useAppStore((state) => state.chats.results) ?? EMPTY_THREAD;
   const askInResults = useAppStore((state) => state.askInResults);
@@ -142,6 +156,8 @@ export function QueryPanel({
         <div
           role="group"
           aria-label="Your query"
+          // The open dialog's field carries the name meanwhile: one element at a time.
+          style={newQueryOpen ? undefined : { viewTransitionName: QUERY_BOX_TRANSITION }}
           className="border-accent-line bg-panel-solid shadow-glass flex items-center gap-2 rounded-[14px] border py-2 pr-2 pl-3.5"
         >
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -152,7 +168,7 @@ export function QueryPanel({
           </div>
           <button
             type="button"
-            onClick={() => setNewQueryOpen(true)}
+            onClick={() => setNewQuery(true)}
             className="surface-action shadow-action flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full pr-3.5 pl-2.5 font-sans text-[12px]"
           >
             <Plus size={14} strokeWidth={2.2} aria-hidden />
@@ -161,7 +177,7 @@ export function QueryPanel({
         </div>
       </div>
 
-      <NewQueryModal open={newQueryOpen} onClose={() => setNewQueryOpen(false)} />
+      {newQueryOpen ? <NewQueryModal onClose={() => setNewQuery(false)} /> : null}
 
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         {chat.map((message, index) => {
