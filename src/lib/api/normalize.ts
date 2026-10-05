@@ -101,6 +101,7 @@ export function ragResultItemToClip(item: RagResultItem, order: number): Clip {
     // The RAG numbers its sources in response order. Until the backend sends the
     // number itself, the position stands in: right unless the backend dropped a source.
     ref: item.citation_index ?? order + 1,
+    captureStartLocal: text(item.capture_start_local),
   };
 }
 
@@ -133,6 +134,7 @@ export function apiClipToClip(clip: ApiClip): Clip {
     scene: clip.scene ?? undefined,
     startSeconds: clip.startSeconds ?? undefined,
     endSeconds: clip.endSeconds ?? undefined,
+    captureStartLocal: text(clip.captureStartLocal),
   };
 }
 

@@ -47,6 +47,9 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   const [seekRequest, setSeekRequest] = useState<SeekRequest | null>(null);
   /** Bumped on every match pick so re-picking the same match re-cues it. */
   const [cueCount, setCueCount] = useState(0);
+  /** A second to cue other than the moment's start (a time the answer named). Tied to
+   *  its clip, so it never applies to another moment on the player. */
+  const [cue, setCue] = useState<{ clipId: string; sec: number } | null>(null);
 
   // The URL owns the search: run `?q=` unless it is already the latest search — so a
   // refresh or back/forward re-runs it, while arriving from Home doesn't search twice.
@@ -79,6 +82,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   const selectMatch = useCallback((clip: Clip) => {
     setSelectedClipId(clip.id);
+    setCue(null);
     setCurrentTime(clip.startSeconds ?? 0);
     setCueCount((n) => n + 1);
   }, []);
@@ -92,6 +96,19 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
   );
 
   const stopPlayback = useCallback(() => setPlaying(false), []);
+
+  /** A time the answer named: select its moment, cue that second, and play. */
+  const playAt = useCallback(
+    (id: string, sec: number) => {
+      if (!clips.some((candidate) => candidate.id === id)) return;
+      setSelectedClipId(id);
+      setCue({ clipId: id, sec });
+      setCurrentTime(sec);
+      setCueCount((n) => n + 1);
+      setPlaying(true);
+    },
+    [clips],
+  );
 
   const jumpToClip = useCallback(
     (id: string) => {
@@ -151,6 +168,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
           contextLabel={selected ? `${selected.camera} · ${selected.ts}` : "Top 5 matches"}
           onClearSelection={() => setSelectedClipId(null)}
           onJumpToClip={jumpToClip}
+          onPlayAt={playAt}
           hidden={videoExpanded}
         />
 
@@ -169,6 +187,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
                 ticks={ticks}
                 duration={duration}
                 cueKey={`${activeClip.id}#${cueCount}`}
+                cueAt={cue?.clipId === activeClip.id ? cue.sec : undefined}
                 seekRequest={seekRequest}
                 onTimeUpdate={setCurrentTime}
                 onDuration={setDuration}

@@ -35,41 +35,64 @@ npm run dev        # http://localhost:3000 → redirects to /dashboard
 
 The app is a desktop tool: the shell has a `min-w-[1280px]` floor and no mobile breakpoints.
 
+## Versioning and releases
+
+The version is `package.json` → `version` (semver). The build reads it, with the short commit (`build-info.ts`), and the app shows both in **Settings → About** and in Home's footer, linked to the GitHub release.
+
+To release, from a clean `main`:
+
+```bash
+npm run release:patch   # 0.1.0 → 0.1.1: fixes
+npm run release:minor   # 0.1.0 → 0.2.0: new features
+npm run release:major   # 0.1.0 → 1.0.0: breaking changes
+```
+
+Each one bumps `package.json`, commits `chore(release): vX.Y.Z`, tags `vX.Y.Z` and pushes both.
+
+When the bump comes in a pull request instead (`npm version <bump> --no-git-tag-version`), tag once it is merged, so the tag points at a commit on `main`:
+
+````bash
+git switch main && git pull
+git tag "v$(node -p "require('./package.json').version")" && git push origin --tags
+``` The tag triggers `.github/workflows/release.yml`, which checks the tag matches `package.json` and creates the GitHub release with generated notes. Deploy that commit to ship the new number.
+
 ## Structure
 
-```
+````
+
 src/
-  app/
-    layout.tsx                 # fonts, canvas background, decorative orbs
-    page.tsx                   # redirect → /dashboard
-    globals.css                # @theme design tokens + base layer
-    (app)/
-      layout.tsx               # Sidebar + Topbar + scrollable <main> + modals
-      dashboard/page.tsx       # 1. New Query
-      results/page.tsx         # 2. Results (grid / timeline)
-      clips/[clipId]/page.tsx  # 3. Clip Detail
-      saved/page.tsx           # 4. Saved Queries
-      reports/page.tsx         # 5. Reports
-      pipeline/page.tsx        # 6. Video Annotation Pipeline
-  components/
-    layout/     Sidebar, Topbar, BackgroundOrbs
-    ui/         GlassPanel, Button, Chip, Select, Input, Modal, StatCard,
-                ProgressBar, SegmentedControl, SectionLabel, FieldLabel
-    dashboard/  QueryComposer, KeywordChips, ActiveFilterChips, RecentQueries
-    results/    ResultsScreen, ResultsToolbar, ClipGrid, ClipCard,
-                ClipTimeline, FiltersModal, confidence.ts
-    detail/     ClipDetailScreen, VideoPlayer, ClipMetaPanel, RelatedClips
-    saved/      SavedQueriesScreen
-    reports/    ReportsScreen
-    pipeline/   PipelineScreen, UploadForm, ModelPicker, JobQueue, JobRow
-    assistant/  QueryAssistant, ChatMessage, SuggestedQuestions
-    modals/     SettingsModal, CamerasModal
-  hooks/        usePipelineSimulation
-  lib/          store.ts (Zustand), clips.ts, filters.ts, keywords.ts,
-                assistant.ts, cn.ts
-  data/         clips, cameras, savedQueries, recentQueries, reports,
-                pipelineJobs, models, precincts, keywords, suggestedQuestions
-  types/        index.ts
+app/
+layout.tsx # fonts, canvas background, decorative orbs
+page.tsx # redirect → /dashboard
+globals.css # @theme design tokens + base layer
+(app)/
+layout.tsx # Sidebar + Topbar + scrollable <main> + modals
+dashboard/page.tsx # 1. New Query
+results/page.tsx # 2. Results (grid / timeline)
+clips/[clipId]/page.tsx # 3. Clip Detail
+saved/page.tsx # 4. Saved Queries
+reports/page.tsx # 5. Reports
+pipeline/page.tsx # 6. Video Annotation Pipeline
+components/
+layout/ Sidebar, Topbar, BackgroundOrbs
+ui/ GlassPanel, Button, Chip, Select, Input, Modal, StatCard,
+ProgressBar, SegmentedControl, SectionLabel, FieldLabel
+dashboard/ QueryComposer, KeywordChips, ActiveFilterChips, RecentQueries
+results/ ResultsScreen, ResultsToolbar, ClipGrid, ClipCard,
+ClipTimeline, FiltersModal, confidence.ts
+detail/ ClipDetailScreen, VideoPlayer, ClipMetaPanel, RelatedClips
+saved/ SavedQueriesScreen
+reports/ ReportsScreen
+pipeline/ PipelineScreen, UploadForm, ModelPicker, JobQueue, JobRow
+assistant/ QueryAssistant, ChatMessage, SuggestedQuestions
+modals/ SettingsModal, CamerasModal
+hooks/ usePipelineSimulation
+lib/ store.ts (Zustand), clips.ts, filters.ts, keywords.ts,
+assistant.ts, cn.ts
+data/ clips, cameras, savedQueries, recentQueries, reports,
+pipelineJobs, models, precincts, keywords, suggestedQuestions
+types/ index.ts
+
 ```
 
 Navigation is real routing (`<Link>` / `useRouter`); the active sidebar item derives from
@@ -138,3 +161,4 @@ generated from the OpenAPI schema and dropped in wholesale.
 
 `design-reference/CCTV AI Prototype.dc.html` is the visual source of truth. It is a reference, not
 code to copy — its inline styles were translated into Tailwind utilities and theme tokens.
+```

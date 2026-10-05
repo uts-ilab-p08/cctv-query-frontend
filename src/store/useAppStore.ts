@@ -1,23 +1,18 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 
 import { defaultAnnotationModel } from "@/data/models";
 import { initialPipelineJobs, jobIdSeed } from "@/data/pipelineJobs";
 import { askAssistant, searchClips, suggestQuestions } from "@/lib/api/endpoints";
 import { clipToAssistantMoment } from "@/lib/api/normalize";
 import { citedRefs } from "@/lib/citations";
-import { emptyFilters } from "@/lib/filters";
 import { topMatches } from "@/lib/matches";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 import type {
   ChatKey,
   ChatMessage,
   Clip,
-  ClipTag,
   ExecutionTarget,
-  Filters,
   PipelineJob,
-  SearchMode,
   UploadScope,
 } from "@/types";
 
@@ -26,14 +21,11 @@ export const MAX_CONCURRENT_JOBS = 2;
 
 interface AppState {
   theme: Theme;
-  searchMode: SearchMode;
   query: string;
-  filters: Filters;
 
   chats: Record<string, ChatMessage[]>;
   chatOpen: boolean;
 
-  filtersOpen: boolean;
   camerasOpen: boolean;
 
   pipelineJobs: PipelineJob[];
@@ -45,22 +37,9 @@ interface AppState {
   remoteEndpoint: string;
 
   setTheme: (theme: Theme) => void;
-  setSearchMode: (mode: SearchMode) => void;
   setQuery: (query: string) => void;
 
-  setCameras: (cameras: string[]) => void;
-  addTag: (tag: ClipTag) => void;
-  toggleTag: (tag: ClipTag) => void;
-  toggleCamera: (camera: string) => void;
-  toggleScene: (scene: string) => void;
-  setConfidence: (value: number) => void;
-  setDateFrom: (value: string) => void;
-  setDateTo: (value: string) => void;
-  clearFilters: () => void;
-
   setChatOpen: (open: boolean) => void;
-  openFilters: () => void;
-  closeFilters: () => void;
   openCameras: () => void;
   closeCameras: () => void;
 
@@ -187,339 +166,284 @@ function pushMessages(
   return { ...chats, [id]: [...(chats[id] ?? []), ...messages] };
 }
 
-export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => {
-      /**
-       * Asks the backend for a thread's pending answer (the THINKING placeholder already in
-       * place) and settles it: the answer, or the retryable failure message.
-       */
-      const answer = async (
-        key: string,
-        question: string,
-        focusId: string | null,
-        query: string,
-        { moments, history }: NonNullable<ReturnType<typeof assistantContext>>,
-      ) => {
-        const focus = focusId ?? undefined;
-        try {
-          const response = await askAssistant(
-            {
-              query,
-              question,
-              scope: focusId ? "moment" : "results",
-              focus_moment_id: focusId,
-              moments: moments.map(clipToAssistantMoment),
-              history,
-            },
-            {
-              onStatus: (progress) =>
-                set((s) => ({ chats: updatePending(s.chats, key, { progress }) })),
-            },
-          );
-          // Never trust an id we didn't send.
-          const known = new Set(moments.map((clip) => clip.id));
-          const citations = response.citations
-            .map((citation) => citation.moment_id)
-            .filter((id) => known.has(id));
-          set((s) => ({
-            chats: settlePending(s.chats, key, {
-              role: "agent",
-              text: response.answer,
-              citations,
-              relatedId: citations[0],
-              suggestions: response.suggested_questions,
-              focus,
-            }),
-          }));
-        } catch {
-          set((s) => ({
-            chats: settlePending(s.chats, key, {
-              role: "agent",
-              text: ASSISTANT_FAILED,
-              status: "error",
-            }),
-          }));
-        }
-      };
+export const useAppStore = create<AppState>()((set, get) => {
+  /**
+   * Asks the backend for a thread's pending answer (the THINKING placeholder already in
+   * place) and settles it: the answer, or the retryable failure message.
+   */
+  const answer = async (
+    key: string,
+    question: string,
+    focusId: string | null,
+    query: string,
+    { moments, history }: NonNullable<ReturnType<typeof assistantContext>>,
+  ) => {
+    const focus = focusId ?? undefined;
+    try {
+      const response = await askAssistant(
+        {
+          query,
+          question,
+          scope: focusId ? "moment" : "results",
+          focus_moment_id: focusId,
+          moments: moments.map(clipToAssistantMoment),
+          history,
+        },
+        {
+          onStatus: (progress) =>
+            set((s) => ({ chats: updatePending(s.chats, key, { progress }) })),
+        },
+      );
+      // Never trust an id we didn't send.
+      const known = new Set(moments.map((clip) => clip.id));
+      const citations = response.citations
+        .map((citation) => citation.moment_id)
+        .filter((id) => known.has(id));
+      set((s) => ({
+        chats: settlePending(s.chats, key, {
+          role: "agent",
+          text: response.answer,
+          citations,
+          relatedId: citations[0],
+          suggestions: response.suggested_questions,
+          focus,
+        }),
+      }));
+    } catch {
+      set((s) => ({
+        chats: settlePending(s.chats, key, {
+          role: "agent",
+          text: ASSISTANT_FAILED,
+          status: "error",
+        }),
+      }));
+    }
+  };
 
-      return {
-        theme: DEFAULT_THEME,
-        searchMode: "nlq",
-        query: "",
-        filters: emptyFilters,
+  return {
+    theme: DEFAULT_THEME,
+    query: "",
 
-        chats: {},
-        chatOpen: false, // the assistant is hidden until "Ask more"
+    chats: {},
+    chatOpen: false, // the assistant is hidden until "Ask more"
 
-        results: [],
-        knownClips: {},
-        lastSearch: null,
-        searchPending: false,
+    results: [],
+    knownClips: {},
+    lastSearch: null,
+    searchPending: false,
+    searchError: null,
+
+    camerasOpen: false,
+
+    pipelineJobs: initialPipelineJobs,
+    nextJobId: jobIdSeed,
+    uploadCamera: "G299",
+    uploadScope: "full",
+    uploadModel: defaultAnnotationModel,
+    uploadTarget: "Local",
+    remoteEndpoint: "",
+
+    setTheme: (theme) => {
+      document.documentElement.setAttribute("data-theme", theme);
+      set({ theme });
+    },
+    setQuery: (query) => set({ query }),
+
+    setChatOpen: (chatOpen) => set({ chatOpen }),
+    openCameras: () => set({ camerasOpen: true }),
+    closeCameras: () => set({ camerasOpen: false }),
+
+    runSearch: async (text) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        set({ query: text });
+        return;
+      }
+      // The thread opens right away with the query and a thinking bubble, so Results
+      // can lay itself out while the RAG searches.
+      set((s) => ({
+        query: trimmed,
+        lastSearch: trimmed,
+        searchPending: true,
         searchError: null,
-
-        filtersOpen: false,
-        camerasOpen: false,
-
-        pipelineJobs: initialPipelineJobs,
-        nextJobId: jobIdSeed,
-        uploadCamera: "G299",
-        uploadScope: "full",
-        uploadModel: defaultAnnotationModel,
-        uploadTarget: "Local",
-        remoteEndpoint: "",
-
-        setTheme: (theme) => {
-          document.documentElement.setAttribute("data-theme", theme);
-          set({ theme });
-        },
-        setSearchMode: (searchMode) => set({ searchMode }),
-        setQuery: (query) => set({ query }),
-
-        setCameras: (cameras) => set((s) => ({ filters: { ...s.filters, cameras } })),
-        addTag: (tag) =>
-          set((s) => ({
-            filters: {
-              ...s.filters,
-              tags: s.filters.tags.includes(tag) ? s.filters.tags : [...s.filters.tags, tag],
-            },
-          })),
-        toggleTag: (tag) =>
-          set((s) => ({
-            filters: {
-              ...s.filters,
-              tags: s.filters.tags.includes(tag)
-                ? s.filters.tags.filter((item) => item !== tag)
-                : [...s.filters.tags, tag],
-            },
-          })),
-        toggleScene: (scene) =>
-          set((s) => ({
-            filters: {
-              ...s.filters,
-              scenes: s.filters.scenes.includes(scene)
-                ? s.filters.scenes.filter((item) => item !== scene)
-                : [...s.filters.scenes, scene],
-            },
-          })),
-        toggleCamera: (camera) =>
-          set((s) => ({
-            filters: {
-              ...s.filters,
-              cameras: s.filters.cameras.includes(camera)
-                ? s.filters.cameras.filter((item) => item !== camera)
-                : [...s.filters.cameras, camera],
-            },
-          })),
-        setConfidence: (confidence) => set((s) => ({ filters: { ...s.filters, confidence } })),
-        setDateFrom: (dateFrom) => set((s) => ({ filters: { ...s.filters, dateFrom } })),
-        setDateTo: (dateTo) => set((s) => ({ filters: { ...s.filters, dateTo } })),
-        clearFilters: () => set({ filters: emptyFilters }),
-
-        setChatOpen: (chatOpen) => set({ chatOpen }),
-        openFilters: () => set({ filtersOpen: true }),
-        closeFilters: () => set({ filtersOpen: false }),
-        openCameras: () => set({ camerasOpen: true }),
-        closeCameras: () => set({ camerasOpen: false }),
-
-        runSearch: async (text) => {
-          const trimmed = text.trim();
-          if (!trimmed) {
-            set({ query: text });
-            return;
-          }
-          // The thread opens right away with the query and a thinking bubble, so Results
-          // can lay itself out while the RAG searches.
-          set((s) => ({
-            query: trimmed,
-            lastSearch: trimmed,
-            searchPending: true,
-            searchError: null,
-            chats: { ...s.chats, results: [{ role: "user", text: trimmed }, SEARCHING] },
-          }));
-          // A newer search started meanwhile: its answer wins, this one is dropped.
-          const superseded = () => get().lastSearch !== trimmed;
-          try {
-            const { clips, summary } = await searchClips(trimmed, undefined, {
-              // A superseded search's steps would land on the newer search's placeholder.
-              onStatus: (progress) => {
-                if (!superseded()) {
-                  set((s) => ({ chats: updatePending(s.chats, "results", { progress }) }));
-                }
-              },
-            });
-            if (superseded()) return;
-            // The summary cites its sources as [n]: list them under it, in citation order.
-            const citations = citedRefs(summary)
-              .map((ref) => clips.find((clip) => clip.ref === ref)?.id)
-              .filter((id): id is string => id !== undefined);
-            set((s) => ({
-              results: clips,
-              searchPending: false,
-              chats: settlePending(s.chats, "results", {
-                role: "agent",
-                text: summary,
-                ...(citations.length ? { citations } : {}),
-              }),
-            }));
-          } catch (error) {
-            if (superseded()) return;
-            set({
-              searchPending: false,
-              searchError: error instanceof Error ? error.message : "Search failed.",
-            });
-          }
-        },
-
-        starters: {},
-        startersPending: {},
-
-        loadStarters: async (key, focusId) => {
-          const state = get();
-          // Mid-search, `results` still holds the previous search: wait for the new one.
-          if (state.searchPending) return;
-          const id = startersKey(key, focusId, state.query);
-          if (id in state.starters) return;
-          const context = assistantContext(state, key, focusId);
-          if (!context) return;
-          // Mark in flight: nothing to show yet, and no duplicate request.
-          set((s) => ({
-            starters: { ...s.starters, [id]: [] },
-            startersPending: { ...s.startersPending, [id]: true },
-          }));
-          const settled = (pending: Record<string, true>) => {
-            const rest = { ...pending };
-            delete rest[id];
-            return rest;
-          };
-          try {
-            const { suggested_questions } = await suggestQuestions({
-              query: state.query,
-              scope: focusId ? "moment" : "results",
-              focus_moment_id: focusId,
-              moments: context.moments.map(clipToAssistantMoment),
-              history: context.history,
-            });
-            set((s) => ({
-              starters: { ...s.starters, [id]: suggested_questions },
-              startersPending: settled(s.startersPending),
-            }));
-          } catch {
-            // Forget the failed attempt so the next visit to this context retries.
-            set((s) => {
-              const starters = { ...s.starters };
-              delete starters[id];
-              return { starters, startersPending: settled(s.startersPending) };
-            });
-          }
-        },
-
-        askInResults: (question, focusId = null) => get().ask("results", question, focusId),
-
-        askAboutClip: (clipId, question) => get().ask(clipId, question, clipId),
-
-        ask: async (key, question, focusId) => {
-          const trimmed = question.trim();
-          const state = get();
-          const thread = state.chats[key] ?? [];
-          // One question at a time per thread, like a real chat.
-          if (!trimmed || thread.some((message) => message.status === "pending")) return;
-
-          const context = assistantContext(state, key, focusId);
-          if (!context) return;
-
-          const focus = focusId ?? undefined;
-          set((s) => ({
-            chats: pushMessages(s.chats, key, [{ role: "user", text: trimmed, focus }, THINKING]),
-          }));
-
-          await answer(key, trimmed, focusId, state.query, context);
-        },
-
-        retryLast: async (key) => {
-          const state = get();
-          const thread = state.chats[key] ?? [];
-          const failed = thread.at(-1);
-          const question = thread.at(-2);
-          if (failed?.status !== "error" || question?.role !== "user") return;
-
-          const focusId = question.focus ?? null;
-          const context = assistantContext(state, key, focusId, thread.length - 2);
-          if (!context) return;
-
-          // The failure makes way for a new attempt; the question stays where it was.
-          set((s) => ({
-            chats: { ...s.chats, [key]: [...(s.chats[key] ?? []).slice(0, -1), THINKING] },
-          }));
-          await answer(key, question.text, focusId, state.query, context);
-        },
-
-        seedClipChat: async (clipId, query) => {
-          const state = get();
-          const id = chatKey(clipId);
-          // Seed once, only for a clip we know, and only when there was a search to ask about:
-          // the backend answers the original search about this clip (no local summary).
-          if (state.chats[id]?.length || !state.knownClips[id] || !query.trim()) return;
-          await get().ask(id, query, id);
-        },
-
-        rememberClip: (clip) => set((s) => ({ knownClips: { ...s.knownClips, [clip.id]: clip } })),
-
-        resetChat: (key) => set((s) => ({ chats: { ...s.chats, [chatKey(key)]: [] } })),
-
-        setUploadCamera: (uploadCamera) => set({ uploadCamera }),
-        setUploadScope: (uploadScope) => set({ uploadScope }),
-        setUploadModel: (uploadModel) => set({ uploadModel }),
-        setUploadTarget: (uploadTarget) => set({ uploadTarget }),
-        setRemoteEndpoint: (remoteEndpoint) => set({ remoteEndpoint }),
-
-        submitAnnotationJob: () =>
-          set((s) => {
-            const id = s.nextJobId + 1;
-            const job: PipelineJob = {
-              id,
-              filename: `${s.uploadCamera}_2026-08-19_${s.uploadScope === "full" ? "raw" : "clip"}.mp4`,
-              camera: s.uploadCamera,
-              duration: s.uploadScope === "full" ? "—" : "00:00",
-              model: s.uploadModel,
-              target: s.uploadTarget,
-              status: "pending",
-              progress: 0,
-            };
-            return { pipelineJobs: [...s.pipelineJobs, job], nextJobId: id };
-          }),
-
-        advancePipeline: () =>
-          set((s) => {
-            let jobs = s.pipelineJobs.map((job) => {
-              if (job.status !== "processing") return job;
-              const next = Math.min(100, job.progress + 6 + Math.round(Math.random() * 10));
-              return next >= 100
-                ? { ...job, progress: 100, status: "done" as const }
-                : { ...job, progress: next };
-            });
-
-            const processing = jobs.filter((job) => job.status === "processing").length;
-            if (processing < MAX_CONCURRENT_JOBS) {
-              const nextPending = jobs.find((job) => job.status === "pending");
-              if (nextPending) {
-                jobs = jobs.map((job) =>
-                  job.id === nextPending.id ? { ...job, status: "processing" as const } : job,
-                );
-              }
+        chats: { ...s.chats, results: [{ role: "user", text: trimmed }, SEARCHING] },
+      }));
+      // A newer search started meanwhile: its answer wins, this one is dropped.
+      const superseded = () => get().lastSearch !== trimmed;
+      try {
+        const { clips, summary } = await searchClips(trimmed, undefined, {
+          // A superseded search's steps would land on the newer search's placeholder.
+          onStatus: (progress) => {
+            if (!superseded()) {
+              set((s) => ({ chats: updatePending(s.chats, "results", { progress }) }));
             }
-
-            return { pipelineJobs: jobs };
+          },
+        });
+        if (superseded()) return;
+        // The summary cites its sources as [n]: list them under it, in citation order.
+        const citations = citedRefs(summary)
+          .map((ref) => clips.find((clip) => clip.ref === ref)?.id)
+          .filter((id): id is string => id !== undefined);
+        set((s) => ({
+          results: clips,
+          searchPending: false,
+          chats: settlePending(s.chats, "results", {
+            role: "agent",
+            text: summary,
+            ...(citations.length ? { citations } : {}),
           }),
+        }));
+      } catch (error) {
+        if (superseded()) return;
+        set({
+          searchPending: false,
+          searchError: error instanceof Error ? error.message : "Search failed.",
+        });
+      }
+    },
+
+    starters: {},
+    startersPending: {},
+
+    loadStarters: async (key, focusId) => {
+      const state = get();
+      // Mid-search, `results` still holds the previous search: wait for the new one.
+      if (state.searchPending) return;
+      const id = startersKey(key, focusId, state.query);
+      if (id in state.starters) return;
+      const context = assistantContext(state, key, focusId);
+      if (!context) return;
+      // Mark in flight: nothing to show yet, and no duplicate request.
+      set((s) => ({
+        starters: { ...s.starters, [id]: [] },
+        startersPending: { ...s.startersPending, [id]: true },
+      }));
+      const settled = (pending: Record<string, true>) => {
+        const rest = { ...pending };
+        delete rest[id];
+        return rest;
       };
+      try {
+        const { suggested_questions } = await suggestQuestions({
+          query: state.query,
+          scope: focusId ? "moment" : "results",
+          focus_moment_id: focusId,
+          moments: context.moments.map(clipToAssistantMoment),
+          history: context.history,
+        });
+        set((s) => ({
+          starters: { ...s.starters, [id]: suggested_questions },
+          startersPending: settled(s.startersPending),
+        }));
+      } catch {
+        // Forget the failed attempt so the next visit to this context retries.
+        set((s) => {
+          const starters = { ...s.starters };
+          delete starters[id];
+          return { starters, startersPending: settled(s.startersPending) };
+        });
+      }
     },
-    {
-      name: "cctv-ai:state",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ searchMode: s.searchMode }),
+
+    askInResults: (question, focusId = null) => get().ask("results", question, focusId),
+
+    askAboutClip: (clipId, question) => get().ask(clipId, question, clipId),
+
+    ask: async (key, question, focusId) => {
+      const trimmed = question.trim();
+      const state = get();
+      const thread = state.chats[key] ?? [];
+      // One question at a time per thread, like a real chat.
+      if (!trimmed || thread.some((message) => message.status === "pending")) return;
+
+      const context = assistantContext(state, key, focusId);
+      if (!context) return;
+
+      const focus = focusId ?? undefined;
+      set((s) => ({
+        chats: pushMessages(s.chats, key, [{ role: "user", text: trimmed, focus }, THINKING]),
+      }));
+
+      await answer(key, trimmed, focusId, state.query, context);
     },
-  ),
-);
+
+    retryLast: async (key) => {
+      const state = get();
+      const thread = state.chats[key] ?? [];
+      const failed = thread.at(-1);
+      const question = thread.at(-2);
+      if (failed?.status !== "error" || question?.role !== "user") return;
+
+      const focusId = question.focus ?? null;
+      const context = assistantContext(state, key, focusId, thread.length - 2);
+      if (!context) return;
+
+      // The failure makes way for a new attempt; the question stays where it was.
+      set((s) => ({
+        chats: { ...s.chats, [key]: [...(s.chats[key] ?? []).slice(0, -1), THINKING] },
+      }));
+      await answer(key, question.text, focusId, state.query, context);
+    },
+
+    seedClipChat: async (clipId, query) => {
+      const state = get();
+      const id = chatKey(clipId);
+      // Seed once, only for a clip we know, and only when there was a search to ask about:
+      // the backend answers the original search about this clip (no local summary).
+      if (state.chats[id]?.length || !state.knownClips[id] || !query.trim()) return;
+      await get().ask(id, query, id);
+    },
+
+    rememberClip: (clip) => set((s) => ({ knownClips: { ...s.knownClips, [clip.id]: clip } })),
+
+    resetChat: (key) => set((s) => ({ chats: { ...s.chats, [chatKey(key)]: [] } })),
+
+    setUploadCamera: (uploadCamera) => set({ uploadCamera }),
+    setUploadScope: (uploadScope) => set({ uploadScope }),
+    setUploadModel: (uploadModel) => set({ uploadModel }),
+    setUploadTarget: (uploadTarget) => set({ uploadTarget }),
+    setRemoteEndpoint: (remoteEndpoint) => set({ remoteEndpoint }),
+
+    submitAnnotationJob: () =>
+      set((s) => {
+        const id = s.nextJobId + 1;
+        const job: PipelineJob = {
+          id,
+          filename: `${s.uploadCamera}_2026-08-19_${s.uploadScope === "full" ? "raw" : "clip"}.mp4`,
+          camera: s.uploadCamera,
+          duration: s.uploadScope === "full" ? "—" : "00:00",
+          model: s.uploadModel,
+          target: s.uploadTarget,
+          status: "pending",
+          progress: 0,
+        };
+        return { pipelineJobs: [...s.pipelineJobs, job], nextJobId: id };
+      }),
+
+    advancePipeline: () =>
+      set((s) => {
+        let jobs = s.pipelineJobs.map((job) => {
+          if (job.status !== "processing") return job;
+          const next = Math.min(100, job.progress + 6 + Math.round(Math.random() * 10));
+          return next >= 100
+            ? { ...job, progress: 100, status: "done" as const }
+            : { ...job, progress: next };
+        });
+
+        const processing = jobs.filter((job) => job.status === "processing").length;
+        if (processing < MAX_CONCURRENT_JOBS) {
+          const nextPending = jobs.find((job) => job.status === "pending");
+          if (nextPending) {
+            jobs = jobs.map((job) =>
+              job.id === nextPending.id ? { ...job, status: "processing" as const } : job,
+            );
+          }
+        }
+
+        return { pipelineJobs: jobs };
+      }),
+  };
+});
 
 /**
  * The theme is persisted under its own key so the `beforeInteractive` script can

@@ -10,7 +10,7 @@ const SKIPPED = /`[^`]*`|\[[^\]]*\]\([^)]*\)/g;
 const CITATION = /\[(\d+(?:\s*,\s*\d+)*)\](?!\()/g;
 
 /** Run `replace` over the text outside code spans and links. */
-function outsideSkipped(text: string, replace: (segment: string) => string): string {
+export function outsideSkipped(text: string, replace: (segment: string) => string): string {
   let result = "";
   let last = 0;
   for (const match of text.matchAll(SKIPPED)) {

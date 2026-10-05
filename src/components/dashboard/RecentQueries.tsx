@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { QueryListSkeleton } from "@/components/ui/QueryListSkeleton";
+import { cn } from "@/lib/cn";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { getRecentQueries } from "@/lib/api/endpoints";
 import { formatRelativeTime } from "@/lib/time";
@@ -16,7 +17,18 @@ import type { RecentQuery } from "@/types";
 /** How many recent queries Home shows. */
 const RECENT_LIMIT = 3;
 
-export function RecentQueries() {
+interface RecentQueriesProps {
+  /** Called once a query is picked, after its search starts (e.g. to close a dialog). */
+  onPick?: () => void;
+  /** Over a modal backdrop: the opaque floating surface, like the field above it. */
+  floating?: boolean;
+  /** Overrides the section's spacing from the field above. */
+  className?: string;
+}
+
+/** The latest searches, one click to run again: under the field on Home and in the
+ *  New query dialog. */
+export function RecentQueries({ onPick, floating = false, className }: RecentQueriesProps) {
   const router = useRouter();
   const runSearch = useAppStore((state) => state.runSearch);
   const [recentQueries, setRecentQueries] = useState<RecentQuery[]>([]);
@@ -46,7 +58,7 @@ export function RecentQueries() {
 
   if (loading) {
     return (
-      <section className="mt-14 w-full">
+      <section className={cn("mt-14 w-full", className)}>
         <SectionLabel>RECENT QUERIES</SectionLabel>
         <QueryListSkeleton label="Loading recent queries" rows={RECENT_LIMIT} className="gap-2.5" />
       </section>
@@ -57,7 +69,7 @@ export function RecentQueries() {
   if (recentQueries.length === 0) return null;
 
   return (
-    <section className="mt-14 w-full">
+    <section className={cn("mt-14 w-full", className)}>
       <SectionLabel>RECENT QUERIES</SectionLabel>
       <ul className="flex flex-col gap-2.5">
         {recentQueries.map((query) => (
@@ -69,10 +81,14 @@ export function RecentQueries() {
                 setRunningId(query.id);
                 void runSearch(query.text);
                 router.push(resultsHref(query.text));
+                onPick?.();
               }}
               aria-busy={runningId === query.id || undefined}
               disabled={runningId !== null}
-              className="rounded-card glass-card-flat hover:border-hairline-strong aria-busy:border-accent-line flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3.5 text-left transition-[border-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100"
+              className={cn(
+                "rounded-card hover:border-hairline-strong aria-busy:border-accent-line flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3.5 text-left transition-[border-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100",
+                floating ? "glass-panel" : "glass-card-flat",
+              )}
             >
               <span className="text-ink text-sm">{query.text}</span>
               {runningId === query.id ? (

@@ -6,7 +6,6 @@ import { AmbientBackdrop } from "@/components/layout/AmbientBackdrop";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CamerasModal } from "@/components/modals/CamerasModal";
-import { FiltersModal } from "@/components/results/FiltersModal";
 import { Toaster } from "@/components/ui/Toaster";
 
 /** Signed-in screens stay out of search results. */
@@ -26,7 +25,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <main className="flex flex-1 flex-col">{children}</main>
       </div>
 
-      <FiltersModal />
       <CamerasModal />
       <Toaster />
     </div>

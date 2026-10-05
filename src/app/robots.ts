@@ -9,6 +9,7 @@ const PRIVATE_ROUTES = [
   "/saved",
   "/settings",
   "/pipeline",
+  "/cameras",
   "/clips",
   "/profile",
 ];

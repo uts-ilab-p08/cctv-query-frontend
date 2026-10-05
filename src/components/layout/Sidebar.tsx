@@ -2,7 +2,7 @@
 
 import {
   Bookmark,
-  Layers,
+  Cctv,
   Loader2,
   LogOut,
   PanelLeftClose,
@@ -38,7 +38,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     match: ["/dashboard", "/results", "/clips"],
   },
   { href: "/saved", label: "Saved Queries", icon: Bookmark, match: ["/saved"] },
-  { href: "/pipeline", label: "Annotation Pipeline", icon: Layers, match: ["/pipeline"] },
+  { href: "/cameras", label: "Indexed Cameras", icon: Cctv, match: ["/cameras"] },
   { href: "/settings", label: "Settings", icon: Settings, match: ["/settings"] },
 ];
 
@@ -196,7 +196,8 @@ export function Sidebar() {
             title={collapsed ? "Sign out" : undefined}
             className={cn(
               "text-flag border-flag/45 bg-flag/10 hover:bg-flag/20 hover:border-flag flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 font-sans text-[13px] font-semibold transition-colors duration-150 disabled:cursor-wait disabled:opacity-70",
-              collapsed ? "px-0" : "mt-3 px-3",
+              "mt-3",
+              collapsed ? "px-0" : "px-3",
             )}
           >
             {signingOut ? (

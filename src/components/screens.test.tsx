@@ -15,7 +15,6 @@ import { SavedQueriesScreen } from "@/components/saved/SavedQueriesScreen";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { LoginScreen } from "@/components/login/LoginScreen";
 import { CamerasModal } from "@/components/modals/CamerasModal";
-import { FiltersModal } from "@/components/results/FiltersModal";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Toaster } from "@/components/ui/Toaster";
@@ -35,6 +34,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { MOMENT_QUESTIONS, RESULTS_QUESTIONS } from "@/lib/api/mocks/assistant";
 import { getAllClips } from "@/lib/clips";
+import { topMatches } from "@/lib/matches";
 import { EXAMPLE_QUESTIONS } from "@/lib/exampleQuestions";
 import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
@@ -59,10 +59,8 @@ const clipSuggestedQuestions: string[] = Object.values(MOMENT_QUESTIONS);
  */
 vi.mock("@/lib/api/endpoints", () => ({
   searchClips: vi.fn(async (query: string) => {
-    const { filterClips } = await import("@/lib/filters");
     const { getAllClips: getMockClips } = await import("@/lib/clips");
-    const { emptyFilters } = await import("@/lib/filters");
-    const clips = filterClips(getMockClips(), emptyFilters);
+    const clips = [...getMockClips()].sort((a, b) => a.order - b.order);
     return { clips, summary: `Found ${clips.length} indexed events matching "${query}".` };
   }),
   getClipById: vi.fn(async (id: string) => {
@@ -165,28 +163,14 @@ describe("Login", () => {
 });
 
 describe("Dashboard", () => {
-  it("shows the search mode as a settings button that opens Settings", () => {
+  it("searches in natural language only, with no mode to switch", () => {
     render(<QueryComposer />);
 
-    const button = screen.getByRole("link", {
-      name: "Natural language mode. Change the search mode in Settings",
-    });
-    expect(button).toHaveAttribute("href", "/settings");
-    expect(button).toHaveTextContent("Natural language mode");
-    expect(button).toHaveClass("rounded-full", "border");
-    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("names the classic mode on the same button", () => {
-    useAppStore.setState({ searchMode: "classic" });
-    render(<QueryComposer />);
-
-    expect(
-      screen.getByRole("link", {
-        name: "Classic filters mode. Change the search mode in Settings",
-      }),
-    ).toHaveTextContent("Classic filters mode");
-    expect(screen.getByText(/narrow it with Filters/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /search mode/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Classic filters/)).not.toBeInTheDocument();
+    // Cameras are named in the question itself, or picked into it.
+    expect(screen.getByText(/G328/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Choose cameras" })).toBeInTheDocument();
   });
 
   it("renders the composer and its recent queries", async () => {
@@ -1337,6 +1321,54 @@ describe("Results — new query", () => {
     expect(input).toHaveFocus();
   });
 
+  it("lists the recent queries under the field, as Home does", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+
+    const dialog = screen.getByRole("dialog", { name: "New query" });
+    expect(
+      await within(dialog).findByRole("button", { name: new RegExp(recentQueries[0].text) }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("RECENT QUERIES")).toBeInTheDocument();
+  });
+
+  it("runs a recent query picked in the dialog and closes it", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    pushMock.mockClear();
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    const dialog = screen.getByRole("dialog", { name: "New query" });
+    await user.click(
+      await within(dialog).findByRole("button", { name: new RegExp(recentQueries[1].text) }),
+    );
+
+    expect(pushMock).toHaveBeenCalledWith(resultsHref(recentQueries[1].text));
+    expect(useAppStore.getState().lastSearch).toBe(recentQueries[1].text);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("hands the query box's transition name to the dialog's field and back", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    /** Elements carrying the name: the browser skips the morph if two do at once. */
+    const named = () =>
+      Array.from(document.querySelectorAll<HTMLElement>("[style]")).filter(
+        (element) => element.style.viewTransitionName === "query-box",
+      );
+
+    expect(named()).toEqual([queryBox()]);
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    expect(named()).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "New query" })).toContainElement(named()[0]);
+
+    await user.keyboard("{Escape}");
+    expect(named()).toEqual([queryBox()]);
+  });
+
   it("does not rewrite the current query while the draft is typed or cancelled", async () => {
     const user = userEvent.setup();
     render(<ResultsScreen />);
@@ -1442,8 +1474,8 @@ describe("Results with real footage", () => {
     render(<ResultsScreen />);
 
     const chip = screen.getByRole("group", { name: "Camera on the player" });
-    expect(within(chip).getByText("G328")).toBeInTheDocument();
-    expect(within(chip).queryByText("G330")).not.toBeInTheDocument();
+    expect(within(chip).getByText("CAM G328")).toBeInTheDocument();
+    expect(within(chip).queryByText("CAM G330")).not.toBeInTheDocument();
   });
 
   it("labels the player with the camera even when the page opened before the search answered", async () => {
@@ -1461,7 +1493,7 @@ describe("Results with real footage", () => {
     );
 
     const chip = await screen.findByRole("group", { name: "Camera on the player" });
-    expect(within(chip).getByText("G328")).toBeInTheDocument();
+    expect(within(chip).getByText("CAM G328")).toBeInTheDocument();
   });
 
   it("opens on the first top match's video, cued to its moment", async () => {
@@ -1534,6 +1566,55 @@ describe("Results with real footage", () => {
 
     expect(footage().getAttribute("src")).toBe("https://cdn.test/a.mp4");
     expect(footage().currentTime).toBe(40);
+  });
+
+  describe("times the answer names", () => {
+    // Video a starts at 16:50:00 on its camera: 16:50:45 is 45 s in, near Moment B (40 s).
+    const clock = { captureStartLocal: "2018-03-05T16:50:00" };
+
+    beforeEach(async () => {
+      vi.mocked(searchClips).mockResolvedValueOnce({
+        clips: [
+          clipC,
+          { ...clipA, ...clock },
+          { ...clipB, ...clock, camera: "G328", code: "G328" },
+        ],
+        summary: "On G328, a person leaves at 16:50:45.",
+      });
+      await act(() => useAppStore.getState().runSearch("who left"));
+    });
+
+    it("plays the moment from the second the answer names", async () => {
+      const user = userEvent.setup();
+      render(<ResultsScreen />);
+      await loadMetadata(footage());
+
+      await user.click(await screen.findByRole("button", { name: "Play G328 at 16:50:45" }));
+
+      expect(footage().getAttribute("src")).toBe("https://cdn.test/a.mp4");
+      expect(footage().currentTime).toBe(45);
+      expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+      // The moment is selected, so the assistant narrows to it.
+      expect(screen.queryByText("Top 5 matches")).not.toBeInTheDocument();
+    });
+
+    it("loads another video first when the time is in it", async () => {
+      const user = userEvent.setup();
+      vi.mocked(searchClips).mockResolvedValueOnce({
+        clips: [{ ...clipC, captureStartLocal: "2018-03-05T09:00:00" }, clipA, clipB],
+        summary: "Seen at 09:00:07.",
+      });
+      await act(() => useAppStore.getState().runSearch("seen"));
+      render(<ResultsScreen />);
+      await loadMetadata(footage());
+
+      await user.click(await screen.findByRole("button", { name: /at 09:00:07/ }));
+
+      const video = footage();
+      expect(video.getAttribute("src")).toBe("https://cdn.test/b.mp4");
+      await loadMetadata(video);
+      expect(video.currentTime).toBe(7);
+    });
   });
 });
 
@@ -2061,10 +2142,10 @@ describe("Query Assistant", () => {
 describe("Modals", () => {
   it("closes the cameras modal on Escape", async () => {
     const user = userEvent.setup();
-    useAppStore.setState({ camerasOpen: true });
+    useAppStore.setState({ camerasOpen: true, results: getAllClips() });
     render(<CamerasModal />);
 
-    expect(screen.getByRole("dialog", { name: "Indexed Cameras" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Cameras in this search" })).toBeInTheDocument();
     expect(screen.queryByText(/precinct/i)).not.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
@@ -2120,44 +2201,61 @@ describe("Modals", () => {
     radios.slice(1).forEach((radio) => expect(radio).not.toHaveTextContent(/default/i));
   });
 
+  it("shows the app's version and build in About, linked to the release", () => {
+    render(<SettingsScreen />);
+
+    const about = screen.getByRole("region", { name: "About" });
+    expect(within(about).getByRole("link", { name: "v1.4.2" })).toHaveAttribute(
+      "href",
+      "https://github.com/uts-ilab-p08/cctv-query-frontend/releases/tag/v1.4.2",
+    );
+    expect(within(about).getByText("abc1234")).toBeInTheDocument();
+  });
+
   it("is a page with its own sections, not a dialog", () => {
     render(<SettingsScreen />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
-    for (const section of ["Search mode", "Appearance"]) {
-      expect(screen.getByRole("heading", { level: 2, name: section })).toBeInTheDocument();
-    }
+    expect(screen.getByRole("heading", { level: 2, name: "Appearance" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "About" })).toBeInTheDocument();
+    // Natural language is the only search mode now: there is nothing to choose.
+    expect(screen.queryByRole("heading", { name: "Search mode" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Search mode" })).not.toBeInTheDocument();
     // MEVA is a single facility: there is no precinct to pick.
     expect(screen.queryByRole("radiogroup", { name: "Precinct" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("groups the camera directory by scene", async () => {
-    useAppStore.setState({ camerasOpen: true });
+  it("lists only the cameras behind the top matches, grouped by scene", async () => {
+    const clips = getAllClips();
+    useAppStore.setState({ camerasOpen: true, results: clips });
     render(<CamerasModal />);
 
-    const admin = await screen.findByRole("group", { name: "admin" });
-    expect(within(admin).getByText("G328")).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "school" })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Cameras in this search" });
+    const matches = topMatches(clips);
+    const inSearch = [...new Set(matches.map((clip) => clip.code))];
+    const elsewhere = getAllClips()
+      .map((clip) => clip.code)
+      .filter((code) => !inSearch.includes(code));
+    for (const code of inSearch) {
+      const row = within(dialog).getByText(code).closest("li");
+      const count = matches.filter((clip) => clip.code === code).length;
+      expect(row).toHaveTextContent(`${count} ${count === 1 ? "match" : "matches"}`);
+    }
+    for (const code of elsewhere) expect(within(dialog).queryByText(code)).not.toBeInTheDocument();
+
+    const scene = matches[0].scene as string;
+    expect(await within(dialog).findByRole("group", { name: scene })).toBeInTheDocument();
   });
 
-  it("filters by scene from the filters dialog", async () => {
-    const user = userEvent.setup();
-    useAppStore.setState({ filtersOpen: true });
-    render(<FiltersModal />);
+  it("adds each camera's indexed event total from the directory", async () => {
+    const clips = getAllClips();
+    useAppStore.setState({ camerasOpen: true, results: clips });
+    render(<CamerasModal />);
 
-    const scenes = screen.getByRole("group", { name: "Scenes" });
-    await user.click(within(scenes).getByRole("button", { name: "admin" }));
-
-    expect(useAppStore.getState().filters.scenes).toEqual(["admin"]);
-  });
-
-  it("switches the search mode from settings", async () => {
-    const user = userEvent.setup();
-    render(<SettingsScreen />);
-
-    await user.click(screen.getByRole("radio", { name: /Classic filters/ }));
-
-    expect(useAppStore.getState().searchMode).toBe("classic");
+    const code = topMatches(clips)[0].code;
+    const total = clips.filter((clip) => clip.code === code).length;
+    const row = screen.getByText(code).closest("li") as HTMLElement;
+    expect(await within(row).findByText(`${total} indexed`)).toBeInTheDocument();
   });
 });

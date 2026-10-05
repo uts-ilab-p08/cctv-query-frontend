@@ -45,6 +45,9 @@ export interface Clip {
   endSeconds?: number;
   /** The number the search's answer cites this moment by, as in `[2]`. */
   ref?: number;
+  /** The video's start on the camera's own clock, no offset (`2018-03-05T13:15:00`); the
+   *  player adds its playhead to show camera time (see `cameraDateTime`). */
+  captureStartLocal?: string;
 }
 
 export interface CameraDirectoryEntry {
@@ -54,22 +57,9 @@ export interface CameraDirectoryEntry {
   scene?: string;
 }
 
-export type SearchMode = "nlq" | "classic";
-
 /** Dark-mode accent palette; has no effect while the active theme is light. */
 export type Palette =
   "violet" | "slate" | "amber" | "linen" | "lavender" | "magic" | "sea" | "blues";
-
-export interface Filters {
-  cameras: string[];
-  /** Sites within the facility (`bronze.videos.scene`). */
-  scenes: string[];
-  tags: ClipTag[];
-  /** Minimum confidence, 0-100. */
-  confidence: number;
-  dateFrom: string;
-  dateTo: string;
-}
 
 export type KeywordKind = "tag" | "time" | "camera";
 

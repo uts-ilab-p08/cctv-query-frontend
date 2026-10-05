@@ -23,6 +23,9 @@ export interface RagResultItem {
   /** Requested (spec §2): the number `answer` cites this result by, as in `[2]`. Kept
    *  when other results are dropped, so citations never shift. */
   citation_index?: number | null;
+  /** The video's start in the camera's local time, with no offset (`2018-03-05T13:15:00`):
+   *  its time zone is unknown. Null only when bronze has no start. */
+  capture_start_local?: string | null;
 }
 
 export interface RagQueryResult {
@@ -49,6 +52,8 @@ export interface ApiClip {
    *  open the footage at the moment instead of at 0:00. */
   startSeconds?: number | null;
   endSeconds?: number | null;
+  /** As `RagResultItem.capture_start_local`. */
+  captureStartLocal?: string | null;
 }
 
 export interface ApiCameraDirectoryEntry {

@@ -3,6 +3,8 @@ import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown"
 import remarkGfm from "remark-gfm";
 
 import { citationRef, linkCitations } from "@/lib/citations";
+import { linkTimes, timeTarget } from "@/lib/timeMentions";
+import type { Clip } from "@/types";
 
 /** A cited source as the chat shows it: which moment, and how to name it. */
 export interface CitedSource {
@@ -90,6 +92,10 @@ interface ChatMarkdownProps {
   /** The moment an inline citation `[n]` points at. Without it, citations stay as written. */
   source?: (ref: number) => CitedSource | undefined;
   onOpenSource?: (id: string) => void;
+  /** The moments on screen. With `onOpenTime`, each camera time the answer names
+   *  (`16:51:12`) becomes a link that plays its moment from that second. */
+  moments?: Clip[];
+  onOpenTime?: (clipId: string, sec: number) => void;
 }
 
 /**
@@ -99,14 +105,41 @@ interface ChatMarkdownProps {
  * `javascript:` links.
  *
  * With `source`, each citation (`[2]`) becomes a numbered chip that opens its moment;
- * a citation no moment matches stays plain text.
+ * a citation no moment matches stays plain text. With `moments` and `onOpenTime`, each
+ * time it can pin to a moment (see `linkTimes`) becomes a link that plays it there.
  */
-export function ChatMarkdown({ text, source, onOpenSource }: ChatMarkdownProps) {
+export function ChatMarkdown({
+  text,
+  source,
+  onOpenSource,
+  moments,
+  onOpenTime,
+}: ChatMarkdownProps) {
+  const playsTimes = !!moments && !!onOpenTime;
+
   const withCitations = useMemo<Components>(() => {
-    if (!source) return components;
+    if (!source && !playsTimes) return components;
     return {
       ...components,
       a: (props) => {
+        const time = playsTimes ? timeTarget(props.href) : null;
+        if (time) {
+          const label = String(props.children ?? "");
+          const camera = moments?.find((clip) => clip.id === time.clipId)?.camera;
+          const name = `Play ${camera ? `${camera} ` : ""}at ${label}`;
+          return (
+            <button
+              type="button"
+              onClick={() => onOpenTime?.(time.clipId, time.sec)}
+              aria-label={name}
+              title={name}
+              className="text-accent-strong decoration-accent-line hover:decoration-accent-strong cursor-pointer underline decoration-dotted decoration-2 underline-offset-[3px] transition-colors duration-150"
+            >
+              {label}
+            </button>
+          );
+        }
+        if (!source) return <ChatLink {...props} />;
         const ref = citationRef(props.href);
         if (ref === null) return <ChatLink {...props} />;
         const cited = source(ref);
@@ -124,11 +157,13 @@ export function ChatMarkdown({ text, source, onOpenSource }: ChatMarkdownProps) 
         );
       },
     };
-  }, [source, onOpenSource]);
+  }, [source, onOpenSource, playsTimes, moments, onOpenTime]);
 
+  // Times first: a time's resolution reads the `[n]` citation written right after it.
+  const withTimes = playsTimes ? linkTimes(text, moments) : text;
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={withCitations}>
-      {source ? linkCitations(text) : text}
+      {source ? linkCitations(withTimes) : withTimes}
     </ReactMarkdown>
   );
 }

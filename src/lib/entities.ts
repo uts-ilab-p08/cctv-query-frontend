@@ -1,5 +1,8 @@
 // Inline query-token detection — the core interaction of the Home/Results search field.
-// Pure, dependency-free, unit-testable.
+// Pure and unit-testable. Detected terms are retuned in the text itself: the RAG reads
+// the whole query, so nothing is sent as a separate filter.
+
+import { CAMERA_CODE_SOURCE } from "@/lib/cameraQuery";
 
 export type EntityKind = "subject" | "event" | "time" | "camera" | "confidence";
 
@@ -52,18 +55,10 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
   {
     id: "camera",
     title: "Camera",
-    pattern:
-      /\b(parking lot|loading dock|rear exit|bus stop|stairwell|breezeway|courtyard|entrance|lobby)\b/,
-    options: [
-      "parking lot",
-      "entrance",
-      "loading dock",
-      "stairwell",
-      "rear exit",
-      "courtyard",
-      "breezeway",
-      "bus stop",
-    ],
+    // The code itself (`G328`): the RAG reads it from the query and searches that camera.
+    // Its options are the indexed cameras, which only /cameras knows (see QueryField).
+    pattern: new RegExp(CAMERA_CODE_SOURCE),
+    options: [],
   },
   {
     id: "confidence",
@@ -72,55 +67,6 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
     options: ["high confidence", "medium confidence", "low confidence"],
   },
 ] as const;
-
-export const TAG_FOR_PHRASE: Record<string, string> = {
-  person: "Person",
-  people: "Person",
-  anyone: "Person",
-  someone: "Person",
-  man: "Person",
-  woman: "Person",
-  vehicle: "Vehicle",
-  car: "Vehicle",
-  van: "Vehicle",
-  truck: "Vehicle",
-  "red car": "Vehicle",
-  "red sedan": "Vehicle",
-  "white van": "Vehicle",
-  package: "Object Left",
-  bag: "Object Left",
-  entered: "Entry",
-  enters: "Entry",
-  entering: "Entry",
-  entry: "Entry",
-  arrived: "Entry",
-  exited: "Exit",
-  exits: "Exit",
-  leaving: "Exit",
-  left: "Exit",
-  departed: "Exit",
-  loitering: "Loitering",
-  loiters: "Loitering",
-  parked: "Vehicle",
-};
-
-export const CAMERA_FOR_PHRASE: Record<string, string> = {
-  "parking lot": "G328",
-  entrance: "G301",
-  lobby: "G301",
-  "loading dock": "G421",
-  stairwell: "G424",
-  "rear exit": "G506",
-  courtyard: "G299",
-  breezeway: "G420",
-  "bus stop": "G423",
-};
-
-export const CONFIDENCE_FOR_PHRASE: Record<string, number> = {
-  "high confidence": 85,
-  "medium confidence": 65,
-  "low confidence": 0,
-};
 
 /** All non-overlapping entity hits, left to right; longer match wins a tie. */
 export function findEntities(text: string): EntityHit[] {

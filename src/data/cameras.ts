@@ -1,5 +1,3 @@
-import type { ClipTag } from "@/types";
-
 /** Camera codes indexed in the demo dataset, in directory order. */
 export const cameraNames = [
   "G299",
@@ -27,16 +25,3 @@ export const cameraScenes: Record<string, string> = {
   G424: "hospital",
   G506: "bus",
 };
-
-/** Scenes available as filter chips, in display order. */
-export const sceneNames = [...new Set(Object.values(cameraScenes))];
-
-/** Event types available as filter chips. */
-export const tagNames: ClipTag[] = [
-  "Person",
-  "Vehicle",
-  "Entry",
-  "Exit",
-  "Loitering",
-  "Object Left",
-];

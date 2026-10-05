@@ -26,14 +26,23 @@ describe("Sidebar", () => {
 
     expect(sidebar()).toHaveAttribute("data-collapsed", "true");
     const nav = within(sidebar()).getByRole("navigation", { name: "Main" });
-    for (const name of ["Search", "Saved Queries", "Annotation Pipeline", "Settings"]) {
+    for (const name of ["Search", "Saved Queries", "Indexed Cameras", "Settings"]) {
       expect(within(nav).getByRole("link", { name })).toBeInTheDocument();
     }
+    // The annotation pipeline left the menu; the camera directory took its place.
+    expect(
+      within(nav).queryByRole("link", { name: "Annotation Pipeline" }),
+    ).not.toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Indexed Cameras" })).toHaveAttribute(
+      "href",
+      "/cameras",
+    );
     // Labels are hidden visually, not removed: screen readers still get them.
     expect(within(nav).getByText("Saved Queries")).toHaveClass("sr-only");
     expect(screen.queryByText("sam.rivera@example.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Sam")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    // Same gap above it as when expanded, so it doesn't butt against the avatar.
+    expect(screen.getByRole("button", { name: "Sign out" })).toHaveClass("mt-3");
     expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toBeInTheDocument();
   });
 

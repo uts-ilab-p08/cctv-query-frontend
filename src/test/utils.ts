@@ -1,4 +1,3 @@
-import { emptyFilters } from "@/lib/filters";
 import { useAppStore } from "@/store/useAppStore";
 
 const pristine = useAppStore.getState();
@@ -7,8 +6,6 @@ const pristine = useAppStore.getState();
 export function resetStore(): void {
   useAppStore.setState({
     query: "",
-    searchMode: "nlq",
-    filters: emptyFilters,
     chats: {},
     chatOpen: false,
     theme: "dark",
@@ -19,7 +16,6 @@ export function resetStore(): void {
     lastSearch: null,
     searchPending: false,
     searchError: null,
-    filtersOpen: false,
     camerasOpen: false,
     pipelineJobs: pristine.pipelineJobs,
     nextJobId: pristine.nextJobId,
