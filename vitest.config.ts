@@ -31,5 +31,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Pinned build info, so version tests don't change with every release.
+    env: { NEXT_PUBLIC_APP_VERSION: "1.4.2", NEXT_PUBLIC_APP_COMMIT: "abc1234" },
   },
 });

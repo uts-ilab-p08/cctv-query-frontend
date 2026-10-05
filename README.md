@@ -35,6 +35,20 @@ npm run dev        # http://localhost:3000 → redirects to /dashboard
 
 The app is a desktop tool: the shell has a `min-w-[1280px]` floor and no mobile breakpoints.
 
+## Versioning and releases
+
+The version is `package.json` → `version` (semver). The build reads it, with the short commit (`build-info.ts`), and the app shows both in **Settings → About** and in Home's footer, linked to the GitHub release.
+
+To release, from a clean `main`:
+
+```bash
+npm run release:patch   # 0.1.0 → 0.1.1: fixes
+npm run release:minor   # 0.1.0 → 0.2.0: new features
+npm run release:major   # 0.1.0 → 1.0.0: breaking changes
+```
+
+Each one bumps `package.json`, commits `chore(release): vX.Y.Z`, tags `vX.Y.Z` and pushes both. The tag triggers `.github/workflows/release.yml`, which checks the tag matches `package.json` and creates the GitHub release with generated notes. Deploy that commit to ship the new number.
+
 ## Structure
 
 ```
