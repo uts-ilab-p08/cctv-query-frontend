@@ -1,12 +1,22 @@
 "use client";
 
-import { Cctv, Check, Loader2, Search, X } from "lucide-react";
+import { Cctv, Check, Clock, Loader2, Search, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { getCameras } from "@/lib/api/endpoints";
+import { Input } from "@/components/ui/Input";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { camerasInQuery, withCamera, withoutCamera } from "@/lib/cameraQuery";
 import { cn } from "@/lib/cn";
 import { replaceRange, toSegments, type EntityHit } from "@/lib/entities";
+import {
+  hourAfter,
+  timeInQuery,
+  withoutTime,
+  withTime,
+  type TimeFilter,
+  type TimeMode,
+} from "@/lib/timeQuery";
 import { useAppStore } from "@/store/useAppStore";
 import type { CameraDirectoryEntry } from "@/types";
 
@@ -35,6 +45,13 @@ export interface QueryFieldProps {
   transitionName?: string;
 }
 
+const TIME_MODES = [
+  { value: "at", label: "At" },
+  { value: "after", label: "After" },
+  { value: "before", label: "Before" },
+  { value: "between", label: "Between" },
+] as const;
+
 /** Characters typed before the clear button appears — below this it is noise. */
 const CLEAR_MIN_LENGTH = 3;
 
@@ -51,7 +68,10 @@ type Directory =
  *
  * Cameras are part of the text too: a typed code (`G328`) is a token that swaps for any
  * indexed camera, and the camera picker writes or removes "on cameras …" in the query.
- * The RAG reads them from there; nothing is sent as a separate filter.
+ * The time of day works the same way: the clock picker beside it writes "at 7:00 pm" or
+ * "between 7:00 pm and 9:00 pm", and a time typed in plain words is a token too. The text
+ * is the pickers' only state. The RAG reads both from there; nothing is sent as a
+ * separate filter.
  */
 export function QueryField({
   variant = "hero",
@@ -65,7 +85,9 @@ export function QueryField({
   const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [picker, setPicker] = useState<"cameras" | "time" | null>(null);
+  /** The time picker's mode while the query names no time; otherwise the text's wins. */
+  const [timeMode, setTimeMode] = useState<TimeMode>("at");
   const [directory, setDirectory] = useState<Directory>({ status: "idle" });
 
   const storeQuery = useAppStore((s) => s.query);
@@ -77,7 +99,7 @@ export function QueryField({
   const hero = variant === "hero";
   // Right padding reserves room for the overlaid buttons. It is fixed — not per
   // clear-button visibility — so the text never reflows when the clear button appears.
-  const pad = hero ? "py-5 pr-[160px] pl-7" : "py-4 pr-[146px] pl-6";
+  const pad = hero ? "py-5 pr-[212px] pl-7" : "py-4 pr-[192px] pl-6";
   const showClear = query.length >= CLEAR_MIN_LENGTH;
 
   /** Fetch the indexed cameras once; a failed load retries on the next open. */
@@ -95,16 +117,37 @@ export function QueryField({
     inputRef.current?.focus();
   };
 
-  const togglePicker = (event: MouseEvent<HTMLButtonElement>) => {
+  const togglePicker = (which: "cameras" | "time") => (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     setMenu(null);
-    setPickerOpen((open) => !open);
-    loadDirectory();
+    setPicker((open) => (open === which ? null : which));
+    if (which === "cameras") loadDirectory();
   };
 
   const selectedCameras = camerasInQuery(query);
   const toggleCamera = (code: string) => () =>
     setQuery(selectedCameras.includes(code) ? withoutCamera(query, code) : withCamera(query, code));
+
+  const currentTime = timeInQuery(query);
+  const shownMode = currentTime?.mode ?? timeMode;
+  const setTime = (filter: TimeFilter) => setQuery(withTime(query, filter));
+  const changeMode = (mode: TimeMode) => {
+    setTimeMode(mode);
+    if (currentTime) {
+      setTime({ mode, from: currentTime.from, to: currentTime.to ?? hourAfter(currentTime.from) });
+    }
+  };
+  // A half-typed native time input reports "": wait for a whole time before writing it.
+  const changeFrom = (value: string) => {
+    if (value) setTime({ mode: shownMode, from: value, to: currentTime?.to ?? hourAfter(value) });
+  };
+  const changeTo = (value: string) => {
+    if (value && currentTime) setTime({ mode: "between", from: currentTime.from, to: value });
+  };
+  const clearTime = () => {
+    if (currentTime) setTimeMode(currentTime.mode);
+    setQuery(withoutTime(query));
+  };
 
   const cameraCodes = directory.status === "ready" ? directory.cameras.map((c) => c.code) : [];
   const directoryNote =
@@ -123,7 +166,7 @@ export function QueryField({
     if (!field) return;
     const r = event.currentTarget.getBoundingClientRect();
     const fr = field.getBoundingClientRect();
-    setPickerOpen(false);
+    setPicker(null);
     if (hit.def.id === "camera") loadDirectory();
     setMenu({
       hit,
@@ -159,7 +202,7 @@ export function QueryField({
         onClick={() => {
           inputRef.current?.focus();
           setMenu(null);
-          setPickerOpen(false);
+          setPicker(null);
         }}
         className={cn(
           "rounded-field relative z-20 w-full cursor-text",
@@ -244,7 +287,7 @@ export function QueryField({
           </div>
         ) : null}
 
-        {pickerOpen ? (
+        {picker === "cameras" ? (
           <div
             role="group"
             aria-label="Search in cameras"
@@ -294,6 +337,68 @@ export function QueryField({
           </div>
         ) : null}
 
+        {picker === "time" ? (
+          <div
+            role="group"
+            aria-label="Search at a time"
+            onClick={(event) => event.stopPropagation()}
+            className={cn(
+              "glass-panel rounded-chip absolute right-3 z-40 flex w-[280px] flex-col gap-2 p-2",
+              hero ? "top-[64px]" : "top-[56px]",
+            )}
+          >
+            <div>
+              <div className="text-ink-3 px-2 pt-1 pb-1 font-mono text-[10px] tracking-[1px]">
+                SEARCH AT A TIME
+              </div>
+              <p className="text-ink-3 px-2 text-[11px] leading-[1.45]">
+                Added to your question, so the assistant searches only then.
+              </p>
+            </div>
+            <SegmentedControl
+              label="Time range"
+              options={TIME_MODES}
+              value={shownMode}
+              onChange={changeMode}
+              className="w-full [&>button]:flex-1 [&>button]:px-2"
+            />
+            <div className="flex gap-2 px-0.5">
+              <label className="text-ink-3 flex min-w-0 flex-1 flex-col gap-1 text-[11px]">
+                {shownMode === "between" ? "From" : "Time"}
+                <Input
+                  type="time"
+                  mono
+                  value={currentTime?.from ?? ""}
+                  onChange={(event) => changeFrom(event.target.value)}
+                />
+              </label>
+              {shownMode === "between" ? (
+                <label className="text-ink-3 flex min-w-0 flex-1 flex-col gap-1 text-[11px]">
+                  To
+                  <Input
+                    type="time"
+                    mono
+                    value={currentTime?.to ?? ""}
+                    disabled={!currentTime}
+                    onChange={(event) => changeTo(event.target.value)}
+                    className="disabled:opacity-50"
+                  />
+                </label>
+              ) : null}
+            </div>
+            {currentTime ? (
+              <button
+                type="button"
+                onClick={clearTime}
+                className="text-ink-2 hover:bg-accent-soft flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px]"
+              >
+                <X size={14} strokeWidth={2.2} aria-hidden />
+                Clear time
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         <div
           className={cn(
             "absolute z-[3] flex items-center gap-2",
@@ -316,9 +421,23 @@ export function QueryField({
           ) : null}
           <button
             type="button"
-            onClick={togglePicker}
+            onClick={togglePicker("time")}
+            aria-label="Choose a time"
+            aria-expanded={picker === "time"}
+            title="Choose a time"
+            className={cn(
+              "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",
+              currentTime ? "text-accent-strong border-accent-line" : "text-ink-2",
+              hero ? "size-11" : "size-[38px]",
+            )}
+          >
+            <Clock size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={togglePicker("cameras")}
             aria-label="Choose cameras"
-            aria-expanded={pickerOpen}
+            aria-expanded={picker === "cameras"}
             title="Choose cameras"
             className={cn(
               "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",

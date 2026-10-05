@@ -33,7 +33,7 @@ export function camerasInQuery(query: string): string[] {
 }
 
 /** Tidy the spaces an edit leaves behind, without touching the rest of the text. */
-function tidy(query: string): string {
+export function tidy(query: string): string {
   return query
     .replace(/ {2,}/g, " ")
     .replace(/ +([?.!,:;])/g, "$1")

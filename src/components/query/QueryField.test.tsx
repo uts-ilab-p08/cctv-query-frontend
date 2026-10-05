@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -201,6 +201,86 @@ describe("QueryField", () => {
 
     expect(onChange).toHaveBeenCalledWith("who left on camera G506");
     expect(useAppStore.getState().query).toBe("red car");
+  });
+
+  it("offers a time picker right beside the camera picker", () => {
+    render(<QueryField onSubmit={vi.fn()} />);
+    const cameraButton = screen.getByRole("button", { name: "Choose cameras" });
+    expect(cameraButton.previousElementSibling).toBe(
+      screen.getByRole("button", { name: "Choose a time" }),
+    );
+  });
+
+  it("underlines a time typed in plain words and shows it in the picker", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "At 7:00 pm which events occurred in the hospital cameras" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    expect(token("At 7:00 pm")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Choose a time" }));
+
+    const picker = screen.getByRole("group", { name: "Search at a time" });
+    expect(within(picker).getByRole("button", { name: "At" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(within(picker).getByLabelText("Time")).toHaveValue("19:00");
+  });
+
+  it("writes the picked time into the query, replacing it rather than adding another", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "who left on camera G328?" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Choose a time" }));
+    const picker = screen.getByRole("group", { name: "Search at a time" });
+    fireEvent.change(within(picker).getByLabelText("Time"), { target: { value: "19:00" } });
+    expect(useAppStore.getState().query).toBe("who left on camera G328 at 7:00 pm?");
+
+    fireEvent.change(within(picker).getByLabelText("Time"), { target: { value: "21:00" } });
+    expect(useAppStore.getState().query).toBe("who left on camera G328 at 9:00 pm?");
+
+    await user.click(within(picker).getByRole("button", { name: "Between" }));
+    expect(useAppStore.getState().query).toBe(
+      "who left on camera G328 between 9:00 pm and 10:00 pm?",
+    );
+    fireEvent.change(within(picker).getByLabelText("To"), { target: { value: "23:30" } });
+    expect(useAppStore.getState().query).toBe(
+      "who left on camera G328 between 9:00 pm and 11:30 pm?",
+    );
+  });
+
+  it("clears the picker when the time leaves the text, and the text on Clear time", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "who left after 14:00" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Choose a time" }));
+    const picker = screen.getByRole("group", { name: "Search at a time" });
+    expect(within(picker).getByLabelText("Time")).toHaveValue("14:00");
+
+    await user.click(within(picker).getByRole("button", { name: "Clear time" }));
+    expect(useAppStore.getState().query).toBe("who left");
+    expect(within(picker).getByLabelText("Time")).toHaveValue("");
+
+    fireEvent.change(within(picker).getByLabelText("Time"), { target: { value: "08:00" } });
+    expect(useAppStore.getState().query).toBe("who left after 8:00 am");
+    fireEvent.change(screen.getByRole("textbox", { name: "Search the camera network" }), {
+      target: { value: "who left" },
+    });
+    expect(within(picker).getByLabelText("Time")).toHaveValue("");
+    expect(within(picker).queryByRole("button", { name: "Clear time" })).not.toBeInTheDocument();
+  });
+
+  it("opens one picker at a time", async () => {
+    const user = userEvent.setup();
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Choose cameras" }));
+    await user.click(screen.getByRole("button", { name: "Choose a time" }));
+
+    expect(screen.getByRole("group", { name: "Search at a time" })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Search in cameras" })).not.toBeInTheDocument();
   });
 
   it("renders the compact variant's placeholder", () => {

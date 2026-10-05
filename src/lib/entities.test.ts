@@ -94,13 +94,21 @@ describe("findEntities — overlap resolution", () => {
     expect(kinds).toEqual(["subject", "event", "camera", "time", "time", "confidence"]);
   });
 
-  // The time pattern's trailing `\s?(am|pm)?` consumes the separating space when
-  // no meridiem follows, so the hit ends one character past the phrase. Choosing a
-  // replacement for it would otherwise swallow the space and fuse two words.
-  it("documents the trailing-space overshoot in bare clock times", () => {
+  // A bare clock time ends at its last digit: choosing a replacement for it keeps the
+  // space before the next word instead of fusing the two.
+  it("ends a bare clock time before the space that follows it", () => {
     const query = "after 14:00 yesterday";
     const [first] = findEntities(query);
-    expect(query.slice(first.start, first.end)).toBe("after 14:00 ");
+    expect(query.slice(first.start, first.end)).toBe("after 14:00");
+  });
+
+  it("detects clock times and ranges in their common forms", () => {
+    expect(detect("At 7:00 pm which events occurred")).toEqual([["At 7:00 pm", "time"]]);
+    expect(detect("who left at 7pm")).toContainEqual(["at 7pm", "time"]);
+    expect(detect("before 19:00")).toEqual([["before 19:00", "time"]]);
+    expect(detect("between 7 and 9 pm")).toEqual([["between 7 and 9 pm", "time"]]);
+    expect(detect("from 18:00 to 20:00")).toEqual([["from 18:00 to 20:00", "time"]]);
+    expect(detect("2 people")).toEqual([["people", "subject"]]);
   });
 });
 
