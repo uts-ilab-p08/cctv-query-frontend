@@ -11,10 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky",
-    "release:patch": "npm version patch -m \"chore(release): v%s\"",
-    "release:minor": "npm version minor -m \"chore(release): v%s\"",
-    "release:major": "npm version major -m \"chore(release): v%s\"",
-    "postversion": "git push --follow-tags"
+    "release:patch": "npm version patch -m \"chore(release): v%s\" && git push --follow-tags",
+    "release:minor": "npm version minor -m \"chore(release): v%s\" && git push --follow-tags",
+    "release:major": "npm version major -m \"chore(release): v%s\" && git push --follow-tags"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
