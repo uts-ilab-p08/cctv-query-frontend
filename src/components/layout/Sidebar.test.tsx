@@ -41,7 +41,8 @@ describe("Sidebar", () => {
     expect(within(nav).getByText("Saved Queries")).toHaveClass("sr-only");
     expect(screen.queryByText("sam.rivera@example.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Sam")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    // Same gap above it as when expanded, so it doesn't butt against the avatar.
+    expect(screen.getByRole("button", { name: "Sign out" })).toHaveClass("mt-3");
     expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toBeInTheDocument();
   });
 
