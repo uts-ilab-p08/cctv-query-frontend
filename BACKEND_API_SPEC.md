@@ -4,7 +4,7 @@ Only what is still missing. Everything else the frontend consumes is live and wi
 
 - **Base URL:** `NEXT_PUBLIC_API_BASE_URL`. Production is `https://surveillance-backend-production.up.railway.app` (Railway); live docs are at `/docs`.
 - **Auth:** every endpoint except `/health` and `/clips/{id}/thumbnail.jpg` requires `Authorization: Bearer <Supabase access token>`.
-- **Last checked:** 2026-09-30 (later the same day), against the deployed `/openapi.json` on Railway and `surveillance-backend` `main` (`80ecf7b`).
+- **Last checked:** 2026-10-05, against `surveillance-backend` `main` (`c051159`) and its open PR #7.
 
 ---
 
@@ -16,6 +16,8 @@ Only what is still missing. Everything else the frontend consumes is live and wi
 - **Clip thumbnails:** `/search` returns `thumbnail_url`, served by the public `GET /clips/{event_id}/thumbnail.jpg`.
 - **CORS** allows `https://www.cctvai.site` and `https://cctvai.site` (preflight returns `200`).
 - **Recent queries are written by `/search`**, as seen in the app. The saved-query `hits` bump is still unverified (§5).
+- **`capture_start_local` / `captureStartLocal`** on `/search` and `/clips` (backend PR #6, merged): the player shows camera time from it, and the times the answer names link to their moments.
+- **Qdrant index rebuilt from the current bronze** (2026-10-05, with RAG `v0.1.5`). Before that, bronze had been regenerated under the same `event_id`s and the index had not: answers described the old times and captions while the app played the new ones, and one source no longer existed in bronze.
 - **`/search` filters are no longer needed** (were #1, #2 and #13). The frontend has one search mode, natural language, and names the cameras in the query itself (`q=who left on cameras G328, G420`); the RAG reads them from there. It sends no `cameras`, `scenes`, `tags`, `min_confidence`, `date_from` or `date_to`, so those params can stay or go.
 - **Live on Railway:**
   - `POST /assistant/ask/stream`: progress as Server-Sent Events (§8.1). The frontend uses it, and falls back to `/assistant/ask` only on a backend without the route (404/405).
@@ -27,7 +29,7 @@ Only what is still missing. Everything else the frontend consumes is live and wi
 
 | #   | Item                                              | Owner         | Status                             |
 | --- | ------------------------------------------------- | ------------- | ---------------------------------- |
-| 3   | `/search` citations `[n]`: send `citation_index`  | Backend / RAG | 🔴 Numbers can shift               |
+| 3   | `/search` citations `[n]`: send `citation_index`  | Backend / RAG | 🟡 In backend PR #7, not merged    |
 | 4   | `thumbnailUrl` on `/clips/{id}` and `/related`    | Backend       | 🔴 Always `null`                   |
 | 5   | Thumbnails survive deploys and restarts           | Backend       | 🟡 Cache on an ephemeral disk      |
 | 6   | Drop `perspective` from `Clip` and cameras        | Backend       | 🟡 Cleanup                         |
@@ -48,6 +50,8 @@ Only what is still missing. Everything else the frontend consumes is live and wi
 The frontend sends `q` and `limit`. Cameras travel inside `q` (see Resolved).
 
 ### 2.1 Citations in the `answer`: send `citation_index` (#3)
+
+**In progress:** backend PR #7 (`fix/search-citation-index`) numbers each result before any is dropped. The frontend needs no change once it merges and deploys.
 
 The RAG's prompt tells the LLM to _"Cite each event you use by its number, like [1] or [3]"_, so `[n]` in `answer` is the n-th of the RAG's `sources`, 1-based. The frontend turns each `[n]` into a numbered chip that opens that moment, and lists the cited moments as **Sources**.
 
