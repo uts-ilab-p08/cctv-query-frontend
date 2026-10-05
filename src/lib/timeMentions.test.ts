@@ -160,6 +160,91 @@ describe("linkTimes", () => {
   });
 });
 
+// Real G505 videos from bronze: MEVA file names, whose start equals capture_start_local.
+describe("linkTimes — minute-precision answers (real G505 data)", () => {
+  const g505 = (overrides: Partial<Clip>) =>
+    moment({ code: "G505", camera: "G505", scene: "bus", ...overrides });
+  const white1 = g505({
+    id: "evt-1",
+    ref: 1,
+    videoId: "2018-03-05.13-15-00.13-20-00.bus.G505",
+    captureStartLocal: "2018-03-05T13:15:00",
+    startSeconds: 8,
+    endSeconds: 18,
+  });
+  const white2 = g505({
+    id: "evt-2",
+    ref: 2,
+    videoId: "2018-03-07.11-10-01.11-15-01.bus.G505",
+    captureStartLocal: "2018-03-07T11:10:01",
+    startSeconds: 0,
+    endSeconds: 10,
+  });
+  const white3 = g505({
+    id: "evt-3",
+    ref: 3,
+    videoId: "2018-03-07.16-50-01.16-55-01.bus.G505",
+    captureStartLocal: "2018-03-07T16:50:01",
+    startSeconds: 168,
+    endSeconds: 178,
+  });
+  const white4 = g505({
+    id: "evt-4",
+    ref: 4,
+    videoId: "2018-03-07.16-50-01.16-55-01.bus.G505",
+    captureStartLocal: "2018-03-07T16:50:01",
+    startSeconds: 0,
+    endSeconds: 10,
+  });
+  const whites = [white1, white2, white3, white4];
+
+  const WHITE = `Yes — white vehicles are visible on camera G505 (no events were retrieved for G508 or G509).
+
+- [1]/[5]: a white SUV passing through around 13:15 (likely the same occurrence seen twice).
+- [4]/[3]: a white SUV moving around 16:51–16:54 (possibly one vehicle captured in sequence).
+- [2]: a white sedan and another white car passing in the background around 11:10 on a different date.`;
+
+  it("links each time to the moment cited at the start of its line", () => {
+    expect(links(linkTimes(WHITE, whites))).toEqual([
+      // The minute holds the moment's start (13:15:08): play from the moment itself.
+      ["13:15", { clipId: "evt-1", sec: 8 }],
+      // 16:51:00 is 59 s into a video that starts at 16:50:01.
+      ["16:51–16:54", { clipId: "evt-4", sec: 59 }],
+      // 11:10 is a second before the video starts (11:10:01), not a day after.
+      ["11:10", { clipId: "evt-2", sec: 0 }],
+    ]);
+  });
+
+  it("never seeks before the start of the video", () => {
+    expect(links(linkTimes("Seen at 11:10:00 [2].", whites))).toEqual([
+      ["11:10:00", { clipId: "evt-2", sec: 0 }],
+    ]);
+  });
+
+  it("keeps a full HH:MM:SS exact, even inside the moment's minute", () => {
+    expect(links(linkTimes("Seen at 13:15:03 [1].", whites))).toEqual([
+      ["13:15:03", { clipId: "evt-1", sec: 3 }],
+    ]);
+  });
+
+  it("lets the line's citation settle a time two dates share", () => {
+    // Same clock time, two dates: ambiguous alone, settled by the citation.
+    const otherDay = {
+      ...white1,
+      id: "evt-9",
+      ref: 9,
+      videoId: "other",
+      captureStartLocal: "2018-03-07T13:15:00",
+    };
+    expect(linkTimes("A white SUV around 13:15.", [white1, otherDay])).toBe(
+      "A white SUV around 13:15.",
+    );
+    expect(links(linkTimes("- [9]: a white SUV around 13:15.", [white1, otherDay]))).toEqual([
+      ["13:15", { clipId: "evt-9", sec: 8 }],
+    ]);
+  });
+});
+
 describe("timeTarget", () => {
   it("reads the moment and second back from a time link, ids with colons included", () => {
     const linked = linkTimes("At 16:51:12.", [{ ...g638a, id: "v638:72", ref: undefined }]);
