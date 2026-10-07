@@ -5,14 +5,36 @@
 import { CAMERA_CODE_SOURCE } from "@/lib/cameraQuery";
 import { TIME_SOURCE } from "@/lib/timeQuery";
 
-export type EntityKind = "subject" | "event" | "time" | "camera" | "confidence";
+export type EntityKind =
+  "subject" | "colour" | "clothing" | "event" | "date" | "time" | "scene" | "camera" | "negation";
 
 export interface EntityDef {
   id: EntityKind;
   title: string;
   pattern: RegExp; // authored without /g; findEntities clones it with "gi"
   options: string[];
+  /** Shown above the options: what the term does to the search. */
+  note?: string;
 }
+
+// Dates in the forms the RAG's `temporal.dates` filters on: `2018-03-05`, `March 5`,
+// `5 March`, `the 5th of March`, `the 5th`. A month needs a day beside it, so the verb
+// "may" never reads as a date.
+const MONTH =
+  "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
+const ORDINAL = String.raw`\d{1,2}(?:st|nd|rd|th)?`;
+const YEAR = String.raw`(?:,?\s+\d{4})?`;
+const DATE_SOURCE = [
+  String.raw`\b\d{4}-\d{1,2}-\d{1,2}\b`,
+  String.raw`\b(?:the\s+)?${ORDINAL}\s+(?:of\s+)?(?:${MONTH})\b${YEAR}`,
+  String.raw`\b(?:${MONTH})\.?\s+${ORDINAL}\b${YEAR}`,
+  String.raw`\bthe\s+\d{1,2}(?:st|nd|rd|th)\b`,
+].join("|");
+
+// Mirrors the RAG's location vocabulary (`filters.py`): its four scenes, plus the
+// everyday SYNONYMS it maps onto them. Longer phrases first, so "bus station" beats "bus".
+const SCENE_WORDS =
+  "bus station|bus stop|medical cent(?:re|er)|hospital|clinic|school|campus|classroom|depot|admin|bus";
 
 export interface EntityHit {
   start: number;
@@ -27,16 +49,44 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
   {
     id: "subject",
     title: "Subject / object",
+    // Colours live in `colour`, so "red sedan" is two terms rather than one hardcoded
+    // pair. "bus" is left to `scene`, which the RAG filters on. Countable nouns take an
+    // optional plural "s"; "men" and "women" are spelled out.
     pattern:
-      /\b(people|person|anyone|someone|man|woman|red car|red sedan|white van|vehicle|car|van|truck|package|bag)\b/,
-    options: ["person", "people", "vehicle", "red sedan", "white van", "package"],
+      /\b(people|person|anyone|someone|man|men|woman|women|(?:vehicle|car|sedan|suv|van|truck|bicycle|bike|motorcycle|package|bag|backpack|trunk|door)s?)\b/,
+    options: ["person", "people", "vehicle", "car", "bicycle", "package"],
+  },
+  // Colour and clothing are separate kinds because a menu swaps a term for one of its
+  // kind's options: a colour for a colour, a garment for a garment.
+  {
+    id: "colour",
+    title: "Colour",
+    // "after dark" is a time of day, not a colour.
+    pattern: /\b(red|blue|green|yellow|orange|black|white|grey|gray|silver|(?<!after )dark)\b/,
+    options: ["red", "blue", "black", "white", "grey", "dark"],
+  },
+  {
+    id: "clothing",
+    title: "Clothing",
+    pattern: /\b(jacket|hoodie|coat|hat|cap|uniform)s?\b/,
+    options: ["jacket", "hoodie", "coat", "hat", "cap", "uniform"],
   },
   {
     id: "event",
     title: "Event type",
+    // "leave"/"left" only before what was left ("left the building", "leave a bag"):
+    // "turned left", "left side" and "leave it to me" are not events. A loading dock is a
+    // place, not someone loading.
     pattern:
-      /\b(entered|enters|entering|entry|exited|exits|leaving|left|loitering|loiters|parked|arrived|departed|dropped off)\b/,
-    options: ["entered", "exited", "loitering", "parked", "arrived", "departed"],
+      /\b(entered|enters|entering|entry|exited|exits|leaving|left behind|(?:leaves?|left)(?=\s+(?:a|an|the|his|her|their|behind)\b)|abandoned|unattended|(?:pick(?:s|ing|ed)?) up|(?:puts?|putting) down|(?:drop(?:s|ping|ped)?) off|loitering|loiters|parked|stopped|stationary|turned|reversed|arrived|departed|talking to|carrying|unloading|loading(?!\s+(?:dock|bay|zone|area)\b))\b/,
+    options: ["entered", "exited", "loitering", "parked", "left behind", "picked up"],
+  },
+  {
+    id: "date",
+    title: "Date",
+    pattern: new RegExp(DATE_SOURCE),
+    options: [],
+    note: "Searches only footage from that day, if it has been indexed.",
   },
   {
     id: "time",
@@ -57,6 +107,13 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
     ],
   },
   {
+    id: "scene",
+    title: "Location",
+    pattern: new RegExp(String.raw`\b(?:${SCENE_WORDS})\b`),
+    // Its options are the indexed scenes, which only /cameras knows (see QueryField).
+    options: [],
+  },
+  {
     id: "camera",
     title: "Camera",
     // The code itself (`G328`): the RAG reads it from the query and searches that camera.
@@ -65,10 +122,12 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
     options: [],
   },
   {
-    id: "confidence",
-    title: "Confidence",
-    pattern: /\b(high confidence|medium confidence|low confidence)\b/,
-    options: ["high confidence", "medium confidence", "low confidence"],
+    id: "negation",
+    title: "Exclusion",
+    // The RAG's NEGATIONS. "no one" asks for absence, not an exclusion.
+    pattern: /\b(not|no(?!\s+one\b)|except|excluding|other than|besides|without|apart from)\b/,
+    options: [],
+    note: "Search matches by meaning and may still return what you exclude. A location or camera right after this word is not used to narrow the search.",
   },
 ] as const;
 

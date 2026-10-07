@@ -150,6 +150,22 @@ export function QueryField({
   };
 
   const cameraCodes = directory.status === "ready" ? directory.cameras.map((c) => c.code) : [];
+  const sceneNames =
+    directory.status === "ready"
+      ? [...new Set(directory.cameras.flatMap((c) => (c.scene ? [c.scene] : [])))]
+      : [];
+  /**
+   * Cameras and locations come from the index, so only indexed values are offered. A
+   * fixed list leads with the typed term when it lacks it ("carrying"), so the menu
+   * always shows what the token is now.
+   */
+  const optionsFor = (hit: EntityHit) => {
+    if (hit.def.id === "camera") return cameraCodes;
+    if (hit.def.id === "scene") return sceneNames;
+    const typed = query.slice(hit.start, hit.end).toLowerCase();
+    const { options } = hit.def;
+    return options.length === 0 || options.includes(typed) ? options : [typed, ...options];
+  };
   const directoryNote =
     directory.status === "error"
       ? "Couldn't load the cameras."
@@ -167,7 +183,7 @@ export function QueryField({
     const r = event.currentTarget.getBoundingClientRect();
     const fr = field.getBoundingClientRect();
     setPicker(null);
-    if (hit.def.id === "camera") loadDirectory();
+    if (hit.def.id === "camera" || hit.def.id === "scene") loadDirectory();
     setMenu({
       hit,
       top: r.bottom - fr.top + 8,
@@ -264,10 +280,15 @@ export function QueryField({
             <div className="text-ink-3 px-2 pt-1 pb-2 font-mono text-[10px] tracking-[1px]">
               {menu.hit.def.title}
             </div>
+            {menu.hit.def.note ? (
+              <p className="text-ink-3 max-w-[260px] px-2 pb-2 text-[11px] leading-[1.45]">
+                {menu.hit.def.note}
+              </p>
+            ) : null}
             {menu.hit.def.id === "camera" && directoryNote ? (
               <p className="text-ink-3 px-2.5 py-2 text-[13px]">{directoryNote}</p>
             ) : null}
-            {(menu.hit.def.id === "camera" ? cameraCodes : menu.hit.def.options).map((option) => {
+            {optionsFor(menu.hit).map((option) => {
               const current =
                 query.slice(menu.hit.start, menu.hit.end).toLowerCase() === option.toLowerCase();
               return (
