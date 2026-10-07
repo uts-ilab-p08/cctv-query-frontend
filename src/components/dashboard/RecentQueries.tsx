@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { History, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -60,7 +60,7 @@ export function RecentQueries({ onPick, floating = false, className }: RecentQue
     return (
       <section className={cn("mt-14 w-full", className)}>
         <SectionLabel>RECENT QUERIES</SectionLabel>
-        <QueryListSkeleton label="Loading recent queries" rows={RECENT_LIMIT} className="gap-2.5" />
+        <QueryListSkeleton label="Loading recent queries" rows={RECENT_LIMIT} grouped />
       </section>
     );
   }
@@ -71,7 +71,14 @@ export function RecentQueries({ onPick, floating = false, className }: RecentQue
   return (
     <section className={cn("mt-14 w-full", className)}>
       <SectionLabel>RECENT QUERIES</SectionLabel>
-      <ul className="flex flex-col gap-2.5">
+      {/* One card of rows, not a stack of rounded bars: rows shaped like the search field
+          read as more search fields. */}
+      <ul
+        className={cn(
+          "rounded-card divide-hairline divide-y overflow-hidden",
+          floating ? "glass-panel" : "glass-card-flat",
+        )}
+      >
         {recentQueries.map((query) => (
           <li key={query.id}>
             <button
@@ -85,12 +92,10 @@ export function RecentQueries({ onPick, floating = false, className }: RecentQue
               }}
               aria-busy={runningId === query.id || undefined}
               disabled={runningId !== null}
-              className={cn(
-                "rounded-card hover:border-hairline-strong aria-busy:border-accent-line flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3.5 text-left transition-[border-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100",
-                floating ? "glass-panel" : "glass-card-flat",
-              )}
+              className="hover:bg-accent-soft aria-busy:bg-accent-soft flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-[background-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100"
             >
-              <span className="text-ink text-sm">{query.text}</span>
+              <History size={15} strokeWidth={2} className="text-ink-3 shrink-0" aria-hidden />
+              <span className="text-ink min-w-0 flex-1 text-sm">{query.text}</span>
               {runningId === query.id ? (
                 <Loader2
                   size={15}

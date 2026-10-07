@@ -42,6 +42,8 @@ Only what is still missing. Everything else the frontend consumes is live and wi
 | 14  | Frontend stopgaps to delete                       | Frontend      | 🟡 Cleanup, mostly unblocked       |
 | 15  | Duplicate `event_id` in `AssistantMoment`         | Backend       | 🟡 Cleanup                         |
 | 16  | `GET /search/stream`: deploy to Railway           | Backend       | 🟡 In `main`, not deployed yet     |
+| 17  | `GET /vocabulary`: indexed scenes, cameras, dates | Backend       | 🔴 Missing                         |
+| 18  | Bump the RAG pin to `v0.1.5` (dates, times)       | Backend       | 🔴 `main` pins `v0.1.4`            |
 
 ---
 
@@ -150,6 +152,8 @@ Optionally, `/search` could return `suggested_questions` next to `answer`, savin
 | Fallbacks for missing enriched fields        | `ragResultItemToClip`, `src/lib/api/normalize.ts`               | Unblocked if the backend guarantees them non-null   |
 | Thumbnail URL built from the event id        | `clipThumbnailUrl`, `src/lib/api/normalize.ts`                  | Waits on §3.1                                       |
 | Citation numbers by position                 | `Clip.ref` fallback, `src/lib/api/normalize.ts`                 | Waits on §2.1                                       |
+| Location words copied from the RAG           | `SCENE_WORDS` in `src/lib/entities.ts`                          | Waits on §11                                        |
+| Date menu with no options                    | `date` in `ENTITY_DEFS`, `src/lib/entities.ts`                  | Waits on §11                                        |
 
 ---
 
@@ -157,3 +161,105 @@ Optionally, `/search` could return `suggested_questions` next to `answer`, savin
 
 - **`event_id` is declared twice** in `AssistantMoment` (`app/schemas/assistant.py`), with two different comments. Pydantic keeps the second, so it works, but one of them should go.
 - **`/search` and `event_id`:** `RagResultItem.event_id` is still typed `str | None`. If every result now carries one, as reported, typing it `str` would let the frontend drop its `video_id:start_seconds` fallback id.
+
+---
+
+## 11. `GET /api/v1/vocabulary`: what the query field can name (#17, #18)
+
+The search field underlines the terms the RAG filters on (locations, cameras, dates, times of day), and clicking one opens a menu of alternatives. Those menus need **the values the RAG can actually filter on**. Today:
+
+- **Dates:** no endpoint returns them, so the Date menu offers nothing.
+- **Locations:** the menu takes scenes from `/cameras`, but the words that count as a location (`clinic` → `hospital`, `depot` → `bus`…) are a hand-made copy of the RAG's `SYNONYMS`. When the RAG changes them, the frontend drifts silently.
+- **Wrong source:** `/cameras` reads Postgres (`bronze.videos`), but the RAG filters on what is in **Qdrant**. A camera or scene that is in bronze but not yet indexed shows up in the menu and then matches nothing. The RAG's own `filters.vocabulary()` reads Qdrant for exactly this reason (see its docstring).
+
+_Checked 2026-10-07 against `surveillance-backend` `main` (`1d763a8`) and `iLabs-capstone-rag` `v0.1.4` / `v0.1.5`._
+
+### 11.1 Prerequisite: bump the RAG to `v0.1.5` (#18)
+
+`requirements.txt` pins `ilabs-cctv-rag@v0.1.4`. In that version `filters.extract()` reads **only scenes and cameras**, and `vocabulary()` returns a `(scenes, cameras)` tuple with no dates. Date (`capture_date`) and time-of-day (`start_time_of_day`) filtering arrived in `v0.1.5`. So in production today, _"on March 5"_ and _"between 7 and 9 pm"_ (including the frontend's time picker) narrow nothing, although the Qdrant index was rebuilt with `v0.1.5` payloads.
+
+**Request:** pin `@v0.1.5`. It is a drop-in: between the two tags `answer_query(query: str) -> dict` keeps its signature and `rag.llm` is unchanged, and the backend calls nothing else (`filters.extract()` changed its signature, but the backend does not call it).
+
+### 11.2 Contract
+
+`GET /api/v1/vocabulary`: no parameters. `Authorization: Bearer` is required, as on every other route.
+
+**`200 OK`**
+
+```json
+{
+  "scenes": ["admin", "bus", "hospital", "school"],
+  "synonyms": {
+    "bus station": "bus",
+    "bus stop": "bus",
+    "campus": "school",
+    "classroom": "school",
+    "clinic": "hospital",
+    "depot": "bus",
+    "medical center": "hospital",
+    "medical centre": "hospital"
+  },
+  "cameras": ["G328", "G341", "G420"],
+  "dates": ["2018-03-05", "2018-03-07"]
+}
+```
+
+| Field      | Source (RAG `v0.1.5`)                               | Rules                                                                                                                                                     |
+| ---------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scenes`   | `filters.vocabulary(client).scenes`                 | Sorted. Exactly as stored in the payload (lower case).                                                                                                    |
+| `synonyms` | `filters.SYNONYMS`                                  | **Only entries whose target is in `scenes`**, the same rule `extract()` applies, so the frontend never underlines a word that filters on a missing scene. |
+| `cameras`  | `filters.vocabulary(client).cameras`                | Sorted. As stored (`G341`).                                                                                                                               |
+| `dates`    | `filters.vocabulary(client).dates` (`capture_date`) | Sorted ascending, ISO `YYYY-MM-DD`.                                                                                                                       |
+
+- **Empty index:** `200` with empty lists and an empty `synonyms` object, not `404`.
+- **Qdrant unreachable:** `502` with `{"detail": "Search service unreachable: …"}`, the same mapping `/search` uses for `RagServiceUnavailable`. `vocabulary()` already falls back from the facet API to a scroll on its own; only a failure of both should become a `502`.
+- **No server-side cache.** The RAG reads the vocabulary fresh on purpose (about 75 ms against the hosted cluster), so a newly indexed day or location is usable at once. The frontend fetches it once per search field, when a Location, Date or Camera menu first opens, as it does with `/cameras` today.
+
+### 11.3 Suggested implementation
+
+Follows the existing layout (`app/services/rag_client.py`, `app/api/routes/cameras.py`):
+
+- **Service**, in `app/services/rag_client.py`, importing the RAG lazily like `_load_answer_query()`:
+
+  ```python
+  def vocabulary() -> dict:
+      try:
+          from rag import filters, store
+
+          client = store.connect()
+      except Exception as exc:  # missing env var, bad URL
+          raise RagServiceUnavailable(str(exc)) from exc
+      try:
+          vocab = filters.vocabulary(client)
+      except Exception as exc:
+          raise RagServiceUnavailable(str(exc)) from exc
+      finally:
+          client.close()
+      return {
+          "scenes": sorted(vocab.scenes),
+          "synonyms": {w: s for w, s in sorted(filters.SYNONYMS.items()) if s in vocab.scenes},
+          "cameras": sorted(vocab.cameras),
+          "dates": sorted(vocab.dates),
+      }
+  ```
+
+- **Schema**, in `app/schemas/vocabulary.py`: `VocabularyResponse` with `scenes: list[str]`, `synonyms: dict[str, str]`, `cameras: list[str]`, `dates: list[str]`.
+- **Route**, in `app/api/routes/vocabulary.py`: `@router.get("/vocabulary", response_model=VocabularyResponse)`, depending on `get_current_user` only (no `get_db`: it never touches Postgres). Map `RagServiceUnavailable` to `502`. Register it in `app/main.py` with `prefix=api_router_prefix`.
+- **Local mode:** `store.connect()` without `QDRANT_URL` opens an embedded on-disk store. Production uses `QDRANT_URL`; if the backend is ever run against a local store, check that a second client can open it while `/search` holds one.
+
+### 11.4 Tests (`tests/test_vocabulary.py`)
+
+In the style of `tests/test_search.py` (`TestClient`, `get_current_user` overridden, the RAG mocked):
+
+1. **Shape and order:** with `filters.vocabulary` returning unsorted sets, the route returns the four fields sorted.
+2. **Synonyms follow the index:** with `scenes = {"school", "hospital"}`, `synonyms` has `campus` and `clinic` but no `depot` or `bus station`.
+3. **Empty index:** empty sets give `200` with `[]`, `{}`, `[]`, `[]`.
+4. **Qdrant down:** `store.connect()` or `filters.vocabulary()` raising gives `502` with the `Search service unreachable` detail, and the client is closed when `vocabulary()` raises.
+5. **Auth:** without the override, the route returns `401`, as in `tests/test_auth.py`.
+
+### 11.5 Frontend, once it is live
+
+- `getVocabulary()` in `src/lib/api/endpoints.ts`. The Location and Date menus take their options from it, and the Camera token's menu offers only indexed cameras (the camera picker keeps `/cameras` for its event counts).
+- Build the Location pattern from `scenes` plus the keys of `synonyms`, and delete the copied `SCENE_WORDS` (§9.1). Keep it as the fallback until the response arrives, so underlining stays instant.
+- **Camera codes:** the RAG reads `\b[gG]\d{3}\b` (exactly three digits), while the frontend underlines `G\d{2,4}`. Align the frontend to three digits so it never underlines a code the RAG ignores.
+- **Out of scope:** event types, objects and colours are matched by meaning, not filtered, so they stay as fixed lists. Confidence is no longer underlined (nothing filters on it, see Resolved).

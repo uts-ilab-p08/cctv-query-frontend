@@ -115,13 +115,13 @@ describe("QueryField", () => {
 
   it("never sends a term as a separate filter: the RAG reads it from the text", async () => {
     const user = userEvent.setup();
-    useAppStore.setState({ query: "vehicle with low confidence" });
+    useAppStore.setState({ query: "vehicle that entered" });
     render(<QueryField onSubmit={vi.fn()} />);
 
-    await user.click(token("low confidence"));
-    await user.click(screen.getByRole("button", { name: "high confidence" }));
+    await user.click(token("vehicle"));
+    await user.click(screen.getByRole("button", { name: "person" }));
 
-    expect(useAppStore.getState().query).toBe("vehicle with high confidence");
+    expect(useAppStore.getState().query).toBe("person that entered");
     expect(useAppStore.getState()).not.toHaveProperty("filters");
   });
 
@@ -177,6 +177,61 @@ describe("QueryField", () => {
     expect(screen.getByText("Camera")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "G506" }));
     expect(useAppStore.getState().query).toBe("Search cameras G506, G328 for anyone");
+  });
+
+  it("swaps a location for one of the indexed scenes, each listed once", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "anyone at the clinic" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(token("clinic"));
+
+    expect(screen.getByText("Location")).toBeInTheDocument();
+    expect(await screen.findAllByRole("button", { name: "admin" })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "bus" }));
+    expect(useAppStore.getState().query).toBe("anyone at the bus");
+  });
+
+  it("offers clothing for a garment and colours for a colour, even side by side", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "a person in a red jacket carrying a backpack" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(token("jacket"));
+
+    expect(screen.getByText("Clothing")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "blue" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "hoodie" }));
+    expect(useAppStore.getState().query).toBe("a person in a red hoodie carrying a backpack");
+
+    await user.click(token("red"));
+
+    expect(screen.getByText("Colour")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "hoodie" })).not.toBeInTheDocument();
+  });
+
+  it("lists the typed term first, as selected, when the fixed list lacks it", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "someone carrying a backpack" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(token("carrying"));
+
+    const options = screen.getAllByRole("button").filter((b) => b.closest(".glass-panel"));
+    expect(options[0]).toHaveTextContent("carrying");
+    expect(options[0].className).toContain("text-accent");
+    expect(screen.getByRole("button", { name: "entered" })).toBeInTheDocument();
+  });
+
+  it("explains what an exclusion word does to the search", async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ query: "people not at the school" });
+    render(<QueryField onSubmit={vi.fn()} />);
+
+    await user.click(token("not"));
+
+    expect(screen.getByText("Exclusion")).toBeInTheDocument();
+    expect(screen.getByText(/may still return what you exclude/i)).toBeInTheDocument();
   });
 
   it("says so when the cameras can't be loaded", async () => {
@@ -328,11 +383,11 @@ describe("QueryField", () => {
     const user = userEvent.setup();
     render(<QueryField onSubmit={vi.fn()} />);
 
-    await user.type(screen.getByRole("textbox"), "red car");
+    await user.type(screen.getByRole("textbox"), "vehicle");
 
     // The caret lives in the plain-weight textarea; a heavier weight on the
     // overlay widens the token and pushes the visible text ahead of the caret.
-    expect(token("red car").className).not.toMatch(
+    expect(token("vehicle").className).not.toMatch(
       /\bfont-(thin|light|normal|medium|semibold|bold|extrabold|black)\b/,
     );
   });
