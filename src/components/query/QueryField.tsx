@@ -55,6 +55,11 @@ const TIME_MODES = [
 /** Characters typed before the clear button appears — below this it is noise. */
 const CLEAR_MIN_LENGTH = 3;
 
+/** Time and camera pickers: a bare icon, like a search bar's mic, with a soft circle on
+ *  hover and while its picker is open. */
+const ICON_BUTTON =
+  "hover:bg-accent-soft aria-expanded:bg-accent-soft flex cursor-pointer items-center justify-center rounded-full transition-colors duration-150";
+
 /** The indexed cameras, loaded the first time a camera list is opened. */
 type Directory =
   { status: "idle" | "loading" | "error" } | { status: "ready"; cameras: CameraDirectoryEntry[] };
@@ -236,9 +241,7 @@ export function QueryField({
         >
           {query.length === 0 ? (
             <span className="text-ink-3">
-              {hero
-                ? "Ask anything… e.g. anyone who entered after the red car arrived"
-                : "Ask anything…"}
+              {hero ? "Ask anything… e.g. who left a bag?" : "Ask anything…"}
             </span>
           ) : (
             toSegments(query).map((segment, index) =>
@@ -440,34 +443,36 @@ export function QueryField({
               <X size={hero ? 17 : 15} strokeWidth={2.2} aria-hidden />
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={togglePicker("time")}
-            aria-label="Choose a time"
-            aria-expanded={picker === "time"}
-            title="Choose a time"
-            className={cn(
-              "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",
-              currentTime ? "text-accent-strong border-accent-line" : "text-ink-2",
-              hero ? "size-11" : "size-[38px]",
-            )}
-          >
-            <Clock size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={togglePicker("cameras")}
-            aria-label="Choose cameras"
-            aria-expanded={picker === "cameras"}
-            title="Choose cameras"
-            className={cn(
-              "glass-card-flat flex cursor-pointer items-center justify-center rounded-full",
-              selectedCameras.length > 0 ? "text-accent-strong border-accent-line" : "text-ink-2",
-              hero ? "size-11" : "size-[38px]",
-            )}
-          >
-            <Cctv size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
-          </button>
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={togglePicker("time")}
+              aria-label="Choose a time"
+              aria-expanded={picker === "time"}
+              title="Choose a time"
+              className={cn(
+                ICON_BUTTON,
+                currentTime ? "text-accent-strong" : "text-ink-2 hover:text-ink",
+                hero ? "size-11" : "size-[38px]",
+              )}
+            >
+              <Clock size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={togglePicker("cameras")}
+              aria-label="Choose cameras"
+              aria-expanded={picker === "cameras"}
+              title="Choose cameras"
+              className={cn(
+                ICON_BUTTON,
+                selectedCameras.length > 0 ? "text-accent-strong" : "text-ink-2 hover:text-ink",
+                hero ? "size-11" : "size-[38px]",
+              )}
+            >
+              <Cctv size={hero ? 18 : 16} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
           <button
             type="button"
             onClick={onSubmit}
