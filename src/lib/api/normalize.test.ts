@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { apiClipToClip, clipToAssistantMoment, ragResultItemToClip } from "./normalize";
+import {
+  apiClipToClip,
+  apiVocabularyToVocabulary,
+  clipToAssistantMoment,
+  ragResultItemToClip,
+} from "./normalize";
 import type { ApiClip } from "./types";
 
 const item = {
@@ -201,5 +206,26 @@ describe("clipToAssistantMoment", () => {
     // A clip from GET /clips/{id}: wall-clock `ts`, no offset into its video.
     const withoutStart = { ...clip, ts: "14:00:00", startSeconds: undefined };
     expect(clipToAssistantMoment(withoutStart).start_seconds).toBe(0);
+  });
+});
+
+describe("apiVocabularyToVocabulary", () => {
+  it("keeps the four fields as sent", () => {
+    const vocabulary = {
+      scenes: ["bus", "school"],
+      synonyms: { campus: "school" },
+      cameras: ["G328"],
+      dates: ["2018-03-05"],
+    };
+    expect(apiVocabularyToVocabulary(vocabulary)).toEqual(vocabulary);
+  });
+
+  it("reads a missing field as empty", () => {
+    expect(apiVocabularyToVocabulary({ scenes: ["bus"] })).toEqual({
+      scenes: ["bus"],
+      synonyms: {},
+      cameras: [],
+      dates: [],
+    });
   });
 });

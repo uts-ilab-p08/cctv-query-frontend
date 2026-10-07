@@ -20,6 +20,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 import { nameFromEmail } from "@/lib/displayName";
 import { useCurrentUserEmail } from "@/lib/useCurrentUserEmail";
+import { clearVocabulary } from "@/lib/vocabularyCache";
 
 interface NavItem {
   href: string;
@@ -189,7 +190,15 @@ export function Sidebar() {
             </span>
           </Link>
         )}
-        <form action="/auth/signout" method="post" onSubmit={() => setSigningOut(true)}>
+        <form
+          action="/auth/signout"
+          method="post"
+          onSubmit={() => {
+            setSigningOut(true);
+            // The server clears the session; the stored vocabulary lives in this browser.
+            clearVocabulary();
+          }}
+        >
           <button
             type="submit"
             disabled={signingOut}

@@ -7,10 +7,11 @@ import type {
   ApiCameraDirectoryEntry,
   ApiClip,
   ApiSavedQuery,
+  ApiVocabulary,
   AssistantMoment,
   RagResultItem,
 } from "./types";
-import type { CameraDirectoryEntry, SavedQuery } from "@/types";
+import type { CameraDirectoryEntry, SavedQuery, Vocabulary } from "@/types";
 
 /**
  * `GET /api/v1/search` is a thin pass-through to the RAG service — it does
@@ -142,6 +143,16 @@ export function apiCameraToCameraDirectoryEntry(
   camera: ApiCameraDirectoryEntry,
 ): CameraDirectoryEntry {
   return { code: camera.code, eventCount: camera.eventCount, scene: camera.scene ?? undefined };
+}
+
+/** Every field is required by the backend's schema; a missing one reads as empty. */
+export function apiVocabularyToVocabulary(vocabulary: ApiVocabulary): Vocabulary {
+  return {
+    scenes: vocabulary.scenes ?? [],
+    synonyms: vocabulary.synonyms ?? {},
+    cameras: vocabulary.cameras ?? [],
+    dates: vocabulary.dates ?? [],
+  };
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;

@@ -42,8 +42,8 @@ Only what is still missing. Everything else the frontend consumes is live and wi
 | 14  | Frontend stopgaps to delete                       | Frontend      | 🟡 Cleanup, mostly unblocked       |
 | 15  | Duplicate `event_id` in `AssistantMoment`         | Backend       | 🟡 Cleanup                         |
 | 16  | `GET /search/stream`: deploy to Railway           | Backend       | 🟡 In `main`, not deployed yet     |
-| 17  | `GET /vocabulary`: indexed scenes, cameras, dates | Backend       | 🔴 Missing                         |
-| 18  | Bump the RAG pin to `v0.1.5` (dates, times)       | Backend       | 🔴 `main` pins `v0.1.4`            |
+| 17  | `GET /vocabulary`: indexed scenes, cameras, dates | Backend       | 🟡 Built, not merged or deployed   |
+| 18  | Bump the RAG pin to `v0.1.5` (dates, times)       | Backend       | 🟡 Built, not merged or deployed   |
 
 ---
 
@@ -152,8 +152,8 @@ Optionally, `/search` could return `suggested_questions` next to `answer`, savin
 | Fallbacks for missing enriched fields        | `ragResultItemToClip`, `src/lib/api/normalize.ts`               | Unblocked if the backend guarantees them non-null   |
 | Thumbnail URL built from the event id        | `clipThumbnailUrl`, `src/lib/api/normalize.ts`                  | Waits on §3.1                                       |
 | Citation numbers by position                 | `Clip.ref` fallback, `src/lib/api/normalize.ts`                 | Waits on §2.1                                       |
-| Location words copied from the RAG           | `SCENE_WORDS` in `src/lib/entities.ts`                          | Waits on §11                                        |
-| Date menu with no options                    | `date` in `ENTITY_DEFS`, `src/lib/entities.ts`                  | Waits on §11                                        |
+| Location words copied from the RAG           | `SCENE_WORDS` in `src/lib/entities.ts`                          | Fallback only once §11 is live; keep or delete      |
+| Date menu with no options                    | `date` in `ENTITY_DEFS`, `src/lib/entities.ts`                  | Fixed once §11 is deployed                          |
 
 ---
 
@@ -257,9 +257,12 @@ In the style of `tests/test_search.py` (`TestClient`, `get_current_user` overrid
 4. **Qdrant down:** `store.connect()` or `filters.vocabulary()` raising gives `502` with the `Search service unreachable` detail, and the client is closed when `vocabulary()` raises.
 5. **Auth:** without the override, the route returns `401`, as in `tests/test_auth.py`.
 
-### 11.5 Frontend, once it is live
+### 11.5 Frontend
+
+**Status (2026-10-07):** backend branch `feat/vocabulary-endpoint` implements §11.2–11.4 and the `v0.1.5` pin; checked against the hosted Qdrant (4 scenes, 8 synonyms, 23 cameras, 2 dates; ~75 ms warm, ~1.5 s on a cold process). Frontend branch `feat/query-vocabulary-menus` consumes it:
 
 - `getVocabulary()` in `src/lib/api/endpoints.ts`. The Location and Date menus take their options from it, and the Camera token's menu offers only indexed cameras (the camera picker keeps `/cameras` for its event counts).
-- Build the Location pattern from `scenes` plus the keys of `synonyms`, and delete the copied `SCENE_WORDS` (§9.1). Keep it as the fallback until the response arrives, so underlining stays instant.
-- **Camera codes:** the RAG reads `\b[gG]\d{3}\b` (exactly three digits), while the frontend underlines `G\d{2,4}`. Align the frontend to three digits so it never underlines a code the RAG ignores.
+- `entityDefs(vocabulary)` in `src/lib/entities.ts` builds the Location pattern from `scenes` plus the keys of `synonyms`. The copied `SCENE_WORDS` stays only as the fallback, for a backend without the route.
+- **Loaded once, stored in the browser** (`src/lib/vocabularyCache.ts`): the first search field after signing in (Home) fetches it and keeps it in `localStorage`; every field after reads it from there, so underlining is right from the first keystroke. A copy older than 24 h is still shown and refreshed in the background; signing out clears it. Concurrent fields share one request.
+- **Camera codes** are exactly three digits (`CAMERA_CODE_SOURCE`), as the RAG reads them, for underlining, the picker and the links in answers.
 - **Out of scope:** event types, objects and colours are matched by meaning, not filtered, so they stay as fixed lists. Confidence is no longer underlined (nothing filters on it, see Resolved).

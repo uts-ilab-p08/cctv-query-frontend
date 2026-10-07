@@ -2,8 +2,8 @@
 // searches only those, so there is no separate camera filter to send. Pure helpers to
 // read, add and remove camera codes in that text.
 
-/** A MEVA camera code: `G` and two to four digits (`G328`). */
-export const CAMERA_CODE_SOURCE = String.raw`\bG\d{2,4}\b`;
+/** A MEVA camera code: `G` and three digits (`G328`), exactly as the RAG reads it. */
+export const CAMERA_CODE_SOURCE = String.raw`\bG\d{3}\b`;
 
 /** `on`/`in`/… `the` `camera(s)` right before a code — the clause the picker writes. */
 const CLAUSE_PREFIX = String.raw`(?:\b(?:in|on|from|at|across)\s+)?(?:the\s+)?\bcameras?\s+`;

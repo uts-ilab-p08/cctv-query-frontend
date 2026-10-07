@@ -4,6 +4,7 @@
 
 import { CAMERA_CODE_SOURCE } from "@/lib/cameraQuery";
 import { TIME_SOURCE } from "@/lib/timeQuery";
+import type { Vocabulary } from "@/types";
 
 export type EntityKind =
   "subject" | "colour" | "clothing" | "event" | "date" | "time" | "scene" | "camera" | "negation";
@@ -31,8 +32,10 @@ const DATE_SOURCE = [
   String.raw`\bthe\s+\d{1,2}(?:st|nd|rd|th)\b`,
 ].join("|");
 
-// Mirrors the RAG's location vocabulary (`filters.py`): its four scenes, plus the
-// everyday SYNONYMS it maps onto them. Longer phrases first, so "bus station" beats "bus".
+// The RAG's location vocabulary (`filters.py`) as of v0.1.5: its four scenes, plus the
+// everyday SYNONYMS it maps onto them. Only a fallback: `entityDefs` builds the pattern
+// from `GET /vocabulary` once it arrives, or if the backend doesn't serve it yet.
+// Longer phrases first, so "bus station" beats "bus".
 const SCENE_WORDS =
   "bus station|bus stop|medical cent(?:re|er)|hospital|clinic|school|campus|classroom|depot|admin|bus";
 
@@ -110,14 +113,15 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
     id: "scene",
     title: "Location",
     pattern: new RegExp(String.raw`\b(?:${SCENE_WORDS})\b`),
-    // Its options are the indexed scenes, which only /cameras knows (see QueryField).
+    // Its options are the indexed scenes: from the vocabulary (see `entityDefs`), or from
+    // /cameras without it (see QueryField).
     options: [],
   },
   {
     id: "camera",
     title: "Camera",
     // The code itself (`G328`): the RAG reads it from the query and searches that camera.
-    // Its options are the indexed cameras, which only /cameras knows (see QueryField).
+    // Its options are the indexed cameras: from the vocabulary, or /cameras without it.
     pattern: new RegExp(CAMERA_CODE_SOURCE),
     options: [],
   },
@@ -131,10 +135,50 @@ export const ENTITY_DEFS: readonly EntityDef[] = [
   },
 ] as const;
 
+/** Matches nothing: an index with no locations underlines none. */
+const NEVER = /(?!)/;
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Whole words or phrases, longest first so "bus stop" beats "bus". */
+function wordsPattern(words: string[]): RegExp {
+  const unique = [...new Set(words.map((word) => word.toLowerCase()))];
+  if (unique.length === 0) return NEVER;
+  unique.sort((a, b) => b.length - a.length);
+  return new RegExp(String.raw`\b(?:${unique.map(escapeRegExp).join("|")})\b`);
+}
+
+/**
+ * The definitions for what the index holds: locations are its scenes and their synonyms,
+ * and the Location, Date and Camera menus offer its values. Without a vocabulary (still
+ * loading, or a backend without `GET /vocabulary`) these are the built-in `ENTITY_DEFS`.
+ */
+export function entityDefs(vocabulary?: Vocabulary | null): readonly EntityDef[] {
+  if (!vocabulary) return ENTITY_DEFS;
+  return ENTITY_DEFS.map((def) => {
+    switch (def.id) {
+      case "scene":
+        return {
+          ...def,
+          pattern: wordsPattern([...vocabulary.scenes, ...Object.keys(vocabulary.synonyms)]),
+          options: vocabulary.scenes,
+        };
+      case "date":
+        return { ...def, options: vocabulary.dates };
+      case "camera":
+        return { ...def, options: vocabulary.cameras };
+      default:
+        return def;
+    }
+  });
+}
+
 /** All non-overlapping entity hits, left to right; longer match wins a tie. */
-export function findEntities(text: string): EntityHit[] {
+export function findEntities(text: string, defs: readonly EntityDef[] = ENTITY_DEFS): EntityHit[] {
   const hits: EntityHit[] = [];
-  for (const def of ENTITY_DEFS) {
+  for (const def of defs) {
     const re = new RegExp(def.pattern.source, "gi");
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
@@ -154,10 +198,10 @@ export function findEntities(text: string): EntityHit[] {
 }
 
 /** Query string -> render segments for the highlight overlay. */
-export function toSegments(text: string): Segment[] {
+export function toSegments(text: string, defs: readonly EntityDef[] = ENTITY_DEFS): Segment[] {
   const segments: Segment[] = [];
   let cursor = 0;
-  for (const hit of findEntities(text)) {
+  for (const hit of findEntities(text, defs)) {
     if (hit.start > cursor) segments.push({ kind: "text", text: text.slice(cursor, hit.start) });
     segments.push({ kind: "token", text: text.slice(hit.start, hit.end), hit });
     cursor = hit.end;

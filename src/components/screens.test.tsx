@@ -58,6 +58,8 @@ const clipSuggestedQuestions: string[] = Object.values(MOMENT_QUESTIONS);
  * integration.
  */
 vi.mock("@/lib/api/endpoints", () => ({
+  // The query field loads it on mount; without it the field uses its built-in words.
+  getVocabulary: vi.fn(() => Promise.reject(new Error("Not Found"))),
   searchClips: vi.fn(async (query: string) => {
     const { getAllClips: getMockClips } = await import("@/lib/clips");
     const clips = [...getMockClips()].sort((a, b) => a.order - b.order);

@@ -1,14 +1,21 @@
 "use client";
 
 import { Cctv, Check, Clock, Loader2, Search, X } from "lucide-react";
-import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 
 import { getCameras } from "@/lib/api/endpoints";
 import { Input } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { camerasInQuery, withCamera, withoutCamera } from "@/lib/cameraQuery";
 import { cn } from "@/lib/cn";
-import { replaceRange, toSegments, type EntityHit } from "@/lib/entities";
+import { entityDefs, replaceRange, toSegments, type EntityHit } from "@/lib/entities";
 import {
   hourAfter,
   timeInQuery,
@@ -17,6 +24,7 @@ import {
   type TimeFilter,
   type TimeMode,
 } from "@/lib/timeQuery";
+import { useVocabulary } from "@/lib/vocabularyCache";
 import { useAppStore } from "@/store/useAppStore";
 import type { CameraDirectoryEntry } from "@/types";
 
@@ -154,17 +162,24 @@ export function QueryField({
     setQuery(withoutTime(query));
   };
 
+  // The index's vocabulary (stored after the first load): which words are locations, and
+  // what the Location, Date and Camera menus offer. Without it, the built-in words and
+  // /cameras stand in.
+  const vocabulary = useVocabulary();
+  const defs = useMemo(() => entityDefs(vocabulary), [vocabulary]);
+
   const cameraCodes = directory.status === "ready" ? directory.cameras.map((c) => c.code) : [];
   const sceneNames =
     directory.status === "ready"
       ? [...new Set(directory.cameras.flatMap((c) => (c.scene ? [c.scene] : [])))]
       : [];
   /**
-   * Cameras and locations come from the index, so only indexed values are offered. A
-   * fixed list leads with the typed term when it lacks it ("carrying"), so the menu
-   * always shows what the token is now.
+   * Cameras, locations and dates come from the index, so only indexed values are offered:
+   * the vocabulary's, or /cameras' without it. A fixed list leads with the typed term when
+   * it lacks it ("carrying"), so the menu always shows what the token is now.
    */
   const optionsFor = (hit: EntityHit) => {
+    if (vocabulary && ["camera", "scene", "date"].includes(hit.def.id)) return hit.def.options;
     if (hit.def.id === "camera") return cameraCodes;
     if (hit.def.id === "scene") return sceneNames;
     const typed = query.slice(hit.start, hit.end).toLowerCase();
@@ -188,7 +203,7 @@ export function QueryField({
     const r = event.currentTarget.getBoundingClientRect();
     const fr = field.getBoundingClientRect();
     setPicker(null);
-    if (hit.def.id === "camera" || hit.def.id === "scene") loadDirectory();
+    if (!vocabulary && (hit.def.id === "camera" || hit.def.id === "scene")) loadDirectory();
     setMenu({
       hit,
       top: r.bottom - fr.top + 8,
@@ -244,7 +259,7 @@ export function QueryField({
               {hero ? "Ask anything… e.g. who left a bag?" : "Ask anything…"}
             </span>
           ) : (
-            toSegments(query).map((segment, index) =>
+            toSegments(query, defs).map((segment, index) =>
               segment.kind === "text" ? (
                 <span key={index}>{segment.text}</span>
               ) : (
@@ -288,7 +303,7 @@ export function QueryField({
                 {menu.hit.def.note}
               </p>
             ) : null}
-            {menu.hit.def.id === "camera" && directoryNote ? (
+            {menu.hit.def.id === "camera" && !vocabulary && directoryNote ? (
               <p className="text-ink-3 px-2.5 py-2 text-[13px]">{directoryNote}</p>
             ) : null}
             {optionsFor(menu.hit).map((option) => {

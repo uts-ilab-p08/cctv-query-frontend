@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sidebar } from "@/components/layout/Sidebar";
+import { VOCABULARY_STORAGE_KEY } from "@/lib/vocabularyCache";
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
@@ -66,6 +67,18 @@ describe("Sidebar", () => {
     await user.click(button);
 
     expect(screen.getByRole("button", { name: "Signing out…" })).toBeDisabled();
+  });
+
+  it("forgets the stored vocabulary on sign-out, so the next sign-in loads it fresh", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(VOCABULARY_STORAGE_KEY, "{}");
+    render(<Sidebar />);
+    const button = screen.getByRole("button", { name: "Sign out" });
+    button.closest("form")!.addEventListener("submit", (event) => event.preventDefault());
+
+    await user.click(button);
+
+    expect(localStorage.getItem(VOCABULARY_STORAGE_KEY)).toBeNull();
   });
 
   it("shows the signed-in user without a precinct", async () => {
