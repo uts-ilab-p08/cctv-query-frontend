@@ -57,6 +57,19 @@ export interface CameraDirectoryEntry {
   scene?: string;
 }
 
+/**
+ * What the search field can name, as the RAG filters on it (`GET /vocabulary`, read from
+ * its index): locations, the everyday words it maps onto them, cameras and capture dates.
+ */
+export interface Vocabulary {
+  scenes: string[];
+  /** Everyday word -> scene (`clinic` -> `hospital`), only for scenes in `scenes`. */
+  synonyms: Record<string, string>;
+  cameras: string[];
+  /** ISO `YYYY-MM-DD`, ascending. */
+  dates: string[];
+}
+
 /** Dark-mode accent palette; has no effect while the active theme is light. */
 export type Palette =
   "violet" | "slate" | "amber" | "linen" | "lavender" | "magic" | "sea" | "blues";

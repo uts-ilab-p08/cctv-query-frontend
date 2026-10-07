@@ -4,15 +4,19 @@ import { camerasInQuery, withCamera, withoutCamera } from "@/lib/cameraQuery";
 
 describe("camerasInQuery", () => {
   it("reads every camera code in the query, once, upper-cased, in order", () => {
-    expect(camerasInQuery("Search cameras G45, g56 and G328: who left? G45 again")).toEqual([
-      "G45",
-      "G56",
+    expect(camerasInQuery("Search cameras G345, g356 and G328: who left? G345 again")).toEqual([
+      "G345",
+      "G356",
       "G328",
     ]);
   });
 
   it("finds none in a query that names no camera", () => {
     expect(camerasInQuery("anyone who entered the parking lot")).toEqual([]);
+  });
+
+  it("ignores codes that are not three digits, which the RAG never reads", () => {
+    expect(camerasInQuery("cameras G45, G3410 and G341")).toEqual(["G341"]);
   });
 
   it("does not mistake words or times for camera codes", () => {
@@ -35,8 +39,8 @@ describe("withCamera", () => {
 
   it("adds to the cameras already named, pluralising the clause", () => {
     expect(withCamera("who left on camera G328?", "G420")).toBe("who left on cameras G328, G420?");
-    expect(withCamera("Search cameras G45, G56, who left", "G328")).toBe(
-      "Search cameras G45, G56, G328, who left",
+    expect(withCamera("Search cameras G345, G356, who left", "G328")).toBe(
+      "Search cameras G345, G356, G328, who left",
     );
   });
 
@@ -54,7 +58,7 @@ describe("withoutCamera", () => {
     expect(withoutCamera("who left the building on camera G328?", "G328")).toBe(
       "who left the building?",
     );
-    expect(withoutCamera("Search cameras G45, who left", "G45")).toBe("Search who left");
+    expect(withoutCamera("Search cameras G345, who left", "G345")).toBe("Search who left");
   });
 
   it("drops one camera from a list, with its separator, singularising the clause", () => {
@@ -64,8 +68,8 @@ describe("withoutCamera", () => {
     expect(withoutCamera("who left on cameras G328, G420?", "G420")).toBe(
       "who left on camera G328?",
     );
-    expect(withoutCamera("cameras G45, G56 and G328: who left", "G56")).toBe(
-      "cameras G45 and G328: who left",
+    expect(withoutCamera("cameras G345, G356 and G328: who left", "G356")).toBe(
+      "cameras G345 and G328: who left",
     );
   });
 

@@ -1,5 +1,5 @@
 import { parseIsoTime } from "@/lib/time";
-import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery } from "@/types";
+import type { CameraDirectoryEntry, Clip, RecentQuery, SavedQuery, Vocabulary } from "@/types";
 
 import { ApiError, apiFetch, apiStream } from "./client";
 import { SseParser } from "./sse";
@@ -7,6 +7,7 @@ import {
   apiCameraToCameraDirectoryEntry,
   apiClipToClip,
   apiSavedQueryToSavedQuery,
+  apiVocabularyToVocabulary,
   ragResultItemToClip,
 } from "./normalize";
 import type {
@@ -18,6 +19,7 @@ import type {
   ApiClip,
   ApiRecentQuery,
   ApiSavedQuery,
+  ApiVocabulary,
   RagQueryResult,
   TracksResponse,
 } from "./types";
@@ -102,6 +104,11 @@ export async function getCameras(): Promise<CameraDirectoryEntry[]> {
   return listFrom<ApiCameraDirectoryEntry>(response, "cameras").map(
     apiCameraToCameraDirectoryEntry,
   );
+}
+
+/** The locations, cameras and dates the RAG can filter on, read from its index. */
+export async function getVocabulary(): Promise<Vocabulary> {
+  return apiVocabularyToVocabulary(await apiFetch<ApiVocabulary>("/api/v1/vocabulary"));
 }
 
 /**

@@ -3,11 +3,19 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { QueryField } from "@/components/query/QueryField";
-import { getCameras } from "@/lib/api/endpoints";
+import { getCameras, getVocabulary } from "@/lib/api/endpoints";
 import { useAppStore } from "@/store/useAppStore";
 import { resetStore } from "@/test/utils";
 
-vi.mock("@/lib/api/endpoints", () => ({ getCameras: vi.fn() }));
+vi.mock("@/lib/api/endpoints", () => ({ getCameras: vi.fn(), getVocabulary: vi.fn() }));
+
+/** What `GET /vocabulary` returns once the backend has it deployed. */
+const vocabulary = {
+  scenes: ["bus", "gym", "school"],
+  synonyms: { campus: "school" },
+  cameras: ["G328", "G341"],
+  dates: ["2018-03-05", "2018-03-07"],
+};
 
 const cameras = [
   { code: "G328", eventCount: 12, scene: "admin" },
@@ -24,11 +32,21 @@ function token(text: string): HTMLElement {
   return match;
 }
 
+/** `token`, once the vocabulary has arrived and the overlay re-rendered. */
+async function findToken(text: string): Promise<HTMLElement> {
+  await screen.findAllByText(text, { selector: "span.border-dashed" });
+  return token(text);
+}
+
 describe("QueryField", () => {
   beforeEach(() => {
     resetStore();
     vi.mocked(getCameras).mockReset();
     vi.mocked(getCameras).mockResolvedValue(cameras);
+    localStorage.clear();
+    // Until /vocabulary is deployed the field falls back to its built-in words.
+    vi.mocked(getVocabulary).mockReset();
+    vi.mocked(getVocabulary).mockRejectedValue(new Error("Not Found"));
   });
 
   it("underlines a detected term as the user types", async () => {
@@ -169,14 +187,55 @@ describe("QueryField", () => {
 
   it("underlines camera codes typed in the query and swaps them for an indexed camera", async () => {
     const user = userEvent.setup();
-    useAppStore.setState({ query: "Search cameras G45, G328 for anyone" });
+    useAppStore.setState({ query: "Search cameras G345, G328 for anyone" });
     render(<QueryField onSubmit={vi.fn()} />);
 
-    await user.click(token("G45"));
+    await user.click(token("G345"));
 
     expect(screen.getByText("Camera")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "G506" }));
     expect(useAppStore.getState().query).toBe("Search cameras G506, G328 for anyone");
+  });
+
+  describe("with the index's vocabulary", () => {
+    beforeEach(() => {
+      vi.mocked(getVocabulary).mockResolvedValue(vocabulary);
+    });
+
+    it("lists the indexed dates and swaps the typed one for the chosen date", async () => {
+      const user = userEvent.setup();
+      useAppStore.setState({ query: "who left on March 5" });
+      render(<QueryField onSubmit={vi.fn()} />);
+
+      await user.click(token("March 5"));
+
+      expect(screen.getByText("Date")).toBeInTheDocument();
+      await user.click(await screen.findByRole("button", { name: "2018-03-05" }));
+      expect(useAppStore.getState().query).toBe("who left on 2018-03-05");
+    });
+
+    it("underlines the indexed locations and offers them", async () => {
+      const user = userEvent.setup();
+      useAppStore.setState({ query: "anyone at the gym" });
+      render(<QueryField onSubmit={vi.fn()} />);
+
+      await user.click(await findToken("gym"));
+
+      expect(screen.getByText("Location")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "school" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "admin" })).not.toBeInTheDocument();
+    });
+
+    it("offers only indexed cameras for a camera code", async () => {
+      const user = userEvent.setup();
+      useAppStore.setState({ query: "on camera G345" });
+      render(<QueryField onSubmit={vi.fn()} />);
+
+      await user.click(token("G345"));
+
+      expect(await screen.findByRole("button", { name: "G341" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "G506" })).not.toBeInTheDocument();
+    });
   });
 
   it("swaps a location for one of the indexed scenes, each listed once", async () => {

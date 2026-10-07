@@ -63,6 +63,14 @@ export interface ApiCameraDirectoryEntry {
   scene?: string | null;
 }
 
+/** `GET /api/v1/vocabulary` (`VocabularyResponse`). */
+export interface ApiVocabulary {
+  scenes?: string[];
+  synonyms?: Record<string, string>;
+  cameras?: string[];
+  dates?: string[];
+}
+
 export interface ApiRecentQuery {
   id: string;
   text: string;

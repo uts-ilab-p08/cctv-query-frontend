@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { findEntities, replaceRange, toSegments, type EntityKind } from "@/lib/entities";
+import {
+  entityDefs,
+  findEntities,
+  replaceRange,
+  toSegments,
+  type EntityDef,
+  type EntityKind,
+} from "@/lib/entities";
+import type { Vocabulary } from "@/types";
 
 /** The detected slices, as `[text, kind]`, in document order. */
-function detect(text: string): Array<[string, EntityKind]> {
-  return findEntities(text).map((hit) => [text.slice(hit.start, hit.end), hit.def.id]);
+function detect(text: string, defs?: readonly EntityDef[]): Array<[string, EntityKind]> {
+  return findEntities(text, defs).map((hit) => [text.slice(hit.start, hit.end), hit.def.id]);
 }
 
 describe("findEntities — entity kinds", () => {
@@ -168,12 +176,16 @@ describe("findEntities — entity kinds", () => {
   });
 
   it("detects cameras by their code, as the RAG reads them", () => {
-    expect(detect("Search cameras G45, G56 for anyone")).toEqual([
-      ["G45", "camera"],
-      ["G56", "camera"],
+    expect(detect("Search cameras G345, G356 for anyone")).toEqual([
+      ["G345", "camera"],
+      ["G356", "camera"],
       ["anyone", "subject"],
     ]);
     expect(detect("on camera g328")).toEqual([["g328", "camera"]]);
+  });
+
+  it("reads a camera code as exactly three digits, as the RAG does", () => {
+    expect(detect("cameras G45 and G3410")).toEqual([]);
   });
 
   it("no longer reads place names as cameras", () => {
@@ -245,6 +257,51 @@ describe("findEntities — overlap resolution", () => {
     expect(detect("between 7 and 9 pm")).toEqual([["between 7 and 9 pm", "time"]]);
     expect(detect("from 18:00 to 20:00")).toEqual([["from 18:00 to 20:00", "time"]]);
     expect(detect("2 people")).toEqual([["people", "subject"]]);
+  });
+});
+
+describe("entityDefs — the index's vocabulary", () => {
+  const vocabulary: Vocabulary = {
+    scenes: ["bus", "gym", "school"],
+    synonyms: { "bus stop": "bus", campus: "school" },
+    cameras: ["G328", "G341"],
+    dates: ["2018-03-05", "2018-03-07"],
+  };
+  const defs = entityDefs(vocabulary);
+  const def = (id: EntityKind) => defs.find((d) => d.id === id)!;
+
+  it("underlines the indexed scenes and their synonyms, not the built-in list", () => {
+    expect(detect("at the gym or on campus", defs)).toEqual([
+      ["gym", "scene"],
+      ["campus", "scene"],
+    ]);
+    expect(detect("at the hospital", defs)).toEqual([]);
+  });
+
+  it("prefers the longer location phrase", () => {
+    expect(detect("near the bus stop", defs)).toEqual([["bus stop", "scene"]]);
+  });
+
+  it("reads location words literally, not as regex", () => {
+    const dotted = entityDefs({ ...vocabulary, scenes: ["st. mary"], synonyms: {} });
+    expect(detect("at st. mary", dotted)).toEqual([["st. mary", "scene"]]);
+    expect(detect("at stx mary", dotted)).toEqual([]);
+  });
+
+  it("underlines no location when the index has none", () => {
+    const empty = entityDefs({ scenes: [], synonyms: {}, cameras: [], dates: [] });
+    expect(detect("at the school", empty)).toEqual([]);
+  });
+
+  it("offers the indexed scenes, dates and cameras", () => {
+    expect(def("scene").options).toEqual(["bus", "gym", "school"]);
+    expect(def("date").options).toEqual(["2018-03-05", "2018-03-07"]);
+    expect(def("camera").options).toEqual(["G328", "G341"]);
+  });
+
+  it("keeps the built-in definitions without a vocabulary", () => {
+    expect(entityDefs(null)).toBe(entityDefs());
+    expect(detect("at the hospital", entityDefs(null))).toEqual([["hospital", "scene"]]);
   });
 });
 
