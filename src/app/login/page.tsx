@@ -4,7 +4,7 @@ import { LoginScreen } from "@/components/login/LoginScreen";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to the CCTV AI query workspace.",
+  description: "Sign in to the Horus query workspace.",
   alternates: { canonical: "/login" },
 };
 

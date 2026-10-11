@@ -56,7 +56,7 @@ const LABEL_ACTIVE = "text-[var(--nav-ink-active)] font-bold";
 const LABEL_RESTING = "text-[var(--nav-ink)] hover:text-[var(--nav-ink-active)]";
 
 /** localStorage key for the collapsed/expanded choice. */
-const COLLAPSED_STORAGE_KEY = "cctvai.sidebar";
+const COLLAPSED_STORAGE_KEY = "horus.sidebar";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -110,7 +110,7 @@ export function Sidebar() {
         )}
       >
         {collapsed ? (
-          <Link href="/dashboard" aria-label="CCTV AI Assistant" className="no-underline">
+          <Link href="/dashboard" aria-label="Horus Assistant" className="no-underline">
             <BrandMark size={30} className="text-brand" />
           </Link>
         ) : (

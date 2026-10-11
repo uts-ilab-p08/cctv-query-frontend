@@ -4,7 +4,7 @@ import { APP_COMMIT, APP_VERSION, releaseUrl, versionLabel } from "@/lib/version
 export function VersionFooter() {
   return (
     <footer className="text-ink-3 flex items-center justify-center gap-2 pb-6 font-mono text-[11px]">
-      <span>CCTV AI Assistant</span>
+      <span>Horus Assistant</span>
       <span aria-hidden>·</span>
       <a
         href={releaseUrl(APP_VERSION)}

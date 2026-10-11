@@ -44,7 +44,7 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Sam")).not.toBeInTheDocument();
     // Same gap above it as when expanded, so it doesn't butt against the avatar.
     expect(screen.getByRole("button", { name: "Sign out" })).toHaveClass("mt-3");
-    expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Horus Assistant" })).toBeInTheDocument();
   });
 
   it("signs out through the server, which clears the session and redirects to login", async () => {

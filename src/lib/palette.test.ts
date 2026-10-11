@@ -29,7 +29,7 @@ describe("palette registry", () => {
   it("restores it before first paint, so a reload never flashes the default", () => {
     document.documentElement.removeAttribute("data-palette");
     for (const palette of ["linen", "lavender", "magic", "sea", "blues"]) {
-      localStorage.setItem("cctvai.palette", palette);
+      localStorage.setItem("horus.palette", palette);
       new Function(paletteInitScript)();
       expect(document.documentElement.getAttribute("data-palette")).toBe(palette);
     }

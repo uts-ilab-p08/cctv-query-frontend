@@ -1,53 +1,100 @@
 import type { SVGProps } from "react";
 
+import {
+  LOCKUP_MARK_OFFSET,
+  LOCKUP_VIEWBOX,
+  LOCKUP_WORDMARK_OFFSET,
+  MARK_PATHS,
+  MARK_VIEWBOX,
+  WORDMARK_PATHS,
+  WORDMARK_VIEWBOX,
+  type LogoPath,
+} from "./horusPaths";
+
+function Paths({ paths }: { paths: readonly LogoPath[] }) {
+  return paths.map((path) => (
+    <path key={path.d.slice(0, 24)} d={path.d} fillRule={path.fillRule} />
+  ));
+}
+
 export interface BrandMarkProps extends Omit<SVGProps<SVGSVGElement>, "viewBox"> {
-  /** px size of the square mark. 20px is the documented minimum. */
+  /** px size of the square box the mark fits in. 20px is the documented minimum. */
   size?: number;
 }
 
 /**
- * CCTV AI logo: aperture + magnifier on a 24px grid, uniform 2px stroke.
- * Inherits colour from `currentColor` — wrap in `text-brand`, which follows the
- * active palette (violet / slate / amber / light) via the `--brand` token.
- * Brand rules: never rotate, refill the ring, change the stroke weight, or add effects.
+ * Horus isotipo: the eye of Horus. Inherits colour from `currentColor` — wrap in
+ * `text-brand`, which follows the active palette and theme via the `--brand` token.
+ * Brand rules: never rotate, outline, recolour parts of, or add effects to the mark.
  */
 export function BrandMark({ size = 26, ...props }: BrandMarkProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      viewBox={`0 0 ${MARK_VIEWBOX.width} ${MARK_VIEWBOX.height}`}
+      fill="currentColor"
       aria-hidden="true"
       {...props}
     >
-      <circle cx="10.5" cy="10.5" r="7.5" />
-      <line x1="16" y1="16" x2="21" y2="21" />
-      <line x1="10.5" y1="3" x2="16" y2="8" />
-      <line x1="18" y1="10.5" x2="13" y2="16" />
-      <line x1="10.5" y1="18" x2="5" y2="13" />
-      <line x1="3" y1="10.5" x2="8" y2="5" />
-      <circle cx="10.5" cy="10.5" r="2.5" fill="currentColor" stroke="none" />
+      <Paths paths={MARK_PATHS} />
+    </svg>
+  );
+}
+
+export interface BrandWordmarkProps extends Omit<SVGProps<SVGSVGElement>, "viewBox"> {
+  /** px height of the lettering; the width follows the logotipo's proportions. */
+  height?: number;
+}
+
+/** Horus logotipo: the lettering alone, in `currentColor` (usually `text-ink`). */
+export function BrandWordmark({ height = 20, ...props }: BrandWordmarkProps) {
+  return (
+    <svg
+      height={height}
+      width={(height * WORDMARK_VIEWBOX.width) / WORDMARK_VIEWBOX.height}
+      viewBox={`0 0 ${WORDMARK_VIEWBOX.width} ${WORDMARK_VIEWBOX.height}`}
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <Paths paths={WORDMARK_PATHS} />
     </svg>
   );
 }
 
 export interface BrandLockupProps {
+  /** px height of the imagotipo; the width follows its proportions. */
   size?: number;
 }
 
+/**
+ * Horus imagotipo: the eye in the palette's brand colour and the lettering in ink, so
+ * both adapt to every palette and to the light and dark themes.
+ */
 export function BrandLockup({ size = 30 }: BrandLockupProps) {
   return (
-    <div role="img" aria-label="CCTV AI Assistant" className="flex items-center gap-2.5">
-      <BrandMark size={size} className="text-brand shrink-0" />
-      <div className="flex flex-col leading-none">
-        <span className="text-ink text-[15px] font-bold tracking-[0.2px]">CCTV AI</span>
-        <span className="text-ink-3 font-mono text-[9px] tracking-[1.2px]">ASSISTANT</span>
-      </div>
-    </div>
+    <svg
+      role="img"
+      aria-label="Horus Assistant"
+      height={size}
+      width={(size * LOCKUP_VIEWBOX.width) / LOCKUP_VIEWBOX.height}
+      viewBox={`0 0 ${LOCKUP_VIEWBOX.width} ${LOCKUP_VIEWBOX.height}`}
+      fill="currentColor"
+      className="block shrink-0"
+    >
+      <g
+        className="text-brand"
+        transform={`translate(${LOCKUP_MARK_OFFSET.x} ${LOCKUP_MARK_OFFSET.y})`}
+      >
+        <Paths paths={MARK_PATHS} />
+      </g>
+      <g
+        className="text-ink"
+        transform={`translate(${LOCKUP_WORDMARK_OFFSET.x} ${LOCKUP_WORDMARK_OFFSET.y})`}
+      >
+        <Paths paths={WORDMARK_PATHS} />
+      </g>
+    </svg>
   );
 }
