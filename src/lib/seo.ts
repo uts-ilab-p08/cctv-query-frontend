@@ -6,9 +6,9 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.cctvai
   "",
 );
 
-export const SITE_NAME = "CCTV AI";
+export const SITE_NAME = "Horus";
 
-const TITLE = "CCTV AI: natural-language search for multi-camera CCTV footage";
+const TITLE = "Horus: natural-language search for multi-camera CCTV footage";
 
 const DESCRIPTION =
   "Ask multi-camera CCTV footage questions in plain language and get the exact moments back, with cited answers. A UTS data science capstone.";
@@ -49,7 +49,7 @@ export const siteMetadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: TITLE, template: `%s · ${SITE_NAME}` },
   description: DESCRIPTION,
-  applicationName: "CCTV AI Assistant",
+  applicationName: "Horus Assistant",
   keywords: [
     "natural-language video search",
     "CCTV footage search",
@@ -117,7 +117,7 @@ export function structuredData() {
       {
         "@type": "SoftwareApplication",
         "@id": `${SITE_URL}/#app`,
-        name: "CCTV AI Assistant",
+        name: "Horus Assistant",
         url: `${SITE_URL}/`,
         description: DESCRIPTION,
         applicationCategory: "MultimediaApplication",

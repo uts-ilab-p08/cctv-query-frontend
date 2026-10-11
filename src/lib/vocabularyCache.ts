@@ -11,7 +11,7 @@ import type { Vocabulary } from "@/types";
 // or location reaches a long session, and signing out clears it (see Sidebar).
 
 /** localStorage key holding `{ savedAt, vocabulary }`. */
-export const VOCABULARY_STORAGE_KEY = "cctv-ai:vocabulary";
+export const VOCABULARY_STORAGE_KEY = "horus.vocabulary";
 
 /** How long a stored copy is used without asking the backend again. */
 export const VOCABULARY_TTL_MS = 24 * 60 * 60 * 1000;

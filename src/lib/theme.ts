@@ -1,7 +1,7 @@
 export type Theme = "dark" | "light";
 
 /** localStorage key holding the investigator's theme choice. */
-export const THEME_STORAGE_KEY = "cctv-ai:theme";
+export const THEME_STORAGE_KEY = "horus.theme";
 
 /** Dark is the design's default and the server-rendered value. */
 export const DEFAULT_THEME: Theme = "dark";

@@ -1,7 +1,7 @@
 import type { Palette } from "@/types";
 
 /** localStorage key holding the investigator's palette choice. */
-export const PALETTE_STORAGE_KEY = "cctvai.palette";
+export const PALETTE_STORAGE_KEY = "horus.palette";
 
 /** Slate console is the default palette. Its token block in `globals.css` is also the
  *  fallback for `:root` (palette.test.ts keeps the two in sync). */

@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 /** Lets the app be installed, and names and colours it in the browser. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CCTV AI Assistant",
-    short_name: "CCTV AI",
+    name: "Horus Assistant",
+    short_name: "Horus",
     description:
       "Search multi-camera CCTV footage in natural language and jump straight to the moments that match.",
     start_url: "/dashboard",

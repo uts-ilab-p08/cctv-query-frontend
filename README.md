@@ -1,4 +1,4 @@
-# Surveillance Video Query AI
+# Horus Assistant
 
 Internal tooling for police investigators: search CCTV metadata annotated by multimodal models
 using natural language, review matching clips in a grid or timeline, inspect a clip alongside a

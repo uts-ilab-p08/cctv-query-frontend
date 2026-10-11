@@ -11,8 +11,8 @@ describe("site metadata", () => {
 
   it("titles each page within the product name", () => {
     expect(siteMetadata.title).toMatchObject({
-      default: expect.stringContaining("CCTV AI"),
-      template: "%s · CCTV AI",
+      default: expect.stringContaining("Horus"),
+      template: "%s · Horus",
     });
     expect(String(siteMetadata.description).length).toBeGreaterThan(80);
     expect(String(siteMetadata.description).length).toBeLessThanOrEqual(160);
@@ -21,7 +21,7 @@ describe("site metadata", () => {
   it("describes the site for link previews", () => {
     expect(siteMetadata.openGraph).toMatchObject({
       type: "website",
-      siteName: "CCTV AI",
+      siteName: "Horus",
       url: "/",
       locale: "en_AU",
     });

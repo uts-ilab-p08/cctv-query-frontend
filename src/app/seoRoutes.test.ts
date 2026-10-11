@@ -41,8 +41,8 @@ describe("sitemap.xml", () => {
 describe("web app manifest", () => {
   it("names the app and opens it on the search screen", () => {
     expect(manifest()).toMatchObject({
-      name: "CCTV AI Assistant",
-      short_name: "CCTV AI",
+      name: "Horus Assistant",
+      short_name: "Horus",
       start_url: "/dashboard",
       display: "standalone",
     });

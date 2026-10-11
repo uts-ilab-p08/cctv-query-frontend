@@ -1,4 +1,4 @@
-/* app/globals.css — CCTV AI Assistant design tokens (Tailwind v4)
+/* app/globals.css — Horus Assistant design tokens (Tailwind v4)
    IMPORTANT: translucent/gradient surfaces are NOT colour tokens. Tailwind colour utilities emit
    background-color, which cannot hold a linear-gradient — that is why glass looked flat/absent.
    Surfaces ship as bundled utility classes (.glass-card, .glass-panel, .surface-*) instead. */

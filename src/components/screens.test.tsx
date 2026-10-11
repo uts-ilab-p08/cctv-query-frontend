@@ -146,7 +146,7 @@ describe("Landing", () => {
     render(<LandingPage />);
 
     const header = screen.getByRole("banner");
-    expect(within(header).getByLabelText("CCTV AI Assistant")).toBeInTheDocument();
+    expect(within(header).getByLabelText("Horus Assistant")).toBeInTheDocument();
   });
 });
 
@@ -154,13 +154,13 @@ describe("Login", () => {
   it("uses the same brand lockup as the app shell", () => {
     render(<LoginScreen />);
 
-    expect(screen.getByLabelText("CCTV AI Assistant")).toBeInTheDocument();
+    expect(screen.getByLabelText("Horus Assistant")).toBeInTheDocument();
   });
 
   it("links the logo back to the landing page", () => {
     render(<LoginScreen />);
 
-    expect(screen.getByRole("link", { name: "CCTV AI Assistant" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Horus Assistant" })).toHaveAttribute("href", "/");
   });
 });
 
@@ -2253,7 +2253,7 @@ describe("Modals", () => {
       "true",
     );
     expect(document.documentElement.getAttribute("data-palette")).toBe("linen");
-    expect(localStorage.getItem("cctvai.palette")).toBe("linen");
+    expect(localStorage.getItem("horus.palette")).toBe("linen");
 
     await user.click(screen.getByRole("radio", { name: /^Soft lavender/ }));
     expect(document.documentElement.getAttribute("data-palette")).toBe("lavender");
