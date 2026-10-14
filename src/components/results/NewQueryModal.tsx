@@ -62,8 +62,8 @@ export function NewQueryModal({ onClose, initialQuery = "" }: NewQueryModalProps
           transitionName={QUERY_BOX_TRANSITION}
         />
       </div>
-      {/* The same one-click re-runs as Home; picking one replaces the running search. */}
-      <RecentQueries floating onPick={onClose} className="mt-6" />
+      {/* As on Home: a row fills the draft, its Run button replaces the running search. */}
+      <RecentQueries floating onCopy={setDraft} onPick={onClose} className="mt-6" />
     </Modal>
   );
 }

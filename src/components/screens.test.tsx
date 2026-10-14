@@ -209,19 +209,41 @@ describe("Dashboard", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("spins the recent query that was picked while Results loads, and blocks the others", async () => {
+  it("copies a recent query into the field without running it", async () => {
+    const user = userEvent.setup();
+    pushMock.mockClear();
+    render(
+      <>
+        <QueryComposer />
+        <RecentQueries />
+      </>,
+    );
+
+    await user.click(
+      await screen.findByRole("button", { name: new RegExp(`^${recentQueries[0].text}`) }),
+    );
+
+    expect(screen.getByRole("textbox", { name: /Search the camera network/ })).toHaveValue(
+      recentQueries[0].text,
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("spins the recent query that was run while Results loads, and blocks the others", async () => {
     const user = userEvent.setup();
     pushMock.mockClear();
     render(<RecentQueries />);
-    const items = await screen.findAllByRole("button");
+    const runs = await screen.findAllByRole("button", { name: /^Run query:/ });
 
-    await user.click(items[0]);
+    await user.click(runs[0]);
 
-    expect(items[0]).toHaveAttribute("aria-busy", "true");
-    expect(items[0].querySelector(".animate-spin")).not.toBeNull();
-    items.forEach((item) => expect(item).toBeDisabled());
+    expect(pushMock).toHaveBeenCalledWith(resultsHref(recentQueries[0].text));
+    const rows = screen.getAllByRole("listitem");
+    expect(within(rows[0]).getByRole("button", { busy: true })).toBeInTheDocument();
+    expect(rows[0].querySelector(".animate-spin")).not.toBeNull();
+    screen.getAllByRole("button").forEach((button) => expect(button).toBeDisabled());
 
-    await user.click(items[1]);
+    await user.click(runs[1]);
     expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1331,9 +1353,29 @@ describe("Results — new query", () => {
 
     const dialog = screen.getByRole("dialog", { name: "New query" });
     expect(
-      await within(dialog).findByRole("button", { name: new RegExp(recentQueries[0].text) }),
+      await within(dialog).findByRole("button", { name: `Run query: ${recentQueries[0].text}` }),
     ).toBeInTheDocument();
     expect(within(dialog).getByText("RECENT QUERIES")).toBeInTheDocument();
+  });
+
+  it("copies a recent query picked in the dialog into its draft and stays open", async () => {
+    const user = userEvent.setup();
+    render(<ResultsScreen />);
+    pushMock.mockClear();
+
+    await user.click(screen.getByRole("button", { name: "New Query" }));
+    const dialog = screen.getByRole("dialog", { name: "New query" });
+    await user.click(
+      await within(dialog).findByRole("button", {
+        name: new RegExp(`^${recentQueries[1].text}`),
+      }),
+    );
+
+    expect(within(dialog).getByRole("textbox", { name: "Search the camera network" })).toHaveValue(
+      recentQueries[1].text,
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "New query" })).toBeInTheDocument();
   });
 
   it("runs a recent query picked in the dialog and closes it", async () => {
@@ -1344,7 +1386,7 @@ describe("Results — new query", () => {
     await user.click(screen.getByRole("button", { name: "New Query" }));
     const dialog = screen.getByRole("dialog", { name: "New query" });
     await user.click(
-      await within(dialog).findByRole("button", { name: new RegExp(recentQueries[1].text) }),
+      await within(dialog).findByRole("button", { name: `Run query: ${recentQueries[1].text}` }),
     );
 
     expect(pushMock).toHaveBeenCalledWith(resultsHref(recentQueries[1].text));

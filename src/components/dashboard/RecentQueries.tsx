@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Loader2 } from "lucide-react";
+import { History, Loader2, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -18,19 +18,25 @@ import type { RecentQuery } from "@/types";
 const RECENT_LIMIT = 3;
 
 interface RecentQueriesProps {
-  /** Called once a query is picked, after its search starts (e.g. to close a dialog). */
+  /** Called once a query is run, after its search starts (e.g. to close a dialog). */
   onPick?: () => void;
+  /** Puts a picked query's text in the field above. Defaults to the store's query, which
+   *  Home's field shows; the New query dialog passes its local draft's setter. */
+  onCopy?: (text: string) => void;
   /** Over a modal backdrop: the opaque floating surface, like the field above it. */
   floating?: boolean;
   /** Overrides the section's spacing from the field above. */
   className?: string;
 }
 
-/** The latest searches, one click to run again: under the field on Home and in the
- *  New query dialog. */
-export function RecentQueries({ onPick, floating = false, className }: RecentQueriesProps) {
+/** The latest searches, under the field on Home and in the New query dialog. Clicking a
+ *  row copies its text into the field to tweak; its Run button (shown on hover or focus)
+ *  searches it again. */
+export function RecentQueries({ onPick, onCopy, floating = false, className }: RecentQueriesProps) {
   const router = useRouter();
   const runSearch = useAppStore((state) => state.runSearch);
+  const setStoreQuery = useAppStore((state) => state.setQuery);
+  const copy = onCopy ?? setStoreQuery;
   const [recentQueries, setRecentQueries] = useState<RecentQuery[]>([]);
   const [loading, setLoading] = useState(true);
   /** The query picked: it spins until Results replaces this page (loading that route can
@@ -79,38 +85,58 @@ export function RecentQueries({ onPick, floating = false, className }: RecentQue
           floating ? "glass-panel" : "glass-card-flat",
         )}
       >
-        {recentQueries.map((query) => (
-          <li key={query.id}>
-            <button
-              type="button"
-              onClick={() => {
-                if (runningId) return;
-                setRunningId(query.id);
-                void runSearch(query.text);
-                router.push(resultsHref(query.text));
-                onPick?.();
-              }}
-              aria-busy={runningId === query.id || undefined}
-              disabled={runningId !== null}
-              className="hover:bg-accent-soft aria-busy:bg-accent-soft flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-[background-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100"
-            >
-              <History size={15} strokeWidth={2} className="text-ink-3 shrink-0" aria-hidden />
-              <span className="text-ink min-w-0 flex-1 text-sm">{query.text}</span>
-              {runningId === query.id ? (
-                <Loader2
-                  size={15}
-                  strokeWidth={2.2}
-                  className="text-accent-strong shrink-0 animate-spin"
-                  aria-hidden
-                />
-              ) : (
-                <span className="text-ink-3 shrink-0 font-mono text-xs">
-                  {formatRelativeTime(query.ts, now)}
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
+        {recentQueries.map((query) => {
+          const running = runningId === query.id;
+          return (
+            <li key={query.id} className="group relative">
+              <button
+                type="button"
+                onClick={() => copy(query.text)}
+                aria-busy={running || undefined}
+                disabled={runningId !== null}
+                className="hover:bg-accent-soft aria-busy:bg-accent-soft flex w-full cursor-pointer items-center gap-3 px-4 py-3 pr-24 text-left transition-[background-color,opacity] duration-150 disabled:cursor-progress disabled:opacity-60 aria-busy:opacity-100"
+              >
+                <History size={15} strokeWidth={2} className="text-ink-3 shrink-0" aria-hidden />
+                <span className="text-ink min-w-0 flex-1 text-sm">{query.text}</span>
+              </button>
+              {/* A sibling over the row's right end, not a child: a button can't hold one.
+                  The time sits there until the row is hovered or focused, then Run takes
+                  its place; touch screens can't hover, so they always show Run. */}
+              <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                {running ? (
+                  <Loader2
+                    size={15}
+                    strokeWidth={2.2}
+                    className="text-accent-strong shrink-0 animate-spin"
+                    aria-hidden
+                  />
+                ) : (
+                  <>
+                    <span className="text-ink-3 font-mono text-xs transition-opacity duration-150 group-focus-within:opacity-0 group-hover:opacity-0 [@media(hover:none)]:opacity-0">
+                      {formatRelativeTime(query.ts, now)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (runningId) return;
+                        setRunningId(query.id);
+                        void runSearch(query.text);
+                        router.push(resultsHref(query.text));
+                        onPick?.();
+                      }}
+                      disabled={runningId !== null}
+                      aria-label={`Run query: ${query.text}`}
+                      className="surface-action shadow-action pointer-events-auto absolute right-0 flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 disabled:cursor-progress disabled:opacity-0 [@media(hover:none)]:opacity-100"
+                    >
+                      <Play size={12} strokeWidth={2.4} aria-hidden />
+                      Run
+                    </button>
+                  </>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
