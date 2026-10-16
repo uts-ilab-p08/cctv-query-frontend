@@ -164,7 +164,7 @@ export function QueryPanel({
   return (
     <div
       hidden={hidden}
-      className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r"
+      className="border-hairline flex min-h-0 max-w-[520px] min-w-[260px] flex-1 basis-[380px] flex-col overflow-hidden border-r max-md:order-3 max-md:h-[75dvh] max-md:max-w-none max-md:min-w-0 max-md:flex-none max-md:basis-auto max-md:border-t max-md:border-r-0"
     >
       <div className="border-hairline shrink-0 border-b px-3.5 py-3">
         <div
@@ -423,7 +423,7 @@ export function QueryPanel({
                 if (event.key === "Enter") ask(draft);
               }}
               placeholder="Ask a follow-up question…"
-              className="text-ink w-full min-w-0 border-none bg-transparent p-0 text-[13px] leading-[1.4] outline-none"
+              className="text-ink w-full min-w-0 border-none bg-transparent p-0 text-[16px] leading-[1.4] outline-none"
             />
           </div>
 

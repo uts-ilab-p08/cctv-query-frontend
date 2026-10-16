@@ -110,9 +110,12 @@ export function QueryField({
   const setQuery = controlled ? onChange : setStoreQuery;
 
   const hero = variant === "hero";
-  // Right padding reserves room for the overlaid buttons. It is fixed — not per
-  // clear-button visibility — so the text never reflows when the clear button appears.
-  const pad = hero ? "py-5 pr-[212px] pl-7" : "py-4 pr-[192px] pl-6";
+  // Padding reserves room for the overlaid buttons: on the right, or below the text on
+  // small screens, where a 200px gutter would leave the text no room. It is fixed — not
+  // per clear-button visibility — so the text never reflows when the clear button appears.
+  const pad = hero
+    ? "pt-5 pr-5 pb-[68px] pl-5 sm:pr-[212px] sm:pb-5 sm:pl-7"
+    : "pt-4 pr-4 pb-[60px] pl-5 sm:pr-[192px] sm:pb-4 sm:pl-6";
   const showClear = query.length >= CLEAR_MIN_LENGTH;
 
   /** Fetch the indexed cameras once; a failed load retries on the next open. */
@@ -194,7 +197,8 @@ export function QueryField({
         : directory.status !== "ready"
           ? "Loading cameras…"
           : null;
-  const text = hero ? "text-base leading-[1.7]" : "text-[15px] leading-[1.6]";
+  // 16px or more on both: iOS zooms into any field set smaller when it takes focus.
+  const text = hero ? "text-base leading-[1.7]" : "text-base leading-[1.6]";
 
   const openMenu = (hit: EntityHit) => (event: MouseEvent<HTMLSpanElement>) => {
     event.stopPropagation();
@@ -334,6 +338,8 @@ export function QueryField({
             className={cn(
               "glass-panel rounded-chip absolute right-3 z-40 w-[248px] p-2",
               hero ? "top-[64px]" : "top-[56px]",
+              // Small screens: the buttons sit at the bottom, so the panel opens below the field.
+              "max-sm:top-full max-sm:right-0 max-sm:left-0 max-sm:mt-2 max-sm:w-auto",
             )}
           >
             <div className="text-ink-3 px-2 pt-1 pb-1 font-mono text-[10px] tracking-[1px]">
@@ -384,6 +390,8 @@ export function QueryField({
             className={cn(
               "glass-panel rounded-chip absolute right-3 z-40 flex w-[280px] flex-col gap-2 p-2",
               hero ? "top-[64px]" : "top-[56px]",
+              // Small screens: the buttons sit at the bottom, so the panel opens below the field.
+              "max-sm:top-full max-sm:right-0 max-sm:left-0 max-sm:mt-2 max-sm:w-auto",
             )}
           >
             <div>
@@ -441,7 +449,9 @@ export function QueryField({
         <div
           className={cn(
             "absolute z-[3] flex items-center gap-2",
-            hero ? "top-[11px] right-3" : "top-[9px] right-2.5",
+            hero
+              ? "right-3 bottom-3 sm:top-[11px] sm:bottom-auto"
+              : "right-2.5 bottom-2.5 sm:top-[9px] sm:bottom-auto",
           )}
         >
           {showClear ? (

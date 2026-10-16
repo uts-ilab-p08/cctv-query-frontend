@@ -91,7 +91,7 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
   return (
     <aside
       aria-label="Query Assistant"
-      className="rounded-l-card glass-panel fixed top-20 right-0 bottom-4 z-30 flex w-[380px] flex-col overflow-hidden border-y border-l"
+      className="rounded-l-card glass-panel fixed top-20 right-0 bottom-4 z-30 flex w-[380px] max-w-[calc(100vw-16px)] flex-col overflow-hidden border-y border-l"
     >
       <header className="border-hairline flex items-center gap-2 border-b px-[18px] py-4">
         <BrandMark size={20} className="text-brand shrink-0" />
@@ -165,7 +165,7 @@ export function QueryAssistant({ chatKey }: QueryAssistantProps) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Ask a follow-up question…"
-          className="glass-card-flat text-ink placeholder:text-ink-3 focus:border-accent-line flex-1 rounded-full px-3.5 py-2.5 font-sans text-[13px] transition-colors duration-150"
+          className="glass-card-flat text-ink placeholder:text-ink-3 focus:border-accent-line flex-1 rounded-full px-3.5 py-2.5 font-sans text-[16px] transition-colors duration-150"
         />
         <button
           type="submit"

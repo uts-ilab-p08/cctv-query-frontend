@@ -30,7 +30,7 @@ export function ProfileScreen() {
       <div
         role="status"
         aria-label="Loading profile"
-        className="mx-auto flex w-full max-w-[640px] animate-pulse flex-col items-center px-8 pt-14"
+        className="mx-auto flex w-full max-w-[640px] animate-pulse flex-col items-center px-4 pt-10 sm:px-8 sm:pt-14"
       >
         <span className="bg-ink-3/20 mb-5 size-20 rounded-full" />
         <span className="bg-ink-3/20 mb-2.5 h-6 w-48 rounded-full" />
@@ -40,7 +40,7 @@ export function ProfileScreen() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[640px] px-8 pt-14 pb-16">
+    <div className="mx-auto w-full max-w-[640px] px-4 pt-10 pb-16 sm:px-8 sm:pt-14">
       <header className="mb-10 flex flex-col items-center text-center">
         <Avatar initials={name?.initials ?? "?"} size="lg" className="mb-5" />
         <h1 className="text-ink mb-1.5 text-[26px] font-bold">

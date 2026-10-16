@@ -102,7 +102,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 items-center justify-center px-8 py-10 lg:basis-[48%]">
+      <div className="flex min-w-0 flex-1 items-center justify-center px-6 py-10 sm:px-8 lg:basis-[48%]">
         <div className="font-barlow w-full max-w-[376px]">
           <h2 className="mb-1.5 text-[24px] font-bold">Sign in</h2>
           <p className="text-ink-2 mb-7 text-[14px]">
@@ -132,7 +132,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                   setError("");
                 }}
                 placeholder="you@example.com"
-                className="border-hairline-strong bg-panel-solid text-ink h-12 w-full rounded-[10px] border px-3.5 text-[14px]"
+                className="border-hairline-strong bg-panel-solid text-ink h-12 w-full rounded-[10px] border px-3.5 text-[16px]"
               />
             </div>
 
@@ -162,7 +162,7 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
                     setError("");
                   }}
                   placeholder="••••••••••"
-                  className="border-hairline-strong bg-panel-solid text-ink h-12 w-full rounded-[10px] border pr-[74px] pl-3.5 text-[14px]"
+                  className="border-hairline-strong bg-panel-solid text-ink h-12 w-full rounded-[10px] border pr-[74px] pl-3.5 text-[16px]"
                 />
                 <button
                   type="button"

@@ -55,7 +55,7 @@ export function UploadForm() {
         </p>
       </div>
 
-      <div className="mb-[18px] grid grid-cols-2 gap-5">
+      <div className="mb-[18px] grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="upload-camera">Source camera</FieldLabel>
           <Select
@@ -79,7 +79,7 @@ export function UploadForm() {
 
       <ModelPicker value={uploadModel} onChange={setUploadModel} />
 
-      <div className="mb-[22px] grid grid-cols-2 items-end gap-5">
+      <div className="mb-[22px] grid grid-cols-1 items-end gap-5 sm:grid-cols-2">
         <div>
           <FieldLabel as="div">Execution target</FieldLabel>
           <SegmentedControl<ExecutionTarget>

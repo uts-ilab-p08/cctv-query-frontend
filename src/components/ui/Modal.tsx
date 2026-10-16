@@ -106,8 +106,9 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         style={{ width }}
         className={cn(
-          "w-full max-w-[90vw]",
-          !bare && "rounded-card glass-panel max-h-[80vh] overflow-y-auto p-[26px]",
+          "w-full max-w-full sm:max-w-[90vw]",
+          !bare &&
+            "rounded-card glass-panel max-h-[85dvh] overflow-y-auto p-5 sm:max-h-[80vh] sm:p-[26px]",
         )}
       >
         {bare ? (

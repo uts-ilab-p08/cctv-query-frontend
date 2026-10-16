@@ -60,7 +60,7 @@ export function PlayerBar({
   };
 
   return (
-    <div className="bg-video-bar flex shrink-0 flex-nowrap items-center gap-2.5 border-t border-white/10 px-3 py-[9px]">
+    <div className="bg-video-bar flex shrink-0 flex-nowrap items-center gap-1.5 border-t border-white/10 px-2 py-[9px] sm:gap-2.5 sm:px-3">
       <button
         type="button"
         onClick={onTogglePlay}
