@@ -9,6 +9,7 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -20,7 +21,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 import { nameFromEmail } from "@/lib/displayName";
 import { useCurrentUserEmail } from "@/lib/useCurrentUserEmail";
+import { SMALL_SCREEN_QUERY, useMediaQuery } from "@/lib/useMediaQuery";
 import { clearVocabulary } from "@/lib/vocabularyCache";
+import { useAppStore } from "@/store/useAppStore";
 
 interface NavItem {
   href: string;
@@ -62,7 +65,27 @@ export function Sidebar() {
   const pathname = usePathname();
   const { email: userEmail } = useCurrentUserEmail();
   // Starts expanded to match the server render; the stored choice applies after mount.
-  const [collapsed, setCollapsed] = useState(false);
+  const [storedCollapsed, setCollapsed] = useState(false);
+  /** Small screens: the sidebar is a drawer the Topbar's menu button opens, always expanded. */
+  const drawer = useMediaQuery(SMALL_SCREEN_QUERY);
+  const navOpen = useAppStore((state) => state.navOpen);
+  const setNavOpen = useAppStore((state) => state.setNavOpen);
+  const collapsed = storedCollapsed && !drawer;
+
+  // Following a link closes the drawer.
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname, setNavOpen]);
+
+  // Escape closes the open drawer.
+  useEffect(() => {
+    if (!drawer || !navOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [drawer, navOpen, setNavOpen]);
 
   useEffect(() => {
     try {
@@ -95,129 +118,160 @@ export function Sidebar() {
   const [signingOut, setSigningOut] = useState(false);
 
   return (
-    <aside
-      aria-label="Main menu"
-      data-collapsed={collapsed}
-      className={cn(
-        "surface-sidebar border-hairline relative z-10 flex shrink-0 flex-col border-r py-5 transition-[width] duration-200",
-        collapsed ? "w-[72px] px-3" : "w-[232px] px-4",
-      )}
-    >
-      <div
+    <>
+      {drawer && navOpen ? (
+        <div
+          aria-hidden
+          onClick={() => setNavOpen(false)}
+          className="bg-scrim fixed inset-0 z-40 backdrop-blur-[4px]"
+        />
+      ) : null}
+      <aside
+        id="main-menu"
+        aria-label="Main menu"
+        data-collapsed={collapsed}
+        // Off-screen drawers stay out of the tab order and the accessibility tree.
+        inert={drawer && !navOpen}
         className={cn(
-          "mb-7 flex gap-2",
-          collapsed ? "flex-col items-center" : "items-center justify-between",
+          "surface-sidebar border-hairline relative z-10 flex shrink-0 flex-col border-r py-5 transition-[width,translate] duration-200",
+          collapsed ? "w-[72px] px-3" : "w-[232px] px-4",
+          // Below `md` it slides in over the page instead of taking a column.
+          "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-[min(280px,85vw)] max-md:overflow-y-auto",
+          !navOpen && "max-md:-translate-x-full",
         )}
       >
-        {collapsed ? (
-          <Link href="/dashboard" aria-label="Horus Assistant" className="no-underline">
-            <BrandMark size={30} className="text-brand" />
-          </Link>
-        ) : (
-          <Link href="/dashboard" className="min-w-0 px-1.5 no-underline">
-            <BrandLockup />
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-          aria-expanded={!collapsed}
-          title={collapsed ? "Expand menu" : "Collapse menu"}
-          className="text-ink-3 hover:text-ink hover:bg-accent-soft flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors duration-150"
+        <div
+          className={cn(
+            "mb-7 flex gap-2",
+            collapsed ? "flex-col items-center" : "items-center justify-between",
+          )}
         >
           {collapsed ? (
-            <PanelLeftOpen size={17} strokeWidth={2} aria-hidden />
+            <Link href="/dashboard" aria-label="Horus Assistant" className="no-underline">
+              <BrandMark size={30} className="text-brand" />
+            </Link>
           ) : (
-            <PanelLeftClose size={17} strokeWidth={2} aria-hidden />
+            <Link href="/dashboard" className="min-w-0 px-1.5 no-underline">
+              <BrandLockup />
+            </Link>
           )}
-        </button>
-      </div>
+          {drawer ? (
+            <button
+              type="button"
+              onClick={() => setNavOpen(false)}
+              aria-label="Close menu"
+              className="text-ink-3 hover:text-ink hover:bg-accent-soft flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors duration-150"
+            >
+              <X size={18} strokeWidth={2} aria-hidden />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+              aria-expanded={!collapsed}
+              title={collapsed ? "Expand menu" : "Collapse menu"}
+              className="text-ink-3 hover:text-ink hover:bg-accent-soft flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors duration-150"
+            >
+              {collapsed ? (
+                <PanelLeftOpen size={17} strokeWidth={2} aria-hidden />
+              ) : (
+                <PanelLeftClose size={17} strokeWidth={2} aria-hidden />
+              )}
+            </button>
+          )}
+        </div>
 
-      <nav aria-label="Main" className="flex flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
-          const active = item.match.some((prefix) => pathname.startsWith(prefix));
-          const Icon = item.icon;
-          return (
+        <nav aria-label="Main" className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => {
+            const active = item.match.some((prefix) => pathname.startsWith(prefix));
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                title={collapsed ? item.label : undefined}
+                className={cn(
+                  ROW,
+                  collapsed && "justify-center px-1.5",
+                  "transition-colors duration-150",
+                  active ? `bg-accent-soft ${LABEL_ACTIVE}` : LABEL_RESTING,
+                )}
+              >
+                <span
+                  className={cn(
+                    CIRCLE,
+                    active ? "surface-action shadow-action" : "glass-card-flat",
+                  )}
+                >
+                  <Icon size={17} strokeWidth={2} aria-hidden />
+                </span>
+                {label(item.label)}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="flex-1" />
+
+        <div className="border-hairline flex flex-col gap-0.5 border-t pt-3.5">
+          {/* The signed-in user, as a card into their profile; just the avatar when collapsed. */}
+          {collapsed ? (
             <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              title={collapsed ? item.label : undefined}
+              href="/profile"
+              aria-label={`Profile: ${userEmail ?? "signed-in user"}`}
+              title="View your profile"
+              className="mx-auto rounded-full no-underline"
+            >
+              <Avatar initials={name?.initials ?? "?"} />
+            </Link>
+          ) : (
+            <Link
+              href="/profile"
+              title="View your profile"
+              className="glass-card-flat hover:border-accent-line flex min-w-0 items-center gap-2.5 rounded-xl p-2.5 no-underline transition-colors duration-150"
+            >
+              <Avatar initials={name?.initials ?? "?"} />
+              <span className="flex min-w-0 flex-col">
+                {name?.first ? (
+                  <span className="text-ink truncate text-[14px] font-semibold">{name.first}</span>
+                ) : null}
+                <span className="text-ink-3 truncate font-mono text-[11px]">
+                  {userEmail ?? "—"}
+                </span>
+              </span>
+            </Link>
+          )}
+          <form
+            action="/auth/signout"
+            method="post"
+            onSubmit={() => {
+              setSigningOut(true);
+              // The server clears the session; the stored vocabulary lives in this browser.
+              clearVocabulary();
+            }}
+          >
+            <button
+              type="submit"
+              disabled={signingOut}
+              title={collapsed ? "Sign out" : undefined}
               className={cn(
-                ROW,
-                collapsed && "justify-center px-1.5",
-                "transition-colors duration-150",
-                active ? `bg-accent-soft ${LABEL_ACTIVE}` : LABEL_RESTING,
+                "text-flag border-flag/45 bg-flag/10 hover:bg-flag/20 hover:border-flag flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 font-sans text-[13px] font-semibold transition-colors duration-150 disabled:cursor-wait disabled:opacity-70",
+                "mt-3",
+                collapsed ? "px-0" : "px-3",
               )}
             >
-              <span
-                className={cn(CIRCLE, active ? "surface-action shadow-action" : "glass-card-flat")}
-              >
-                <Icon size={17} strokeWidth={2} aria-hidden />
-              </span>
-              {label(item.label)}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="flex-1" />
-
-      <div className="border-hairline flex flex-col gap-0.5 border-t pt-3.5">
-        {/* The signed-in user, as a card into their profile; just the avatar when collapsed. */}
-        {collapsed ? (
-          <Link
-            href="/profile"
-            aria-label={`Profile: ${userEmail ?? "signed-in user"}`}
-            title="View your profile"
-            className="mx-auto rounded-full no-underline"
-          >
-            <Avatar initials={name?.initials ?? "?"} />
-          </Link>
-        ) : (
-          <Link
-            href="/profile"
-            title="View your profile"
-            className="glass-card-flat hover:border-accent-line flex min-w-0 items-center gap-2.5 rounded-xl p-2.5 no-underline transition-colors duration-150"
-          >
-            <Avatar initials={name?.initials ?? "?"} />
-            <span className="flex min-w-0 flex-col">
-              {name?.first ? (
-                <span className="text-ink truncate text-[14px] font-semibold">{name.first}</span>
-              ) : null}
-              <span className="text-ink-3 truncate font-mono text-[11px]">{userEmail ?? "—"}</span>
-            </span>
-          </Link>
-        )}
-        <form
-          action="/auth/signout"
-          method="post"
-          onSubmit={() => {
-            setSigningOut(true);
-            // The server clears the session; the stored vocabulary lives in this browser.
-            clearVocabulary();
-          }}
-        >
-          <button
-            type="submit"
-            disabled={signingOut}
-            title={collapsed ? "Sign out" : undefined}
-            className={cn(
-              "text-flag border-flag/45 bg-flag/10 hover:bg-flag/20 hover:border-flag flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 font-sans text-[13px] font-semibold transition-colors duration-150 disabled:cursor-wait disabled:opacity-70",
-              "mt-3",
-              collapsed ? "px-0" : "px-3",
-            )}
-          >
-            {signingOut ? (
-              <Loader2 size={15} strokeWidth={2.2} className="animate-spin" aria-hidden />
-            ) : (
-              <LogOut size={15} strokeWidth={2.2} aria-hidden />
-            )}
-            {label(signingOut ? "Signing out…" : "Sign out")}
-          </button>
-        </form>
-      </div>
-    </aside>
+              {signingOut ? (
+                <Loader2 size={15} strokeWidth={2.2} className="animate-spin" aria-hidden />
+              ) : (
+                <LogOut size={15} strokeWidth={2.2} aria-hidden />
+              )}
+              {label(signingOut ? "Signing out…" : "Sign out")}
+            </button>
+          </form>
+        </div>
+      </aside>
+    </>
   );
 }

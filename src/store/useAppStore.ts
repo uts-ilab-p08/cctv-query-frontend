@@ -27,6 +27,8 @@ interface AppState {
   chatOpen: boolean;
 
   camerasOpen: boolean;
+  /** The sidebar as a drawer on small screens (below `md`). */
+  navOpen: boolean;
 
   pipelineJobs: PipelineJob[];
   nextJobId: number;
@@ -42,6 +44,7 @@ interface AppState {
   setChatOpen: (open: boolean) => void;
   openCameras: () => void;
   closeCameras: () => void;
+  setNavOpen: (open: boolean) => void;
 
   /** Seed the results thread with the query and the assistant's summary. */
   runSearch: (text: string) => Promise<void>;
@@ -234,6 +237,7 @@ export const useAppStore = create<AppState>()((set, get) => {
     searchError: null,
 
     camerasOpen: false,
+    navOpen: false,
 
     pipelineJobs: initialPipelineJobs,
     nextJobId: jobIdSeed,
@@ -252,6 +256,7 @@ export const useAppStore = create<AppState>()((set, get) => {
     setChatOpen: (chatOpen) => set({ chatOpen }),
     openCameras: () => set({ camerasOpen: true }),
     closeCameras: () => set({ camerasOpen: false }),
+    setNavOpen: (navOpen) => set({ navOpen }),
 
     runSearch: async (text) => {
       const trimmed = text.trim();

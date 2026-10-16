@@ -50,8 +50,9 @@ export function ClipDetailScreen({ clip }: ClipDetailScreenProps) {
   return (
     <div
       className={cn(
-        "pt-[26px] pb-15 pl-8 transition-[padding] duration-200",
-        chatOpen ? "pr-[412px]" : "pr-8",
+        "px-4 pt-[26px] pb-15 transition-[padding] duration-200 md:pl-8",
+        // Small screens: the assistant floats over the clip instead of taking a gutter.
+        chatOpen ? "md:pr-[412px]" : "md:pr-8",
       )}
     >
       <div className="flex min-w-0 flex-col gap-[18px]">

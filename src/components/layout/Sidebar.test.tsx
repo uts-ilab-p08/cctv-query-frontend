@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { VOCABULARY_STORAGE_KEY } from "@/lib/vocabularyCache";
+import { useAppStore } from "@/store/useAppStore";
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
@@ -143,5 +144,55 @@ describe("Sidebar", () => {
     render(<Sidebar />);
 
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+  });
+
+  describe("on a small screen", () => {
+    /** jsdom has no matchMedia: report every query as matching, i.e. a phone. */
+    beforeEach(() => {
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn((query: string) => ({
+          matches: true,
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      );
+      act(() => useAppStore.setState({ navOpen: false }));
+      return () => vi.unstubAllGlobals();
+    });
+
+    it("is a closed drawer, out of reach until the menu button opens it", () => {
+      render(<Sidebar />);
+
+      expect(sidebar()).toHaveAttribute("inert");
+      expect(sidebar()).toHaveClass("max-md:-translate-x-full");
+
+      act(() => useAppStore.setState({ navOpen: true }));
+      expect(sidebar()).not.toHaveAttribute("inert");
+      expect(sidebar()).not.toHaveClass("max-md:-translate-x-full");
+    });
+
+    it("stays expanded and offers a close button instead of collapsing", async () => {
+      const user = userEvent.setup();
+      localStorage.setItem("horus.sidebar", "collapsed");
+      act(() => useAppStore.setState({ navOpen: true }));
+      render(<Sidebar />);
+
+      expect(sidebar()).toHaveAttribute("data-collapsed", "false");
+      expect(screen.queryByRole("button", { name: "Collapse menu" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Close menu" }));
+      expect(useAppStore.getState().navOpen).toBe(false);
+    });
+
+    it("closes on Escape", async () => {
+      const user = userEvent.setup();
+      act(() => useAppStore.setState({ navOpen: true }));
+      render(<Sidebar />);
+
+      await user.keyboard("{Escape}");
+      expect(useAppStore.getState().navOpen).toBe(false);
+    });
   });
 });

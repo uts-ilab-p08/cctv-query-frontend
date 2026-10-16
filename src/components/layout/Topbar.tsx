@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -34,6 +34,8 @@ export function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
   const openCameras = useAppStore((state) => state.openCameras);
+  const navOpen = useAppStore((state) => state.navOpen);
+  const setNavOpen = useAppStore((state) => state.setNavOpen);
   const results = useAppStore((state) => state.results);
   const searchPending = useAppStore((state) => state.searchPending);
   /** Distinct cameras behind the Results strip — what the cameras dialog lists there. */
@@ -66,8 +68,19 @@ export function Topbar() {
   const scopedToSearch = pathname.startsWith("/results") && !searchPending && camerasInSearch > 0;
 
   return (
-    <header className="surface-topbar border-hairline sticky top-0 z-25 flex h-16 shrink-0 items-center justify-between border-b px-8">
-      <div className="flex items-center gap-3.5">
+    <header className="surface-topbar border-hairline sticky top-0 z-25 flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 md:px-8">
+      <div className="flex min-w-0 items-center gap-2.5 md:gap-3.5">
+        {/* Small screens only: the sidebar is a drawer behind this button. */}
+        <button
+          type="button"
+          onClick={() => setNavOpen(true)}
+          aria-label="Open menu"
+          aria-controls="main-menu"
+          aria-expanded={navOpen}
+          className="text-ink-2 hover:text-ink hover:bg-accent-soft flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors duration-150 md:hidden"
+        >
+          <Menu size={20} strokeWidth={2} aria-hidden />
+        </button>
         {showBack ? (
           <button
             type="button"
@@ -75,23 +88,34 @@ export function Topbar() {
             className="glass-card-flat text-ink-2 hover:text-ink flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors duration-150"
           >
             <ArrowLeft size={14} strokeWidth={2} aria-hidden />
-            Back
+            <span className="max-sm:sr-only">Back</span>
           </button>
         ) : null}
-        <h1 className="text-[15px] font-semibold">{breadcrumb}</h1>
+        <h1 className="truncate text-[15px] font-semibold">{breadcrumb}</h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-3 md:gap-4">
         {scopedToSearch ? (
           <button type="button" onClick={openCameras} className={FOOTAGE_CLASS}>
             <span aria-hidden className="bg-accent size-[7px] rounded-full" />
-            {camerasLabel(camerasInSearch)} in this search
+            {camerasLabel(camerasInSearch)} <span className="max-sm:hidden">in this search</span>
           </button>
         ) : (
-          <Link href="/cameras" className={FOOTAGE_CLASS}>
+          <Link
+            href="/cameras"
+            // Named in full: small screens show only part of it.
+            aria-label={`Archived footage${cameraCount !== null ? ` · ${camerasLabel(cameraCount)} indexed` : ""}`}
+            className={FOOTAGE_CLASS}
+          >
             <span aria-hidden className="bg-accent size-[7px] rounded-full" />
-            Archived footage
-            {cameraCount !== null ? ` · ${camerasLabel(cameraCount)} indexed` : null}
+            {/* Small screens keep only the count, or just the dot until it is known. */}
+            <span className="max-sm:hidden">Archived footage </span>
+            {cameraCount !== null ? (
+              <span>
+                <span className="max-sm:hidden">· </span>
+                {camerasLabel(cameraCount)} indexed
+              </span>
+            ) : null}
           </Link>
         )}
         <ThemeToggle />

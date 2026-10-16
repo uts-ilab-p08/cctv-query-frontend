@@ -94,4 +94,17 @@ describe("Topbar", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Indexed Cameras" })).toBeInTheDocument();
   });
+
+  it("opens the sidebar drawer from its menu button", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCameras).mockResolvedValue(cameras);
+    render(<Topbar />);
+
+    const button = screen.getByRole("button", { name: "Open menu" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(button);
+    expect(useAppStore.getState().navOpen).toBe(true);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+  });
 });

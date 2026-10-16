@@ -27,11 +27,11 @@ export function QueryComposer() {
 
   return (
     <div className="flex w-full max-w-[680px] flex-col items-center">
-      <h1 className="text-ink mb-2.5 text-center text-[44px] leading-[1.1] font-bold">
+      <h1 className="text-ink mb-2.5 text-center text-[32px] leading-[1.1] font-bold sm:text-[44px]">
         Ask your footage
       </h1>
       <p
-        className="text-ink-2 mb-9 max-w-[56ch] text-center text-[15px] leading-[1.55]"
+        className="text-ink-2 mb-7 max-w-[56ch] text-center text-[15px] leading-[1.55] sm:mb-9"
         style={{ textWrap: "pretty" }}
       >
         Describe the moment in plain words. Name the cameras and the time, like G328 at 7 pm, or

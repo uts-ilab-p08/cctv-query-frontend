@@ -25,7 +25,7 @@ export function SettingsScreen() {
   const paletteApplies = theme === "dark";
 
   return (
-    <div className="mx-auto w-full max-w-[760px] px-8 pt-12 pb-15">
+    <div className="mx-auto w-full max-w-[760px] px-4 pt-8 pb-15 sm:px-8 sm:pt-12">
       <h1 className="mb-1.5 text-2xl font-bold">Settings</h1>
       <p className="text-ink-2 mb-7 text-sm">How the app looks, and which release it is.</p>
 

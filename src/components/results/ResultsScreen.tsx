@@ -132,7 +132,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   if (searchError) {
     return (
-      <div className="text-ink-2 flex h-[calc(100vh-64px)] items-center justify-center text-[13px]">
+      <div className="text-ink-2 flex h-[calc(100dvh-64px)] items-center justify-center px-4 text-center text-[13px]">
         {searchError}
       </div>
     );
@@ -140,15 +140,17 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
 
   if (!searchPending && !activeClip) {
     return (
-      <div className="flex h-[calc(100vh-64px)] items-center overflow-y-auto">
+      <div className="flex h-[calc(100dvh-64px)] items-center overflow-y-auto">
         <NoMatches searched={lastSearch ?? query} />
       </div>
     );
   }
 
   return (
-    <div className="font-barlow flex h-[calc(100vh-64px)] min-h-0 flex-col overflow-hidden">
-      <div className="relative flex min-h-0 flex-1">
+    // Below `md` the workspace stacks and the page scrolls: the row dissolves (`contents`)
+    // so the player, the matches and the chat line up as one column, in that order.
+    <div className="font-barlow relative flex h-[calc(100dvh-64px)] min-h-0 flex-col overflow-hidden max-md:h-auto max-md:overflow-visible">
+      <div className="relative flex min-h-0 flex-1 max-md:contents">
         {videoExpanded ? (
           // The chat is only collapsed, never gone: this stays where it was, one click away.
           <button
@@ -172,7 +174,7 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
           hidden={videoExpanded}
         />
 
-        <div className="bg-video-frame flex min-h-0 min-w-[280px] flex-1 basis-[440px] flex-col overflow-hidden">
+        <div className="bg-video-frame flex min-h-0 min-w-[280px] flex-1 basis-[440px] flex-col overflow-hidden max-md:order-1 max-md:h-[min(75vw,480px)] max-md:min-w-0 max-md:flex-none max-md:basis-auto">
           {!activeClip ? (
             <VideoStageSkeleton />
           ) : (
@@ -205,16 +207,18 @@ export function ResultsScreen({ urlQuery = "" }: ResultsScreenProps) {
         </div>
       </div>
 
-      {searchPending ? (
-        <MatchStripSkeleton step={searchStep} />
-      ) : (
-        <MatchStrip
-          matches={matches}
-          selectedClipId={selectedClipId}
-          onSelect={selectMatch}
-          onClearSelection={() => setSelectedClipId(null)}
-        />
-      )}
+      <div className="flex shrink-0 flex-col max-md:order-2">
+        {searchPending ? (
+          <MatchStripSkeleton step={searchStep} />
+        ) : (
+          <MatchStrip
+            matches={matches}
+            selectedClipId={selectedClipId}
+            onSelect={selectMatch}
+            onClearSelection={() => setSelectedClipId(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }

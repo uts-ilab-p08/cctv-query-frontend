@@ -74,7 +74,7 @@ export function SavedQueriesScreen() {
   }, [attempt]);
 
   return (
-    <div className="mx-auto w-full max-w-[760px] px-8 pt-12 pb-15">
+    <div className="mx-auto w-full max-w-[760px] px-4 pt-8 pb-15 sm:px-8 sm:pt-12">
       <h1 className="mb-1.5 text-2xl font-bold">Saved Queries</h1>
       <p className="text-ink-2 mb-7 text-sm">Bookmarked searches for quick re-run.</p>
 
@@ -111,16 +111,16 @@ export function SavedQueriesScreen() {
           {savedQueries.map((query) => (
             <li
               key={query.id}
-              className="rounded-card glass-card-flat flex items-center justify-between px-[18px] py-4"
+              className="rounded-card glass-card-flat flex items-center justify-between gap-3 px-[18px] py-4 max-sm:flex-col max-sm:items-stretch max-sm:px-4"
             >
-              <div>
+              <div className="min-w-0 break-words">
                 <p className="text-ink mb-1 text-sm">{query.text}</p>
                 <p className="text-ink-3 font-mono text-xs">
                   Saved {query.savedOn} · {query.hits} matches last run
                 </p>
               </div>
               {confirmingId === query.id ? (
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2 max-sm:justify-end">
                   <button
                     type="button"
                     onClick={() => setConfirmingId(null)}
@@ -139,7 +139,7 @@ export function SavedQueriesScreen() {
                   </button>
                 </div>
               ) : (
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2 max-sm:justify-end">
                   <button
                     type="button"
                     onClick={() => {

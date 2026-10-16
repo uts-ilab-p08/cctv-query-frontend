@@ -47,7 +47,7 @@ export function CamerasScreen() {
   const totalEvents = directory.reduce((sum, camera) => sum + camera.eventCount, 0);
 
   return (
-    <div className="mx-auto w-full max-w-[960px] px-8 pt-12 pb-15">
+    <div className="mx-auto w-full max-w-[960px] px-4 pt-8 pb-15 sm:px-8 sm:pt-12">
       <h1 className="mb-1.5 text-2xl font-bold">Indexed Cameras</h1>
       <p className="text-ink-2 mb-7 text-sm">
         Archived footage sources the assistant searches. Not a live feed.
@@ -119,7 +119,7 @@ export function CamerasScreen() {
                   {scene}
                 </h2>
               ) : null}
-              <ul className="grid list-none [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))] gap-3 p-0">
+              <ul className="grid list-none [grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr))] gap-3 p-0">
                 {cameras.map((camera) => (
                   <li
                     key={camera.code}

@@ -16,7 +16,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     // `relative overflow-hidden` anchors and clips the ambient glows. It does not
     // trap the fixed assistant panel — only transform/filter/backdrop-filter
     // ancestors create a containing block for `fixed`, and this shell has none.
-    <div className="relative flex h-dvh min-h-dvh w-full min-w-[1280px] overflow-hidden">
+    <div className="relative flex h-dvh min-h-dvh w-full overflow-hidden">
       <AmbientBackdrop />
 
       <Sidebar />
