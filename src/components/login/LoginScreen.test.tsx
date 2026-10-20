@@ -169,4 +169,19 @@ describe("LoginScreen", () => {
 
     expect(screen.queryByRole("status")).toBeNull();
   });
+
+  it("keeps only the logo above the form on small screens, the pitch left to assistive tech", () => {
+    render(<LoginScreen />);
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.parentElement).toHaveClass("max-lg:sr-only");
+    expect(screen.getByText("Pre-recorded footage only").parentElement).toHaveClass(
+      "max-lg:hidden",
+    );
+    // Left-aligned with the form: its wrapper shares the form's width and centring.
+    expect(screen.getByRole("link", { name: /horus/i }).parentElement).toHaveClass(
+      "max-lg:max-w-[376px]",
+      "max-lg:self-center",
+    );
+  });
 });
