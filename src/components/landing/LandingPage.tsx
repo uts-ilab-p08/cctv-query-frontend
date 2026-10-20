@@ -118,9 +118,9 @@ const ANSWER_FEATURES = [
 /** Retrieval on 22 test questions, with and without the place/date/time filters. */
 const RETRIEVAL_TOTAL = 22;
 const RETRIEVAL = [
-  { label: "Correct video first", withFilters: 19, without: 9 },
-  { label: "Correct video in the top 5", withFilters: 20, without: 10 },
-  { label: "Returned nothing", withFilters: 2, without: 12 },
+  { label: "Correct video first", hint: "higher is better", withFilters: 19, without: 9 },
+  { label: "Correct video in the top 5", hint: "higher is better", withFilters: 20, without: 10 },
+  { label: "Returned nothing", hint: "lower is better", withFilters: 2, without: 12 },
 ];
 
 const ANNOTATION_RESULTS = [
@@ -213,19 +213,27 @@ function BrowserFrame({
   );
 }
 
-/** One thin bar of the retrieval comparison, labelled with its count. */
+/** One bar of the retrieval comparison: named in words (not by colour alone), with its
+ *  count on the right. The count never wraps, whatever the width. */
 function RetrievalBar({ value, filtered }: { value: number; filtered: boolean }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="h-2 flex-1">
+    <div className="grid grid-cols-[92px_minmax(0,1fr)_auto] items-center gap-3">
+      <span className={cn("text-[12px]", filtered ? "text-ink" : "text-ink-3")}>
+        {filtered ? "With filters" : "Without"}
+      </span>
+      <div className="h-2">
         <div
           className={cn("h-full rounded-r-[4px]", filtered ? "bg-accent" : "bg-ink-3/45")}
           style={{ width: `${(value / RETRIEVAL_TOTAL) * 100}%` }}
         />
       </div>
-      <span className="text-ink w-[54px] shrink-0 text-right font-mono text-[13px]">
-        <span className="sr-only">{filtered ? "With filters: " : "Without filters: "}</span>
-        {value} / {RETRIEVAL_TOTAL}
+      <span
+        className={cn(
+          "font-mono text-[13px] whitespace-nowrap",
+          filtered ? "text-ink font-semibold" : "text-ink-2",
+        )}
+      >
+        {value}/{RETRIEVAL_TOTAL}
       </span>
     </div>
   );
@@ -270,7 +278,7 @@ export function LandingPage({ signInHref = "/login" }: { signInHref?: string }) 
             href={signInHref}
             className="surface-action flex h-10 items-center rounded-[10px] px-3.5 text-[14px] font-semibold sm:px-[18px]"
           >
-            Sign in
+            Try it now
           </a>
         </nav>
       </header>
@@ -713,38 +721,55 @@ export function LandingPage({ signInHref = "/login" }: { signInHref?: string }) 
           </p>
 
           <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-[18px]">
-            <div className="surface-action rounded-2xl p-7">
-              <p className="font-mono text-[64px] leading-none font-semibold">
-                19/22 <span className="text-[24px] font-normal opacity-80">vs 9/22</span>
+            {/* The headline: the same 22 questions, with and without filters, side by side. */}
+            <div data-results-headline className="surface-action flex flex-col rounded-2xl p-7">
+              <p className="mb-5 text-[17px] font-semibold">The right video comes first</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="font-mono text-[44px] leading-none font-semibold sm:text-[56px]">
+                    19/22
+                  </p>
+                  <p className="mt-2 text-[14px] opacity-90">with filters</p>
+                </div>
+                <div className="opacity-75">
+                  <p className="font-mono text-[44px] leading-none font-semibold sm:text-[56px]">
+                    9/22
+                  </p>
+                  <p className="mt-2 text-[14px]">without filters</p>
+                </div>
+              </div>
+              <p className="mt-5 text-[15px] leading-[1.5] opacity-90">
+                Turning the place, date and time in a question into filters doubles how often the
+                right video is the first result.
               </p>
-              <p className="mt-3 text-[15px] leading-[1.5] opacity-90">
-                questions return the correct video first, with versus without filters.
-              </p>
-              <p className="mt-6 font-mono text-[28px] font-semibold">
-                0.886 <span className="text-[16px] font-normal opacity-80">vs 0.432</span>
-              </p>
-              <p className="text-[14px] opacity-90">mean reciprocal rank</p>
+              <div className="mt-auto border-t border-current/25 pt-5 max-sm:mt-6">
+                <p className="font-mono text-[24px] font-semibold">
+                  0.886 <span className="text-[15px] font-normal opacity-75">vs 0.432</span>
+                </p>
+                <p className="text-[13px] leading-[1.5] opacity-90">
+                  Mean reciprocal rank: how close to the top the right video lands (1 = always
+                  first).
+                </p>
+              </div>
             </div>
 
             <figure data-retrieval-chart className="glass-card-flat m-0 rounded-2xl p-6">
-              <figcaption className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-[16px] font-semibold">Retrieval, 22 questions</span>
-                <span className="text-ink-2 flex items-center gap-3 font-mono text-[11px]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="bg-accent size-2.5 rounded-[2px]" />
-                    with filters
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="bg-ink-3/45 size-2.5 rounded-[2px]" />
-                    without
-                  </span>
+              <figcaption className="mb-5">
+                <span className="block text-[16px] font-semibold">
+                  Retrieval, 22 test questions
+                </span>
+                <span className="text-ink-2 text-[13px]">
+                  The same questions, with and without filters.
                 </span>
               </figcaption>
-              <ul className="flex list-none flex-col gap-5 p-0">
+              <ul className="flex list-none flex-col gap-6 p-0">
                 {RETRIEVAL.map((row) => (
                   <li key={row.label}>
-                    <p className="text-ink-2 mb-1.5 text-[13px]">{row.label}</p>
-                    <div className="flex flex-col gap-1.5">
+                    <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 text-[14px]">
+                      <span className="font-semibold">{row.label}</span>
+                      <span className="text-ink-3 font-mono text-[11px]">{row.hint}</span>
+                    </p>
+                    <div className="flex flex-col gap-2">
                       <RetrievalBar value={row.withFilters} filtered />
                       <RetrievalBar value={row.without} filtered={false} />
                     </div>
@@ -918,13 +943,13 @@ export function LandingPage({ signInHref = "/login" }: { signInHref?: string }) 
             className="text-ink-2 mb-[26px] text-[15px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            Horus is live. Sign in to open the query workspace and ask your first question.
+            Horus is live. Open the query workspace and ask your first question.
           </p>
           <a
             href={signInHref}
             className="surface-action inline-flex h-[50px] items-center rounded-[11px] px-[26px] text-[15px] font-semibold"
           >
-            Sign in
+            Try it now
           </a>
         </div>
       </section>
