@@ -670,6 +670,16 @@ body {
   font-family: var(--font-sans);
 }
 
+/* The landing's header links glide to their section. Scoped to the landing so the app's
+   own scrolling stays instant; reduced motion turns it off (see the block further down).
+   The margin keeps each section's heading clear of the sticky header. */
+html:has([data-landing]) {
+  scroll-behavior: smooth;
+}
+[data-landing] section[id] {
+  scroll-margin-top: 72px;
+}
+
 @layer utilities {
   /* --- the glass surfaces. Use these instead of bg-* for any translucent layer --- */
   .glass-card {

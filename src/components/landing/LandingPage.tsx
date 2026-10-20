@@ -154,6 +154,10 @@ const NEXT_STEPS = [
   "New settings: streets, stations, shopping centres, night-time and indoor footage",
 ];
 
+/** GitHub serves a profile's avatar by handle, no API call needed; `s` is its pixel size
+ *  (2x the 44px circle, for sharp avatars on high-density screens). */
+const githubAvatar = (handle: string) => `https://avatars.githubusercontent.com/${handle}?s=88`;
+
 const initials = (name: string) =>
   name
     .split(" ")
@@ -234,7 +238,7 @@ export function LandingPage({ signInHref = "/login" }: { signInHref?: string }) 
   // visitor in before they click. A full page load also takes the new session cookies and
   // the redirect to the dashboard in one go.
   return (
-    <div className="bg-canvas text-ink font-barlow min-h-screen">
+    <div data-landing className="bg-canvas text-ink font-barlow min-h-screen">
       <script
         type="application/ld+json"
         // Escape "<" so the JSON can never close the script tag early.
@@ -862,7 +866,7 @@ export function LandingPage({ signInHref = "/login" }: { signInHref?: string }) 
           </h2>
           <p className="text-ink-2 mb-[34px] max-w-[64ch] text-[15px] leading-[1.65]">
             Master of Data Science and Innovation students, each leading one layer of the system.
-            Client: Dr Ali Haidar · Mentor: Junaid Akram.
+            External Mentor: Dr Ali Haidar · Mentor: Junaid Akram.
           </p>
           <ul className="grid list-none [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] gap-[14px] p-0">
             {TEAM.map((member) => (
@@ -875,11 +879,21 @@ export function LandingPage({ signInHref = "/login" }: { signInHref?: string }) 
                   aria-label={`${member.name} on GitHub (@${member.handle})`}
                   className="group/member glass-card-flat hover:border-accent-line flex h-full items-center gap-3.5 rounded-xl p-4 transition-colors duration-150"
                 >
+                  {/* The GitHub avatar covers the initials; if it fails to load, the empty
+                      alt leaves nothing drawn and the initials show through. */}
                   <span
                     aria-hidden
-                    className="border-accent-line bg-accent-soft text-accent-strong flex size-11 shrink-0 items-center justify-center rounded-full border font-mono text-[13px] font-semibold"
+                    className="border-accent-line bg-accent-soft text-accent-strong relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border font-mono text-[13px] font-semibold"
                   >
                     {initials(member.name)}
+                    <Image
+                      data-avatar
+                      src={githubAvatar(member.handle)}
+                      alt=""
+                      width={44}
+                      height={44}
+                      className="absolute inset-0 size-full object-cover"
+                    />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-ink truncate text-[15px] font-semibold">{member.name}</p>
