@@ -279,4 +279,20 @@ describe("LandingPage", () => {
       .getAllByRole("link", { name: "Sign in" })
       .forEach((link) => expect(link).toHaveAttribute("href", "/login"));
   });
+
+  it("shows each author's GitHub avatar, decorative since the link already names them", () => {
+    render(<LandingPage />);
+
+    const team = screen.getByRole("region", { name: /team/i });
+    for (const [name, handle] of AUTHORS) {
+      const link = within(team).getByRole("link", { name: new RegExp(`@${handle}`) });
+      const avatar = link.querySelector("[data-avatar]");
+      expect(decodeURIComponent(avatar?.getAttribute("src") ?? "")).toContain(
+        `https://avatars.githubusercontent.com/${handle}`,
+      );
+      expect(avatar).toHaveAttribute("alt", "");
+      // The initials stay underneath, shown if the avatar can't load.
+      expect(link).toHaveTextContent(name);
+    }
+  });
 });

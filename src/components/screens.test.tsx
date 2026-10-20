@@ -35,6 +35,7 @@ import { ApiError } from "@/lib/api/client";
 import { MOMENT_QUESTIONS, RESULTS_QUESTIONS } from "@/lib/api/mocks/assistant";
 import { getAllClips } from "@/lib/clips";
 import { topMatches } from "@/lib/matches";
+import { SMALL_SCREEN_QUERY } from "@/lib/useMediaQuery";
 import { EXAMPLE_QUESTIONS } from "@/lib/exampleQuestions";
 import { resultsHref } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
@@ -119,6 +120,19 @@ function allowMotion() {
     "matchMedia",
     vi.fn((query: string) => ({
       matches: query.includes("no-preference"),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+/** Opts a test into a small screen (below `md`), where Results shows one panel at a time. */
+function simulateSmallScreen() {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query === SMALL_SCREEN_QUERY,
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -698,6 +712,76 @@ describe("Results", () => {
     expect(screen.queryByRole("button", { name: "Deselect" })).not.toBeInTheDocument();
   });
 
+  it("on small screens, switches between the chat and the video panels from a segmented bar", async () => {
+    simulateSmallScreen();
+    const user = userEvent.setup();
+    await act(() => useAppStore.getState().runSearch("red car"));
+    const { container } = render(<ResultsScreen />);
+
+    const track = container.querySelector("[data-results-track]")!;
+    const tabs = screen.getByRole("tablist", { name: "Results view" });
+    const chatTab = within(tabs).getByRole("tab", { name: "Chat" });
+    const videoTab = within(tabs).getByRole("tab", { name: /^Video/ });
+    const chat = document.getElementById("results-chat")!;
+    const video = document.getElementById("results-video")!;
+    // The bar is for small screens only.
+    expect(tabs.parentElement).toHaveClass("md:hidden");
+
+    // Opens on the chat; the video panel sits off screen, out of the tab order.
+    expect(chatTab).toHaveAttribute("aria-selected", "true");
+    expect(track).not.toHaveClass("max-md:-translate-x-1/2");
+    expect(video).toHaveAttribute("inert");
+    expect(chat).not.toHaveAttribute("inert");
+
+    await user.click(videoTab);
+
+    expect(videoTab).toHaveAttribute("aria-selected", "true");
+    expect(track).toHaveAttribute("data-view", "video");
+    expect(track).toHaveClass("max-md:-translate-x-1/2");
+    expect(chat).toHaveAttribute("inert");
+    expect(video).not.toHaveAttribute("inert");
+    // The matching moments travel with the video.
+    expect(screen.getByText(/MATCHING/).closest("[inert]")).toBeNull();
+
+    await user.click(chatTab);
+    expect(track).toHaveAttribute("data-view", "chat");
+    expect(video).toHaveAttribute("inert");
+  });
+
+  it("on small screens, lights up the Video tab with the moments waiting there until it is opened", async () => {
+    simulateSmallScreen();
+    const user = userEvent.setup();
+    const { container } = render(<ResultsScreen />);
+    const videoTab = () => screen.getByRole("tab", { name: /^Video/ });
+    const signal = () => container.querySelector("[data-video-signal]");
+
+    act(() => void useAppStore.getState().runSearch("red car"));
+    expect(signal()).toHaveAttribute("data-video-signal", "loading");
+    expect(videoTab()).toHaveAccessibleName("Video, finding moments");
+
+    await waitForAnswer();
+    const count = topMatches(useAppStore.getState().results).length;
+    await vi.waitFor(() => expect(signal()).toHaveAttribute("data-video-signal", "ready"));
+    expect(signal()).toHaveTextContent(String(count));
+    expect(videoTab()).toHaveAccessibleName(`Video, ${count} moments to watch`);
+    expect(videoTab()).toHaveClass("ring-1");
+
+    // Seen once the video is open, and it stays quiet back on the chat.
+    await user.click(videoTab());
+    expect(signal()).toBeNull();
+    await user.click(screen.getByRole("tab", { name: "Chat" }));
+    expect(signal()).toBeNull();
+    expect(videoTab()).not.toHaveClass("ring-1");
+  });
+
+  it("keeps both panels usable on wide screens, where the bar is hidden", async () => {
+    await act(() => useAppStore.getState().runSearch("red car"));
+    render(<ResultsScreen />);
+
+    expect(document.getElementById("results-chat")).not.toHaveAttribute("inert");
+    expect(document.getElementById("results-video")).not.toHaveAttribute("inert");
+  });
+
   it("expands the video by collapsing the chat, then brings the chat back as it was", async () => {
     const user = userEvent.setup();
     await act(() => useAppStore.getState().runSearch("red car"));
@@ -1249,6 +1333,25 @@ describe("Results — assistant", () => {
     await user.click(within(bubble).getByRole("button"));
 
     expect(screen.getByText(`${topMatch().camera} · ${topMatch().ts}`)).toBeInTheDocument();
+  });
+
+  it("on small screens, slides to the video when a moment is opened from the chat", async () => {
+    simulateSmallScreen();
+    const user = userEvent.setup();
+    const { container } = render(<ResultsScreen />);
+    const track = container.querySelector("[data-results-track]")!;
+
+    await user.click(screen.getByRole("tab", { name: /^Video/ }));
+    await user.click(screen.getByText(topMatch().ts).closest("button")!);
+    await user.click(screen.getByRole("tab", { name: "Chat" }));
+    await user.click(await screen.findByRole("button", { name: clipSuggestedQuestions[0] }));
+    await screen.findAllByRole("button", { name: /^Jump to / });
+    expect(track).toHaveAttribute("data-view", "chat");
+
+    const bubble = screen.getByRole("group", { name: "Question about a moment" });
+    await user.click(within(bubble).getByRole("button"));
+
+    expect(track).toHaveAttribute("data-view", "video");
   });
 
   it("brings back the results suggestions once the selection is cleared", async () => {

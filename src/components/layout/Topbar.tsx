@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, Cctv, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -14,6 +14,16 @@ const FOOTAGE_CLASS =
   "text-ink-2 hover:text-ink flex cursor-pointer items-center gap-2 font-mono text-xs no-underline transition-colors duration-150";
 
 const camerasLabel = (count: number) => `${count} ${count === 1 ? "camera" : "cameras"}`;
+
+/** Small screens show the count beside a camera icon, without the dot or the words. */
+function CompactCount({ count }: { count: number | null }) {
+  return (
+    <span aria-hidden className="flex items-center gap-1 sm:hidden">
+      {count !== null ? count : null}
+      <Cctv size={15} strokeWidth={2} />
+    </span>
+  );
+}
 
 const BREADCRUMBS: ReadonlyArray<{ prefix: string; label: string }> = [
   { prefix: "/dashboard", label: "Query" },
@@ -96,9 +106,16 @@ export function Topbar() {
 
       <div className="flex shrink-0 items-center gap-3 md:gap-4">
         {scopedToSearch ? (
-          <button type="button" onClick={openCameras} className={FOOTAGE_CLASS}>
-            <span aria-hidden className="bg-accent size-[7px] rounded-full" />
-            {camerasLabel(camerasInSearch)} <span className="max-sm:hidden">in this search</span>
+          <button
+            type="button"
+            onClick={openCameras}
+            // Named in full: small screens show only the count and an icon.
+            aria-label={`${camerasLabel(camerasInSearch)} in this search`}
+            className={FOOTAGE_CLASS}
+          >
+            <span aria-hidden className="bg-accent size-[7px] rounded-full max-sm:hidden" />
+            <span className="max-sm:hidden">{camerasLabel(camerasInSearch)} in this search</span>
+            <CompactCount count={camerasInSearch} />
           </button>
         ) : (
           <Link
@@ -107,15 +124,14 @@ export function Topbar() {
             aria-label={`Archived footage${cameraCount !== null ? ` · ${camerasLabel(cameraCount)} indexed` : ""}`}
             className={FOOTAGE_CLASS}
           >
-            <span aria-hidden className="bg-accent size-[7px] rounded-full" />
-            {/* Small screens keep only the count, or just the dot until it is known. */}
+            <span aria-hidden className="bg-accent size-[7px] rounded-full max-sm:hidden" />
+            {/* Small screens keep only the count and a camera icon, or just the icon until
+                the count is known. */}
             <span className="max-sm:hidden">Archived footage </span>
             {cameraCount !== null ? (
-              <span>
-                <span className="max-sm:hidden">· </span>
-                {camerasLabel(cameraCount)} indexed
-              </span>
+              <span className="max-sm:hidden">· {camerasLabel(cameraCount)} indexed</span>
             ) : null}
+            <CompactCount count={cameraCount} />
           </Link>
         )}
         <ThemeToggle />

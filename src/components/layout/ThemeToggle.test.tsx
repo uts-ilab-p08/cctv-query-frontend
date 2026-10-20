@@ -70,6 +70,30 @@ describe("ThemeToggle", () => {
   });
 });
 
+describe("ThemeToggle on small screens", () => {
+  beforeEach(() => {
+    resetStore();
+    localStorage.clear();
+    document.documentElement.setAttribute("data-theme", DEFAULT_THEME);
+  });
+
+  it("swaps the pill for one icon button, hidden from sm up, that switches theme", async () => {
+    const user = userEvent.setup();
+    render(<ThemeToggle />);
+
+    const toLight = screen.getByRole("button", { name: "Switch to light theme" });
+    expect(toLight).toHaveClass("sm:hidden");
+    expect(screen.getByRole("radiogroup", { name: "Theme" })).toHaveClass("max-sm:hidden");
+
+    await user.click(toLight);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
+
+    await user.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+});
+
 describe("themeInitScript", () => {
   beforeEach(() => {
     localStorage.clear();

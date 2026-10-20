@@ -1,5 +1,6 @@
 "use client";
 
+import { Moon, Sun } from "lucide-react";
 import { useEffect } from "react";
 
 import { cn } from "@/lib/cn";
@@ -12,7 +13,8 @@ const OPTIONS: ReadonlyArray<{ value: Theme; label: string }> = [
 ];
 
 /**
- * The 2-option segmented pill in the top bar. The inline `beforeInteractive`
+ * The 2-option segmented pill in the top bar; on small screens, a single icon button
+ * (moon in dark, sun in light) that switches to the other theme, to save space. The inline `beforeInteractive`
  * script has already stamped `data-theme`; this only re-syncs the store to the
  * stored value so the active segment matches what the user is actually seeing.
  */
@@ -36,30 +38,43 @@ export function ThemeToggle() {
     persistTheme(next);
   };
 
+  const other: Theme = theme === "dark" ? "light" : "dark";
+  const Icon = theme === "dark" ? Moon : Sun;
+
   return (
-    <div
-      role="radiogroup"
-      aria-label="Theme"
-      className="glass-card-flat flex items-center gap-0.5 rounded-full p-0.5"
-    >
-      {OPTIONS.map((option) => {
-        const active = theme === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={choose(option.value)}
-            className={cn(
-              "cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150",
-              active ? "surface-action shadow-action" : "text-ink-2 hover:text-ink",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={choose(other)}
+        aria-label={`Switch to ${other} theme`}
+        className="glass-card-flat text-ink-2 hover:text-ink flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors duration-150 sm:hidden"
+      >
+        <Icon size={16} strokeWidth={2} aria-hidden />
+      </button>
+      <div
+        role="radiogroup"
+        aria-label="Theme"
+        className="glass-card-flat flex items-center gap-0.5 rounded-full p-0.5 max-sm:hidden"
+      >
+        {OPTIONS.map((option) => {
+          const active = theme === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={choose(option.value)}
+              className={cn(
+                "cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150",
+                active ? "surface-action shadow-action" : "text-ink-2 hover:text-ink",
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }

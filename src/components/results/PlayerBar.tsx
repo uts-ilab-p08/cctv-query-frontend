@@ -3,6 +3,7 @@
 import { Info, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { MouseEvent } from "react";
 
+import { cn } from "@/lib/cn";
 import { fmtElapsed } from "@/lib/time";
 
 export interface PlayerTick {
@@ -137,7 +138,8 @@ export function PlayerBar({
         aria-label="Expand video"
         aria-pressed={videoExpanded}
         title={videoExpanded ? "Show the chat" : "Expand the video (hides the chat)"}
-        className={iconBtn}
+        // Small screens switch between the chat and the video from the bar above instead.
+        className={cn(iconBtn, "max-md:hidden")}
       >
         {videoExpanded ? (
           <Minimize2 size={14} strokeWidth={2} aria-hidden />
