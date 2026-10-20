@@ -10,11 +10,13 @@ import { createClient } from "@/lib/supabase/client";
 
 interface LoginScreenProps {
   redirectTo?: string;
+  /** Shown above the form, e.g. why a guest link didn't sign the visitor in. */
+  notice?: string;
 }
 
 /** Login: the project's pitch (left, as on the landing) + the sign-in form (right), backed by
  *  Supabase auth. The session persists on its own, so there is no remember-me toggle. */
-export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
+export function LoginScreen({ redirectTo = "/dashboard", notice }: LoginScreenProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -108,6 +110,15 @@ export function LoginScreen({ redirectTo = "/dashboard" }: LoginScreenProps) {
           <p className="text-ink-2 mb-7 text-[14px]">
             Use your project account to open the query workspace.
           </p>
+
+          {notice ? (
+            <p
+              role="status"
+              className="border-hairline-strong bg-panel-solid text-ink-2 mb-6 rounded-[9px] border px-3 py-2.5 text-[13px] leading-[1.5]"
+            >
+              {notice}
+            </p>
+          ) : null}
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div>

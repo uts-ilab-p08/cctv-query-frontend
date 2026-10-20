@@ -157,4 +157,16 @@ describe("LoginScreen", () => {
       expect(screen.getByLabelText("EMAIL")).toBeEnabled();
     });
   });
+
+  it("explains why a guest link didn't sign the visitor in", () => {
+    render(<LoginScreen notice="This guest link has expired." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("This guest link has expired.");
+  });
+
+  it("shows no notice on a plain visit", () => {
+    render(<LoginScreen />);
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });
