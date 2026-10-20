@@ -244,12 +244,14 @@ describe("LandingPage", () => {
     render(<LandingPage />);
 
     const results = screen.getByRole("region", { name: /filtering doubles accuracy/i });
-    expect(results).toHaveTextContent("19/22");
-    expect(results).toHaveTextContent("vs 9/22");
-    expect(results).toHaveTextContent("0.886");
-    // Each bar's count is read out with the series it belongs to, not by colour alone.
-    expect(results).toHaveTextContent("With filters: 19 / 22");
-    expect(results).toHaveTextContent("Without filters: 12 / 22");
+    const headline = results.querySelector("[data-results-headline]")!;
+    expect(headline).toHaveTextContent(/19\/22\s*with filters/);
+    expect(headline).toHaveTextContent(/9\/22\s*without filters/);
+    expect(headline).toHaveTextContent("0.886");
+    // Each bar is named in words, not by colour alone, beside its count.
+    const chart = results.querySelector("[data-retrieval-chart]")!;
+    expect(chart).toHaveTextContent(/Correct video first.*With filters\s*19\/22\s*Without\s*9\/22/);
+    expect(chart).toHaveTextContent(/Returned nothinglower is better/);
     for (const figure of ["1,955", "96.4%", "80.5%", "20%", "32%"]) {
       expect(results).toHaveTextContent(figure);
     }
@@ -265,7 +267,7 @@ describe("LandingPage", () => {
     render(<LandingPage signInHref="/auth/guest?code=SHOWCASE26" />);
 
     const signIns = [
-      ...screen.getAllByRole("link", { name: "Sign in" }),
+      ...screen.getAllByRole("link", { name: "Try it now" }),
       screen.getByRole("link", { name: "Open the workspace" }),
     ];
     expect(signIns).toHaveLength(3);
@@ -276,7 +278,7 @@ describe("LandingPage", () => {
     render(<LandingPage />);
 
     screen
-      .getAllByRole("link", { name: "Sign in" })
+      .getAllByRole("link", { name: "Try it now" })
       .forEach((link) => expect(link).toHaveAttribute("href", "/login"));
   });
 

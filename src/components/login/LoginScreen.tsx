@@ -62,24 +62,30 @@ export function LoginScreen({ redirectTo = "/dashboard", notice }: LoginScreenPr
 
   return (
     <div className="bg-canvas text-ink flex min-h-screen flex-col lg:flex-row">
-      <div className="bg-panel-solid border-hairline relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 lg:basis-[52%] lg:px-11">
+      {/* Below lg the panel keeps only the logo, right above the form: the pitch
+          stays for assistive tech (the page's h1) but leaves the screen to the form. */}
+      <div className="bg-panel-solid border-hairline relative flex min-w-0 flex-1 flex-col justify-between overflow-hidden px-6 pt-9 pb-10 max-lg:flex-none max-lg:bg-transparent max-lg:pt-12 max-lg:pb-0 lg:basis-[52%] lg:px-11">
         {/* Same two glows as the landing hero. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-[340px] -left-[280px] h-[900px] w-[900px] rounded-full"
+          className="pointer-events-none absolute -top-[340px] -left-[280px] h-[900px] w-[900px] rounded-full max-lg:hidden"
           style={{ background: "radial-gradient(circle, var(--glow-1), transparent 70%)" }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute right-[-240px] bottom-[-360px] h-[1000px] w-[1000px] rounded-full"
+          className="pointer-events-none absolute right-[-240px] bottom-[-360px] h-[1000px] w-[1000px] rounded-full max-lg:hidden"
           style={{ background: "radial-gradient(circle, var(--glow-2), transparent 70%)" }}
         />
 
-        <Link href="/" className="relative self-start no-underline">
-          <BrandLockup />
-        </Link>
+        {/* Below lg the wrapper takes the form's width and centring, so the logo lines up
+            with the form's left edge; only the logo itself is the link. */}
+        <div className="relative self-start max-lg:w-full max-lg:max-w-[376px] max-lg:self-center">
+          <Link href="/" className="inline-flex no-underline">
+            <BrandLockup />
+          </Link>
+        </div>
 
-        <div className="relative my-12 max-w-[460px] lg:my-0">
+        <div className="relative max-w-[460px] max-lg:sr-only">
           <p className="text-ink-3 mb-4 font-mono text-[11px] tracking-[1.4px]">
             UTS CAPSTONE · PROJECT 08-01
           </p>
@@ -98,13 +104,13 @@ export function LoginScreen({ redirectTo = "/dashboard", notice }: LoginScreenPr
           </p>
         </div>
 
-        <div className="text-ink-3 relative flex flex-wrap gap-[26px] font-mono text-[12px]">
+        <div className="text-ink-3 relative flex flex-wrap gap-[26px] font-mono text-[12px] max-lg:hidden">
           <span>Pre-recorded footage only</span>
           <span>MEVA research dataset</span>
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 items-center justify-center px-6 py-10 sm:px-8 lg:basis-[48%]">
+      <div className="flex min-w-0 flex-1 items-center justify-center px-6 py-10 max-lg:items-start max-lg:pt-8 sm:px-8 lg:basis-[48%]">
         <div className="font-barlow w-full max-w-[376px]">
           <h2 className="mb-1.5 text-[24px] font-bold">Sign in</h2>
           <p className="text-ink-2 mb-7 text-[14px]">
