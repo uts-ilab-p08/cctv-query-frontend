@@ -269,6 +269,7 @@ export function QueryField({
               ) : (
                 <span
                   key={index}
+                  data-demo="entity"
                   onClick={openMenu(segment.hit)}
                   className="border-token-line text-token-ink pointer-events-auto cursor-pointer border-b-2 border-dashed pb-[3px] [-webkit-text-stroke:0.45px_currentColor]"
                 >
@@ -295,6 +296,7 @@ export function QueryField({
 
         {menu ? (
           <div
+            data-demo="entity-menu"
             onClick={(event) => event.stopPropagation()}
             style={{ top: menu.top, left: menu.left }}
             className="glass-panel rounded-chip absolute z-40 max-h-[252px] min-w-[212px] overflow-y-auto p-2"
