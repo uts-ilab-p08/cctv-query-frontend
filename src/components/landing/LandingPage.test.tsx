@@ -84,7 +84,7 @@ describe("LandingPage", () => {
 
     const card = document.querySelector("[data-hero-query]");
     expect(card).toHaveAttribute("aria-hidden", "true");
-    expect(card).toHaveTextContent("Did someone carry a heavy object in this scene?");
+    expect(card).toHaveTextContent("What happened at the hospital on 5 March between 1pm and 2pm?");
     expect(card).toHaveTextContent("5 matching moments");
   });
 
@@ -139,6 +139,7 @@ describe("LandingPage", () => {
       .map((item) => item.textContent);
     expect(questions).toEqual(
       expect.arrayContaining([
+        "What happened at the hospital on 5 March between 1pm and 2pm?",
         "Did someone carry a heavy object in this scene?",
         "Did anyone open a car trunk in the school parking lot?",
         "Was there a vehicle that turned right in the school parking lot?",
@@ -197,14 +198,103 @@ describe("LandingPage", () => {
 
     const nav = within(screen.getByRole("banner")).getByRole("navigation");
     for (const [label, target] of [
+      ["Problem", "#problem"],
       ["How it works", "#how"],
-      ["Product", "#product"],
+      ["Results", "#results"],
       ["Team", "#team"],
     ]) {
       expect(within(nav).getByRole("link", { name: label })).toHaveAttribute("href", target);
     }
-    for (const id of ["how", "product", "team"]) {
+    for (const id of ["problem", "how", "product", "results", "team"]) {
       expect(document.getElementById(id)).not.toBeNull();
+    }
+  });
+
+  it("explains the problem with the poster's figures and their sources", () => {
+    render(<LandingPage />);
+
+    const problem = screen.getByRole("region", { name: /more footage than anyone can watch/i });
+    for (const figure of ["25,500+", "11,000+", "9,000+", "5,500", "600,000 h", "1 TB"]) {
+      expect(problem).toHaveTextContent(figure);
+    }
+    expect(problem).toHaveTextContent("1,000 hours of CCTV by hand");
+    expect(problem).toHaveTextContent(/Sources: Morgan & Coughlan \(2018\)/);
+  });
+
+  it("walks through the five steps from footage to a cited answer", () => {
+    render(<LandingPage />);
+
+    const how = screen.getByRole("region", { name: /five steps/i });
+    const steps = within(how)
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(steps).toEqual(
+      expect.arrayContaining([
+        "Cameras record",
+        "AI watches",
+        "Events are saved",
+        "You ask",
+        "You see the proof",
+      ]),
+    );
+    expect(how).toHaveTextContent("Steps 2 and 4 are tested separately");
+  });
+
+  it("reports the measured results, with and without filters", () => {
+    render(<LandingPage />);
+
+    const results = screen.getByRole("region", { name: /filtering doubles accuracy/i });
+    const headline = results.querySelector("[data-results-headline]")!;
+    expect(headline).toHaveTextContent(/19\/22\s*with filters/);
+    expect(headline).toHaveTextContent(/9\/22\s*without filters/);
+    expect(headline).toHaveTextContent("0.886");
+    // Each bar is named in words, not by colour alone, beside its count.
+    const chart = results.querySelector("[data-retrieval-chart]")!;
+    expect(chart).toHaveTextContent(/Correct video first.*With filters\s*19\/22\s*Without\s*9\/22/);
+    expect(chart).toHaveTextContent(/Returned nothinglower is better/);
+    for (const figure of ["1,955", "96.4%", "80.5%", "20%", "32%"]) {
+      expect(results).toHaveTextContent(figure);
+    }
+  });
+
+  it("leaves out the answer models that aren't used", () => {
+    const { container } = render(<LandingPage />);
+
+    expect(container).not.toHaveTextContent(/nemotron/i);
+  });
+
+  it("points every sign-in link at the given target, such as the guest sign-in", () => {
+    render(<LandingPage signInHref="/auth/guest?code=SHOWCASE26" />);
+
+    const signIns = [
+      ...screen.getAllByRole("link", { name: "Try it now" }),
+      screen.getByRole("link", { name: "Open the workspace" }),
+    ];
+    expect(signIns).toHaveLength(3);
+    signIns.forEach((link) => expect(link).toHaveAttribute("href", "/auth/guest?code=SHOWCASE26"));
+  });
+
+  it("sends sign-in to the login page by default", () => {
+    render(<LandingPage />);
+
+    screen
+      .getAllByRole("link", { name: "Try it now" })
+      .forEach((link) => expect(link).toHaveAttribute("href", "/login"));
+  });
+
+  it("shows each author's GitHub avatar, decorative since the link already names them", () => {
+    render(<LandingPage />);
+
+    const team = screen.getByRole("region", { name: /team/i });
+    for (const [name, handle] of AUTHORS) {
+      const link = within(team).getByRole("link", { name: new RegExp(`@${handle}`) });
+      const avatar = link.querySelector("[data-avatar]");
+      expect(decodeURIComponent(avatar?.getAttribute("src") ?? "")).toContain(
+        `https://avatars.githubusercontent.com/${handle}`,
+      );
+      expect(avatar).toHaveAttribute("alt", "");
+      // The initials stay underneath, shown if the avatar can't load.
+      expect(link).toHaveTextContent(name);
     }
   });
 });

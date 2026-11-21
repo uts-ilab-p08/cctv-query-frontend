@@ -39,6 +39,18 @@ describe("Topbar", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps only the count and a camera icon on small screens", async () => {
+    vi.mocked(getCameras).mockResolvedValue(cameras);
+    render(<Topbar />);
+
+    const link = await screen.findByRole("link", { name: "Archived footage · 2 cameras indexed" });
+    const compact = link.querySelector(".sm\\:hidden");
+    expect(compact).toHaveTextContent(/^2$/);
+    expect(compact?.querySelector("svg")).not.toBeNull();
+    // The words, and the dot, are hidden below sm.
+    expect(link.querySelectorAll(".max-sm\\:hidden")).toHaveLength(3);
+  });
+
   it("links Home to the Indexed Cameras screen instead of opening a dialog", async () => {
     vi.mocked(getCameras).mockResolvedValue(cameras);
     render(<Topbar />);

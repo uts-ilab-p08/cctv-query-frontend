@@ -157,4 +157,31 @@ describe("LoginScreen", () => {
       expect(screen.getByLabelText("EMAIL")).toBeEnabled();
     });
   });
+
+  it("explains why a guest link didn't sign the visitor in", () => {
+    render(<LoginScreen notice="This guest link has expired." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("This guest link has expired.");
+  });
+
+  it("shows no notice on a plain visit", () => {
+    render(<LoginScreen />);
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("keeps only the logo above the form on small screens, the pitch left to assistive tech", () => {
+    render(<LoginScreen />);
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.parentElement).toHaveClass("max-lg:sr-only");
+    expect(screen.getByText("Pre-recorded footage only").parentElement).toHaveClass(
+      "max-lg:hidden",
+    );
+    // Left-aligned with the form: its wrapper shares the form's width and centring.
+    expect(screen.getByRole("link", { name: /horus/i }).parentElement).toHaveClass(
+      "max-lg:max-w-[376px]",
+      "max-lg:self-center",
+    );
+  });
 });
