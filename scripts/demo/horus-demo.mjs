@@ -39,17 +39,17 @@ const CONFIG = {
   answerTimeoutMs: 90000,   // a follow-up answer
 };
 
-const Q1 = 'What happened at the hospital on 5 March between 1pm and 2pm?';
+const Q1 = 'Did anyone open a facility door in the school camera near the start of the clip?';
 const Q2 = 'On cameras G505, G508 and G509, are there any people carrying a backpack?';
 
 /** Terms the query field should highlight while the question is on screen. */
-const Q1_ENTITIES = [['hospital', /hospital/i], ['5 March', /5\s*March/i], ['1pm–2pm', /1\s*pm[\s\S]*2\s*pm/i]];
+const Q1_ENTITIES = [['anyone', /anyone/i], ['door', /door/i], ['school', /school/i]];
 const Q2_ENTITIES = [['G505', /G505/], ['G508', /G508/], ['G509', /G509/]];
 /** Highlighted terms whose dropdown the demo opens (first token matching each pattern). */
-const Q1_MENUS = [['place', /hospital/i], ['date', /March/i], ['time', /\d\s*(am|pm)/i]];
+const Q1_MENUS = [['place', /school/i], ['subject', /door/i]];
 const Q2_MENUS = [['camera', /G50\d/]];
 /** Saved query whose "Run again" the demo presses (1-based; the last one if there are fewer). */
-const SAVED_QUERY_TO_RUN = 5;
+const SAVED_QUERY_TO_RUN = 7;
 
 // ---------------------------------------------------------------- selectors
 // Taken from the frontend's own markup (aria-labels, roles, data-* hooks). The one
