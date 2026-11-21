@@ -18,21 +18,17 @@ The web app for **Horus**, a system that lets you ask questions about multi-came
 
 ### Video walkthrough
 
-<!-- TODO: in GitHub's web editor, drag docs/media/demo/horus-demo-clip.mp4 onto this line and replace this comment with the https://github.com/user-attachments/assets/... URL it generates (alone on its line). -->
+[![Horus demo preview](docs/media/demo/horus-demo-preview.webp)](https://media.nelkit.dev/projects/demos/horus-demo-loop-4k-dark.mp4)
 
-_48-second highlight: ask in plain English, fine-tune the detected filters, read a cited answer and jump to the exact second._
+_48-second highlight: ask in plain English, fine-tune the detected filters, read a cited answer and jump to the exact second. Download it as [MP4 (1080p)](docs/media/demo/horus-demo-clip.mp4)._
 
-**Full walkthrough (2:48, 4K):** click the image below to watch it.
-
-[![Watch the full Horus demo](docs/media/demo/demo-thumbnail.jpg)](https://media.nelkit.dev/projects/demos/horus-demo-loop-4k-dark.mp4)
+[![Watch the full walkthrough](https://img.shields.io/badge/%E2%96%B6%20Watch%20the%20full%20walkthrough-2%3A48%20%C2%B7%204K-2563EB?style=for-the-badge)](https://media.nelkit.dev/projects/demos/horus-demo-loop-4k-dark.mp4)
 
 ### Showcase poster
 
-[![Project poster](docs/media/poster/poster-dark-web.jpg)](docs/media/poster/poster-dark-web.jpg)
+[![Project poster](docs/media/poster/poster-dark-web.jpg)](docs/media/poster/poster-dark.png)
 
-<!-- TODO: link the image above to the full-resolution poster (8164 × 4592) once it is back in docs/media/poster/ or hosted on media.nelkit.dev. -->
-
-_Click the image to open the poster at full size._
+_Click the image to open the full-resolution poster (8164 × 4592)._
 
 ---
 
